@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  yarp:
+    build:
+      context: ./dejting-yarp
+      dockerfile: Dockerfile
+    ports:
+      - "5177:80"
+    depends_on:
+      - auth-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  auth-service:
+    image: auth-service
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  # Uncomment and configure these services when they are ready
+  # user-service:
+  #   image: your-user-service-image
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+
+  # match-service:
+  #   image: your-match-service-image
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
