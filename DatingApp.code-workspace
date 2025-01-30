@@ -1,10 +1,13 @@
 {
 	"folders": [
 		{
-			"path": "dejting-yarp"
+			"path": "."
 		},
 		{
 			"path": "auth-service"
+		},
+		{
+			"path": "dejting-yarp"
 		}
 	],
 	"settings": {}
