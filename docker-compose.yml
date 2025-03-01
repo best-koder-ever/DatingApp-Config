@@ -2,34 +2,45 @@ version: '3.8'
 
 services:
   yarp:
+    image: yarp:latest
     build:
       context: ./dejting-yarp
       dockerfile: Dockerfile
     ports:
-      - "5177:80"
+      - "8080:8080"
     depends_on:
       - auth-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8080
+      - ASPNETCORE_URLS=http://*:8080     
 
   auth-service:
+    image: auth-service:latest  
     build:
       context: ./auth-service
       dockerfile: Dockerfile
     ports:
-      - "5000:80" # 5000:80 ?? 
+      - "8081:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8081
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ASPNETCORE_URLS=http://*:8081
+      - ConnectionStrings__DefaultConnection=Server=mysql-db;Port=3306;Database=AuthServiceDb;User=authuser;Password=authuser_password;
     depends_on:
-      - db
+      - mysql-db
 
-  db:
+  mysql-db:
     image: mysql:8.0
+    container_name: mysql-db
+    restart: always    
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword  # Set the root password for MySQL
+      MYSQL_ROOT_PASSWORD: m  # Set the root password for MySQL
       MYSQL_DATABASE: AuthServiceDb  # Set the name of the initial database
       MYSQL_USER: authuser  # Set the name of a non-root user
-      MYSQL_PASSWORD: authpassword  # Set the password for the non-root user
+      MYSQL_PASSWORD: authuser_password  # Set the password for the non-root user
     ports:
       - "3307:3306"
     volumes:
