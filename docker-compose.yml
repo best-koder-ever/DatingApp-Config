@@ -10,11 +10,14 @@ services:
       - "8080:8080"
     depends_on:
       - auth-service
+      - user-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8080
       - ASPNETCORE_URLS=http://*:8080     
+    networks:
+      - app-network
 
   auth-service:
     image: auth-service:latest  
@@ -28,39 +31,65 @@ services:
       - ASPNETCORE_HTTP_PORTS=8081
       - ASPNETCORE_HTTPS_PORTS=8081
       - ASPNETCORE_URLS=http://*:8081
-      - ConnectionStrings__DefaultConnection=Server=mysql-db;Port=3306;Database=AuthServiceDb;User=authuser;Password=authuser_password;
+      - ConnectionStrings__DefaultConnection=Server=auth-service-db;Port=3306;Database=AuthServiceDb;User=authuser;Password=authuser_password;
     depends_on:
-      - mysql-db
+      - auth-service-db
+    networks:
+      - app-network
 
-  mysql-db:
+  auth-service-db:
     image: mysql:8.0
-    container_name: mysql-db
+    container_name: auth-service-db
     restart: always    
     environment:
-      MYSQL_ROOT_PASSWORD: m  # Set the root password for MySQL
-      MYSQL_DATABASE: AuthServiceDb  # Set the name of the initial database
-      MYSQL_USER: authuser  # Set the name of a non-root user
-      MYSQL_PASSWORD: authuser_password  # Set the password for the non-root user
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: AuthServiceDb
+      MYSQL_USER: authuser
+      MYSQL_PASSWORD: authuser_password
     ports:
       - "3307:3306"
     volumes:
-      - db_data:/var/lib/mysql
+      - auth-service-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  user-service:
+    image: user-service:latest
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8082
+      - ASPNETCORE_HTTPS_PORTS=8082
+      - ASPNETCORE_URLS=http://*:8082
+      - ConnectionStrings__DefaultConnection=Server=user-service-db;Port=3306;Database=UserServiceDb;User=userservice_user;Password=userservice_user_password;  
+    depends_on:
+      - user-service-db
+    networks:
+      - app-network
+
+  user-service-db:
+    image: mysql:8.0
+    container_name: user-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: UserServiceDb
+      MYSQL_USER: userservice_user
+      MYSQL_PASSWORD: userservice_user_password
+    ports:
+      - "3308:3306"
+    volumes:
+      - user-service-data:/var/lib/mysql
+    networks:
+      - app-network  
 
 volumes:
-  db_data:
+  auth-service-data:
+  user-service-data:
 
-
-  # Uncomment and configure these services when they are ready
-  # user-service:
-  #   image: your-user-service-image
-  #   ports:
-  #     - "5000:5000"
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-
-  # match-service:
-  #   image: your-match-service-image
-  #   ports:
-  #     - "5000:5000"
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
+networks:
+  app-network:
+    driver: bridge

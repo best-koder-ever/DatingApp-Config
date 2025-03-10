@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # List of project directories
-projects=("auth-service" "dejting-yarp")
+projects=("auth-service" "dejting-yarp" "UserService")
 
 # Navigate to the root directory
 cd ~/development/DatingApp/

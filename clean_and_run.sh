@@ -1,39 +1,29 @@
 #!/bin/bash
 
-# Stop all running containers except MySQL
+# Stop all running containers
 for container in $(docker ps -q); do
-  if [[ $(docker inspect --format='{{.Config.Image}}' $container) != *"mysql"* ]]; then
-    docker stop $container
-  fi
+  docker stop $container
 done
 
-# Remove all containers except MySQL
+# Remove all containers
 for container in $(docker ps -a -q); do
-  if [[ $(docker inspect --format='{{.Config.Image}}' $container) != *"mysql"* ]]; then
-    docker rm $container
-  fi
+  docker rm $container
 done
 
-# Remove all images except MySQL
+# Remove all images
 for image in $(docker images -q); do
-  if [[ $(docker inspect --format='{{.RepoTags}}' $image) != *"mysql"* ]]; then
-    docker rmi $image
-  fi
+  docker rmi $image
 done
 
-# Remove all volumes except those used by MySQL
+# Remove all volumes
 for volume in $(docker volume ls -q); do
-  if [[ $volume != *"mysql"* ]]; then
-    docker volume rm $volume
-  fi
+  docker volume rm $volume
 done
 
-# Remove all networks except those used by MySQL
+# Remove all networks
 for network in $(docker network ls -q); do
-  if [[ $network != *"mysql"* ]]; then
-    docker network rm $network
-  fi
+  docker network rm $network
 done
 
 # Build and run Docker Compose
-docker-compose up --build -d  
+docker-compose up --build -d
