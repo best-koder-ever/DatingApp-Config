@@ -56,7 +56,7 @@ services:
   user-service:
     image: user-service:latest
     build:
-      context: ./UserService
+      context: ./user-service/UserService
       dockerfile: Dockerfile
     ports:
       - "8082:8082"
@@ -86,9 +86,44 @@ services:
     networks:
       - app-network  
 
+  seq:
+    image: datalust/seq:latest
+    ports:
+      - "5341:80"
+    environment:
+      ACCEPT_EULA: Y
+    volumes:
+      - seq-data:/data
+
+  loki:
+    image: grafana/loki:2.4.1
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./config/loki-config.yaml:/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.4.1
+    volumes:
+      - /var/log:/var/log
+      - ./config/promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+
+  grafana:
+    image: grafana/grafana:8.3.3
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
 volumes:
   auth-service-data:
   user-service-data:
+  seq-data:
+  grafana-storage:
 
 networks:
   app-network:
