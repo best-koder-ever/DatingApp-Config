@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "dejting-yarp"
+		},
+		{
+			"path": "MatchmakingService"
 		}
 	],
 	"settings": {}
