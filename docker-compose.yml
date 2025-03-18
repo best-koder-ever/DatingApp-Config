@@ -97,6 +97,45 @@ services:
       timeout: 5s
       retries: 5      
 
+  matchmaking-service:
+    image: matchmaking-service:latest
+    build:
+      context: ./matchmaking-service
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8083
+      - ASPNETCORE_HTTPS_PORTS=8083
+      - ASPNETCORE_URLS=http://*:8083
+      - ConnectionStrings__DefaultConnection=Server=matchmaking-service-db;Port=3306;Database=MatchmakingServiceDb;User=matchmakingservice_user;Password=matchmaking_user_password;  
+    depends_on:
+      - matchmaking-service-db
+    networks:
+      - app-network
+
+  matchmaking-service-db:
+    image: mysql:8.0
+    container_name: matchmaking-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: MatchmakingServiceDb
+      MYSQL_USER: matchmakingservice_user
+      MYSQL_PASSWORD: matchmakingservice_user_password
+    ports:
+      - "3309:3306"
+    volumes:
+      - matchmaking-service-data:/var/lib/mysql
+    networks:
+      - app-network  
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "matchmaking-service-db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5     
+
+
   seq:
     image: datalust/seq:latest
     ports:
@@ -145,6 +184,7 @@ volumes:
   loki-data:
   auth-service-data:
   user-service-data:
+  matchmaking-service-data:
   seq-data:
   grafana-storage:
 
