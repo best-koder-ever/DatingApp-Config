@@ -10,7 +10,7 @@
 			"path": "dejting-yarp"
 		},
 		{
-			"path": "MatchmakingService"
+			"path": "matchmaking-service"
 		}
 	],
 	"settings": {}
