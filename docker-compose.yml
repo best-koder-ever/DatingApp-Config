@@ -135,6 +135,43 @@ services:
       timeout: 5s
       retries: 5     
 
+  swipe-service:
+    image: swipe-service:latest
+    build:
+      context: ./swipe-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8084
+      - ASPNETCORE_HTTPS_PORTS=8084
+      - ASPNETCORE_URLS=http://*:8084
+      - ConnectionStrings__DefaultConnection=Server=swipe-service-db;Port=3306;Database=SwipeServiceDb;User=swipeservice_user;Password=swipeservice_user_password;
+    depends_on:
+      - swipe-service-db
+    networks:
+      - app-network
+
+  swipe-service-db:
+    image: mysql:8.0
+    container_name: swipe-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: SwipeServiceDb
+      MYSQL_USER: swipeservice_user
+      MYSQL_PASSWORD: swipeservice_user_password
+    ports:
+      - "3310:3306"
+    volumes:
+      - swipe-service-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "swipe-service-db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   seq:
     image: datalust/seq:latest
@@ -185,6 +222,7 @@ volumes:
   auth-service-data:
   user-service-data:
   matchmaking-service-data:
+  swipe-service-data:
   seq-data:
   grafana-storage:
 
