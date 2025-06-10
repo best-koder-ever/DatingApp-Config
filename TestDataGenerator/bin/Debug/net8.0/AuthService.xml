@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AuthService</name>
+    </assembly>
+    <members>
+        <member name="M:AuthService.Controllers.AuthController.Register(AuthService.DTOs.RegisterDto)">
+            <summary>
+            Registers a new user.
+            </summary>
+            <param name="dto">The registration details.</param>
+            <returns>A success message and a token if registration is successful.</returns>
+        </member>
+        <member name="M:AuthService.Controllers.AuthController.Login(AuthService.DTOs.LoginDto)">
+            <summary>
+            Authenticates a user and returns a JWT token.
+            </summary>
+            <param name="dto">The login details.</param>
+            <returns>A JWT token if authentication is successful.</returns>
+        </member>
+        <member name="M:AuthService.Controllers.AuthController.LoginWithFacebook(System.String)">
+            <summary>
+            Logs in a user using a Facebook access token.
+            </summary>
+            <param name="accessToken">The Facebook access token.</param>
+            <returns>A JWT token if login is successful.</returns>
+        </member>
+        <member name="M:AuthService.Controllers.AuthController.LoginWithGoogle(System.String)">
+            <summary>
+            Logs in a user using a Google ID token.
+            </summary>
+            <param name="idToken">The Google ID token.</param>
+            <returns>A JWT token if login is successful.</returns>
+        </member>
+        <member name="M:AuthService.Controllers.AuthController.LoginWithPhoneNumber(AuthService.DTOs.PhoneNumberLoginDto)">
+            <summary>
+            Logs in a user using a phone number and verification code.
+            </summary>
+            <param name="dto">The phone number and verification code.</param>
+            <returns>A JWT token if login is successful.</returns>
+        </member>
+        <member name="M:AuthService.Controllers.AuthController.ValidateToken(System.String)">
+            <summary>
+            Validates a JWT token.
+            </summary>
+            <param name="token">The JWT token to validate.</param>
+            <returns>A success message if the token is valid.</returns>
+        </member>
+        <member name="T:AuthService.Migrations.InitialCreate">
+            <inheritdoc />
+        </member>
+        <member name="M:AuthService.Migrations.InitialCreate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AuthService.Migrations.InitialCreate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AuthService.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:AuthService.Migrations.AddCustomUserProperties">
+            <inheritdoc />
+        </member>
+        <member name="M:AuthService.Migrations.AddCustomUserProperties.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AuthService.Migrations.AddCustomUserProperties.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:AuthService.Migrations.AddCustomUserProperties.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

@@ -11,7 +11,15 @@
 		},
 		{
 			"path": "matchmaking-service"
+		},
+		{
+			"path": "TestDataGenerator"
+		},
+		{
+			"path": "../mobile-apps/flutter/dejtingapp"
 		}
 	],
-	"settings": {}
+	"settings": {
+
+	}
 }

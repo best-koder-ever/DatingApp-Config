@@ -11,6 +11,8 @@ services:
     depends_on:
       - auth-service
       - user-service
+      - matchmaking-service
+      - swipe-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
@@ -100,8 +102,8 @@ services:
   matchmaking-service:
     image: matchmaking-service:latest
     build:
-      context: ./matchmaking-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./matchmaking-service/Dockerfile
     ports:
       - "8083:8083"
     environment:
@@ -196,7 +198,6 @@ services:
       - app-network
     user: "root"
 
-
   promtail:
     image: grafana/promtail:2.4.1
     volumes:
@@ -216,6 +217,26 @@ services:
       - grafana-storage:/var/lib/grafana
     networks:
       - app-network
+
+  test-data-generator:
+    build:
+      context: . # Changed from ./TestDataGenerator
+      dockerfile: ./TestDataGenerator/Dockerfile # Specified Dockerfile path
+    depends_on:
+      - auth-service
+    networks:
+      - app-network
+    environment:
+      - AUTH_API_URL=http://auth-service:8081
+    command: ["dotnet", "TestDataGenerator.dll"]
+
+  debug:
+    image: ubuntu:22.04
+    command: ["sleep", "infinity"]
+    networks:
+      - app-network
+    tty: true
+    stdin_open: true
 
 volumes:
   loki-data:

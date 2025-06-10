@@ -1,29 +1,26 @@
-# Stage 1: Build
+# Use the official .NET SDK image for building the application
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 WORKDIR /app
 
 # Copy the project file and restore dependencies
-COPY UserService/UserService.csproj UserService/
-RUN dotnet restore UserService/UserService.csproj
+COPY user-service.csproj ./
+RUN dotnet restore
 
-# Copy the entire project
-COPY UserService/ UserService/  
+# Copy the entire project and build the application
+COPY . ./
+RUN dotnet publish -c Release -o out
 
-# Build and publish the application
-RUN dotnet publish UserService/UserService.csproj -c Release -o out
-
-# Stage 2: Runtime
+# Use the official .NET runtime image for running the application
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-
-# Copy the published files
 COPY --from=build-env /app/out .
 
-# Copy the public key
-COPY public.key /app/public.key
+# Copy the XML documentation file for Swagger from publish output
+COPY --from=build-env /app/out/UserService.xml ./UserService.xml
 
-# Expose port 8082
+# Copy the public key for JWT validation
+COPY public.key ./public.key
+
+# Expose the port and run the application
 EXPOSE 8082
-
-# Set the entry point for the application
 ENTRYPOINT ["dotnet", "UserService.dll"]
