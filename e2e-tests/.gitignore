@@ -1,0 +1,5 @@
+e2e-tests/venv/
+e2e-tests/venv/
+*.pyc
+__pycache__/
+
