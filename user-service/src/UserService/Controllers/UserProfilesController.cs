@@ -9,7 +9,6 @@ namespace UserService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class UserProfilesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -24,9 +23,36 @@ namespace UserService.Controllers
         /// </summary>
         /// <returns>A list of user profiles.</returns>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<UserProfile>>> GetUserProfiles()
         {
-            return await _context.UserProfiles.ToListAsync();
+            // Get the authenticated user's ID from the JWT claims
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"));
+            string? currentUserId = null;
+            if (userIdClaim != null)
+            {
+                currentUserId = userIdClaim.Value;
+            }
+
+            var profiles = await _context.UserProfiles.ToListAsync();
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                profiles = profiles.Where(p => p.Id.ToString() != currentUserId).ToList();
+            }
+            return profiles;
+        }
+
+        /// <summary>
+        /// Debug endpoint to show current user's authentication status and claims.
+        /// </summary>
+        [HttpGet("debug-auth")]
+        public IActionResult DebugAuth()
+        {
+            return Ok(new {
+                IsAuthenticated = User.Identity?.IsAuthenticated,
+                AuthenticationType = User.Identity?.AuthenticationType,
+                Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+            });
         }
 
         /// <summary>
@@ -34,8 +60,8 @@ namespace UserService.Controllers
         /// </summary>
         /// <param name="id">The ID of the user profile.</param>
         /// <returns>The user profile if found, or a not found message.</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<UserProfile>> GetUserProfile(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<UserProfile>> GetUserProfile([FromRoute] int id)
         {
             var userProfile = await _context.UserProfiles.FindAsync(id);
 
@@ -53,7 +79,7 @@ namespace UserService.Controllers
         /// <param name="id">The ID of the user profile.</param>
         /// <param name="userProfile">The updated user profile data.</param>
         /// <returns>No content if the update is successful, or an error message.</returns>
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public async Task<IActionResult> PutUserProfile(int id, UserProfile userProfile)
         {
             if (id != userProfile.Id)
@@ -101,7 +127,7 @@ namespace UserService.Controllers
         /// </summary>
         /// <param name="id">The ID of the user profile.</param>
         /// <returns>No content if the deletion is successful, or a not found message.</returns>
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteUserProfile(int id)
         {
             var userProfile = await _context.UserProfiles.FindAsync(id);

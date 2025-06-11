@@ -44,9 +44,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = "MyTinderCloneApp",
-            ValidAudience = "MyTinderCloneApp",
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new RsaSecurityKey(GetPublicKey())
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context => {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("JwtAuth");
+                logger.LogError(context.Exception, "JWT Auth failed");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context => {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("JwtAuth");
+                logger.LogInformation($"JWT Token validated for: {context.Principal?.Identity?.Name}");
+                return Task.CompletedTask;
+            },
+            OnChallenge = context => {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("JwtAuth");
+                logger.LogWarning($"JWT Challenge: {context.Error}, {context.ErrorDescription}");
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -106,7 +124,7 @@ app.UseCors(policy =>
     policy.AllowAnyOrigin()
           .AllowAnyMethod()
           .AllowAnyHeader());
-app.UseAuthentication(); // Ensure this is before UseAuthorization
-app.UseAuthorization();
+app.UseAuthentication(); // Enable authentication middleware
+app.UseAuthorization();  // Enable authorization middleware
 app.MapControllers();
 app.Run();
