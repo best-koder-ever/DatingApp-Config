@@ -40,6 +40,12 @@ fi
 
 echo "Starting mass commit and push for all projects..."
 
+# Optionally clean all ignored/untracked files in each repo to keep workspace clean
+CLEAN=false
+if [[ "$1" == "--clean" ]]; then
+  CLEAN=true
+fi
+
 for project in "${projects[@]}"; do
   if [ -d "$project/.git" ]; then
     echo -e "\n--- $project ---"
@@ -57,10 +63,16 @@ for project in "${projects[@]}"; do
     else
       echo "No remote 'origin' for $project, skipping push."
     fi
+    if $CLEAN; then
+      echo "Cleaning ignored/untracked files in $project..."
+      git clean -fdX
+    fi
     cd "$ROOT_DIR"
   else
     echo "No git repo found in $project, skipping."
   fi
 done
 
-echo "All done! Your file change list should now be clear."
+echo "All done! Your file change list should now be clear. If you still see files in Copilot or VS Code, try running:"
+echo "  bash $0 --clean"
+echo "This will remove all ignored/untracked files in each repo. You can also reload the VS Code window (Ctrl+Shift+P → Reload Window) or start a new chat safely."
