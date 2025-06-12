@@ -4,13 +4,14 @@
 set -e
 
 # Corrected paths for the projects
-projects=("auth-service" "dejting-yarp" "user-service" "matchmaking-service" "swipe-service")
+projects=("auth-service" "dejting-yarp" "user-service" "matchmaking-service" "swipe-service" "../mobile-apps/flutter/dejtingapp")
 declare -A project_remotes
 project_remotes["user-service"]="https://github.com/best-koder-ever/UserService.git"
 project_remotes["matchmaking-service"]="https://github.com/best-koder-ever/MatchmakingService.git"
 project_remotes["swipe-service"]="https://github.com/best-koder-ever/swipe-service.git"
 project_remotes["auth-service"]="https://github.com/best-koder-ever/auth-service.git"
 project_remotes["dejting-yarp"]="https://github.com/best-koder-ever/dejting-yarp.git"
+project_remotes["../mobile-apps/flutter/dejtingapp"]=""
 
 # Navigate to the root directory
 cd ~/development/DatingApp/
