@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# This script will commit and push ALL changes (including untracked files) in all git repos under DatingApp, the Flutter app, and the root folder.
+# It will clear your VS Code/Copilot file change list for a fresh start.
+
+set -e
+
+# List of project directories (relative to this script's location)
+projects=(
+  "auth-service"
+  "dejting-yarp"
+  "user-service"
+  "matchmaking-service"
+  "swipe-service"
+  "../mobile-apps/flutter/dejtingapp"
+)
+
+# Save the root directory
+ROOT_DIR="$(pwd)"
+
+# First, handle the root folder itself
+if [ -d .git ]; then
+  echo -e "\n--- ROOT FOLDER ---"
+  git status
+  git add -A
+  if ! git diff --cached --quiet; then
+    git commit -m "Save all outstanding changes in root on $(date)"
+  else
+    echo "No changes to commit in root."
+  fi
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  if git remote -v | grep -q "origin"; then
+    git push origin "$branch" || git push --set-upstream origin "$branch"
+  else
+    echo "No remote 'origin' for root, skipping push."
+  fi
+else
+  echo "No git repo found in root folder, skipping."
+fi
+
+echo "Starting mass commit and push for all projects..."
+
+for project in "${projects[@]}"; do
+  if [ -d "$project/.git" ]; then
+    echo -e "\n--- $project ---"
+    cd "$project"
+    git status
+    git add -A
+    if ! git diff --cached --quiet; then
+      git commit -m "Save all outstanding changes in $project on $(date)"
+    else
+      echo "No changes to commit in $project."
+    fi
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    if git remote -v | grep -q "origin"; then
+      git push origin "$branch" || git push --set-upstream origin "$branch"
+    else
+      echo "No remote 'origin' for $project, skipping push."
+    fi
+    cd "$ROOT_DIR"
+  else
+    echo "No git repo found in $project, skipping."
+  fi
+done
+
+echo "All done! Your file change list should now be clear."
