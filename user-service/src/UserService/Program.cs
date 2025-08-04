@@ -7,8 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
 using UserService.Data;
-
-// test
+using UserService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,17 +22,16 @@ builder.Services.AddCors(options =>
     });
 });
 
-
 // Add services to the container.
-//builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 30)) // Replace with your MySQL version
+        new MySqlServerVersion(new Version(8, 0, 30))
     ));
 
+// Register application services
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IVerificationService, VerificationService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -70,7 +68,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 RSA GetPublicKey()
 {
-    var publicKey = System.IO.File.ReadAllText("public.key"); // Or fetch from AuthService
+    var publicKey = System.IO.File.ReadAllText("public.key");
     var rsa = RSA.Create();
     rsa.ImportFromPem(publicKey);
     return rsa;
@@ -93,9 +91,14 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Create uploads directory
+var uploadsPath = Path.Combine(app.Environment.WebRootPath ?? "", "uploads", "photos");
+Directory.CreateDirectory(uploadsPath);
+
+// Serve static files (for photo uploads)
+app.UseStaticFiles();
+
 // Apply migrations on startup
-// this is done to ensure that the database is created before the application starts
-// and that the database schema is up to date with the model
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -103,15 +106,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-//}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "User Service API v1");
@@ -124,7 +123,7 @@ app.UseCors(policy =>
     policy.AllowAnyOrigin()
           .AllowAnyMethod()
           .AllowAnyHeader());
-app.UseAuthentication(); // Enable authentication middleware
-app.UseAuthorization();  // Enable authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.Run();

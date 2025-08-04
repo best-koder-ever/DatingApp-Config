@@ -215,13 +215,16 @@ class Program
                     Console.ReadKey();
                     break;
             }
+        }
+    }
+
     // Show status overview for AuthServiceDb and UserServiceDb
     static void ShowStatusOverview()
     {
         Console.Clear();
         Console.WriteLine("========== STATUS DASHBOARD ==========");
-        var results = new List<(string Db, string Table, int? Count, string Error)>();
-        results.Add(GetDbUserCount("AuthServiceDb", DbOptions["1"], "Users"));
+        var results = new List<(string Db, string Table, int? Count, string? Error)>();
+        results.Add(GetDbUserCount("AuthServiceDb", DbOptions["1"], "AspNetUsers"));
         results.Add(GetDbUserCount("UserServiceDb", DbOptions["2"], "UserProfiles"));
         // Optionally add more DBs here
 
@@ -247,7 +250,7 @@ class Program
         Console.ReadKey();
     }
 
-    static (string Db, string Table, int? Count, string Error) GetDbUserCount(string dbName, string connectionString, string tableName)
+    static (string Db, string Table, int? Count, string? Error) GetDbUserCount(string dbName, string connectionString, string tableName)
     {
         try
         {
@@ -261,8 +264,6 @@ class Program
         catch (Exception ex)
         {
             return (dbName, tableName, null, ex.Message);
-        }
-    }
         }
     }
     // Menu option to reset all databases
@@ -314,10 +315,13 @@ class Program
                     CreateNoWindow = true
                 };
                 using var process = System.Diagnostics.Process.Start(psi);
-                string output = await process.StandardOutput.ReadToEndAsync();
-                string error = await process.StandardError.ReadToEndAsync();
-                process.WaitForExit();
-                Console.WriteLine($"[Reset] {cmd}\n{output}\n{error}");
+                if (process != null)
+                {
+                    string output = await process.StandardOutput.ReadToEndAsync();
+                    string error = await process.StandardError.ReadToEndAsync();
+                    process.WaitForExit();
+                    Console.WriteLine($"[Reset] {cmd}\n{output}\n{error}");
+                }
             }
             catch (Exception ex)
             {
@@ -400,7 +404,7 @@ class Program
         Console.WriteLine("1. Direct Database Insert");
         Console.WriteLine("2. API Call");
         Console.Write("Enter choice: ");
-        string choice = Console.ReadLine();
+        string? choice = Console.ReadLine();
         switch (choice)
         {
             case "1":
@@ -457,7 +461,7 @@ class Program
         Console.WriteLine("4. Swipe Service DB");
         Console.Write("Enter choice: ");
         var dbChoice = Console.ReadLine();
-        if (DbOptions.TryGetValue(dbChoice, out var connStr))
+        if (!string.IsNullOrEmpty(dbChoice) && DbOptions.TryGetValue(dbChoice, out var connStr))
         {
             _connectionString = connStr;
             _selectedDb = dbChoice;
@@ -519,9 +523,9 @@ class Program
 
                 var faker = new Faker<AuthService.Models.User>()
                     .RuleFor(u => u.UserName, (f, u) => f.Internet.UserName())
-                    .RuleFor(u => u.NormalizedUserName, (f, u) => u.UserName.ToUpperInvariant())
+                    .RuleFor(u => u.NormalizedUserName, (f, u) => u.UserName?.ToUpperInvariant())
                     .RuleFor(u => u.Email, (f, u) => f.Internet.Email())
-                    .RuleFor(u => u.NormalizedEmail, (f, u) => u.Email.ToUpperInvariant())
+                    .RuleFor(u => u.NormalizedEmail, (f, u) => u.Email?.ToUpperInvariant())
                     .RuleFor(u => u.EmailConfirmed, f => false)
                     .RuleFor(u => u.PasswordHash, (f, u) => passwordHasher.HashPassword(u, "P@$$wOrd"))
                     .RuleFor(u => u.SecurityStamp, f => Guid.NewGuid().ToString().ToUpperInvariant())
@@ -673,14 +677,12 @@ class Program
         {
             if (string.IsNullOrWhiteSpace(user.ProfilePicture))
                 user.ProfilePicture = $"https://i.pravatar.cc/150?u={user.Email}";
-            bool registered = false;
             try
             {
                 var response = await httpClient.PostAsJsonAsync($"{AuthApiServiceUrl}/api/auth/register", user);
                 if (response.IsSuccessStatusCode)
                 {
                     Console.WriteLine($"Successfully created user: {user.Email} via API.");
-                    registered = true;
                 }
                 else
                 {
