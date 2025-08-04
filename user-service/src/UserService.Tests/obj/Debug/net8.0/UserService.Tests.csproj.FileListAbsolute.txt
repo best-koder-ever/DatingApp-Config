@@ -128,3 +128,8 @@
 /home/m/development/DatingApp/user-service/src/UserService.Tests/obj/Debug/net8.0/UserService.Tests.pdb
 /home/m/development/DatingApp/user-service/src/UserService.Tests/obj/Debug/net8.0/UserService.Tests.genruntimeconfig.cache
 /home/m/development/DatingApp/user-service/src/UserService.Tests/obj/Debug/net8.0/ref/UserService.Tests.dll
+/home/m/development/DatingApp/user-service/src/UserService.Tests/bin/Debug/net8.0/UserService.xml
+/home/m/development/DatingApp/user-service/src/UserService.Tests/bin/Debug/net8.0/Microsoft.EntityFrameworkCore.InMemory.dll
+/home/m/development/DatingApp/user-service/src/UserService.Tests/bin/Debug/net8.0/Microsoft.Extensions.Caching.Abstractions.dll
+/home/m/development/DatingApp/user-service/src/UserService.Tests/bin/Debug/net8.0/Microsoft.Extensions.Primitives.dll
+/home/m/development/DatingApp/user-service/src/UserService.Tests/bin/Debug/net8.0/System.Diagnostics.DiagnosticSource.dll

@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="0fe6d8b9-bbdb-4f02-837a-4ce41c93cbdd" name="@fastdev 2025-07-25 18:06:15" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-07-25T18:06:15.8945910+02:00" queuing="2025-07-25T18:06:15.8945910+02:00" start="2025-07-25T18:06:14.4118506+02:00" finish="2025-07-25T18:06:15.9005548+02:00" />
+  <TestSettings name="default" id="387d8371-5719-40d9-ad63-a8e22a4d485e">
+    <Deployment runDeploymentRoot="_fastdev_2025-07-25_18_06_15" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="081ed157-63c4-4a79-a168-7715b6710702" testId="4734a68c-29ba-8e5d-5c62-b6e78fafe466" testName="UserService.Tests.UserProfileDbTests.CanInsertAndRetrieveUserProfile_FromDbContext" computerName="fastdev" duration="00:00:00.6973792" startTime="2025-07-25T18:06:15.0466078+02:00" endTime="2025-07-25T18:06:15.7499708+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="081ed157-63c4-4a79-a168-7715b6710702" />
+    <UnitTestResult executionId="3e1f68bc-5913-46ff-8c19-08662095de64" testId="65322e02-41f1-d889-dae1-3c1686f3d079" testName="UserService.Tests.UserProfileTests.CanCreateUserProfile_WithValidData" computerName="fastdev" duration="00:00:00.0051313" startTime="2025-07-25T18:06:15.0479514+02:00" endTime="2025-07-25T18:06:15.0600061+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3e1f68bc-5913-46ff-8c19-08662095de64" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="UserService.Tests.UserProfileTests.CanCreateUserProfile_WithValidData" storage="/home/m/development/datingapp/user-service/src/userservice.tests/bin/debug/net8.0/userservice.tests.dll" id="65322e02-41f1-d889-dae1-3c1686f3d079">
+      <Execution id="3e1f68bc-5913-46ff-8c19-08662095de64" />
+      <TestMethod codeBase="/home/m/development/DatingApp/user-service/src/UserService.Tests/bin/Debug/net8.0/UserService.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserService.Tests.UserProfileTests" name="CanCreateUserProfile_WithValidData" />
+    </UnitTest>
+    <UnitTest name="UserService.Tests.UserProfileDbTests.CanInsertAndRetrieveUserProfile_FromDbContext" storage="/home/m/development/datingapp/user-service/src/userservice.tests/bin/debug/net8.0/userservice.tests.dll" id="4734a68c-29ba-8e5d-5c62-b6e78fafe466">
+      <Execution id="081ed157-63c4-4a79-a168-7715b6710702" />
+      <TestMethod codeBase="/home/m/development/DatingApp/user-service/src/UserService.Tests/bin/Debug/net8.0/UserService.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserService.Tests.UserProfileDbTests" name="CanInsertAndRetrieveUserProfile_FromDbContext" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="4734a68c-29ba-8e5d-5c62-b6e78fafe466" executionId="081ed157-63c4-4a79-a168-7715b6710702" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="65322e02-41f1-d889-dae1-3c1686f3d079" executionId="3e1f68bc-5913-46ff-8c19-08662095de64" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.2+dd36e86129 (64-bit .NET 8.0.17)
+[xUnit.net 00:00:00.10]   Discovering: UserService.Tests
+[xUnit.net 00:00:00.13]   Discovered:  UserService.Tests
+[xUnit.net 00:00:00.15]   Starting:    UserService.Tests
+[xUnit.net 00:00:00.88]   Finished:    UserService.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>
