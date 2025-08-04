@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "LESfbvCNXP+6QEnDu3P36PBA8aufqpBa/jMpPnqUv+N349OmjLlmAstW/OtU9jO9JLRXe9joL0QEu0uFAyKN/w==",
+  "dgSpecHash": "ZHImh65R8ccV4x+TZ6ZbBmW+a1N+kovc3rUZUvCXmKCTjrCS3MWXEA9eY3O8A60MvL8iJ6byoc1wk+poDw3nMQ==",
   "success": true,
   "projectFilePath": "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj",
   "expectedPackageFiles": [
@@ -73,6 +73,7 @@
     "/home/m/.nuget/packages/serilog.sinks.grafana.loki/8.3.0/serilog.sinks.grafana.loki.8.3.0.nupkg.sha512",
     "/home/m/.nuget/packages/serilog.sinks.periodicbatching/4.0.0/serilog.sinks.periodicbatching.4.0.0.nupkg.sha512",
     "/home/m/.nuget/packages/serilog.sinks.seq/7.0.0/serilog.sinks.seq.7.0.0.nupkg.sha512",
+    "/home/m/.nuget/packages/spectre.console/0.50.0/spectre.console.0.50.0.nupkg.sha512",
     "/home/m/.nuget/packages/swashbuckle.aspnetcore/6.6.2/swashbuckle.aspnetcore.6.6.2.nupkg.sha512",
     "/home/m/.nuget/packages/swashbuckle.aspnetcore.swagger/6.6.2/swashbuckle.aspnetcore.swagger.6.6.2.nupkg.sha512",
     "/home/m/.nuget/packages/swashbuckle.aspnetcore.swaggergen/6.6.2/swashbuckle.aspnetcore.swaggergen.6.6.2.nupkg.sha512",
@@ -95,6 +96,7 @@
     "/home/m/.nuget/packages/system.io/4.3.0/system.io.4.3.0.nupkg.sha512",
     "/home/m/.nuget/packages/system.io.hashing/8.0.0/system.io.hashing.8.0.0.nupkg.sha512",
     "/home/m/.nuget/packages/system.io.pipelines/6.0.3/system.io.pipelines.6.0.3.nupkg.sha512",
+    "/home/m/.nuget/packages/system.memory/4.6.3/system.memory.4.6.3.nupkg.sha512",
     "/home/m/.nuget/packages/system.reflection/4.3.0/system.reflection.4.3.0.nupkg.sha512",
     "/home/m/.nuget/packages/system.reflection.metadata/6.0.1/system.reflection.metadata.6.0.1.nupkg.sha512",
     "/home/m/.nuget/packages/system.reflection.primitives/4.3.0/system.reflection.primitives.4.3.0.nupkg.sha512",

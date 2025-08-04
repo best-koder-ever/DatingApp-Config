@@ -10,6 +10,11 @@
             </summary>
             <returns>A list of user profiles.</returns>
         </member>
+        <member name="M:UserService.Controllers.UserProfilesController.DebugAuth">
+            <summary>
+            Debug endpoint to show current user's authentication status and claims.
+            </summary>
+        </member>
         <member name="M:UserService.Controllers.UserProfilesController.GetUserProfile(System.Int32)">
             <summary>
             Retrieves a specific user profile by ID.
@@ -49,6 +54,18 @@
             <inheritdoc />
         </member>
         <member name="M:UserService.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:UserService.Migrations.AddTinderLikeFieldsToUserProfile">
+            <inheritdoc />
+        </member>
+        <member name="M:UserService.Migrations.AddTinderLikeFieldsToUserProfile.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:UserService.Migrations.AddTinderLikeFieldsToUserProfile.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:UserService.Migrations.AddTinderLikeFieldsToUserProfile.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
     </members>
