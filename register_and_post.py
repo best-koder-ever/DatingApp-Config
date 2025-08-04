@@ -5,7 +5,9 @@ import sys
 
 # Generate random fake data
 def generate_fake_user():
-    username = ''.join(random.choices(string.ascii_lowercase, k=8))
+    first_name = ''.join(random.choices(string.ascii_lowercase, k=6)).capitalize()
+    last_name = ''.join(random.choices(string.ascii_lowercase, k=8)).capitalize()
+    username = f"{first_name.lower()}{last_name.lower()}"
     email = f"{username}@example.com"
     # Password must have at least one non-alphanumeric and one digit
     password = (
@@ -13,73 +15,98 @@ def generate_fake_user():
     )  # e.g. abcdef1!
     phone_number = f"+1234{random.randint(100000, 999999)}"
     return {
-        "username": username,
+        "firstName": first_name,
+        "lastName": last_name,
         "email": email,
         "password": password,
         "phoneNumber": phone_number
     }
 
 def generate_fake_profile():
-    name = ''.join(random.choices(string.ascii_letters, k=10))
-    bio = "A random bio for testing."
-    profile_picture_url = f"https://example.com/images/{name}.jpg"
-    preferences = "Hiking, Reading, Traveling"
+    first_name = ''.join(random.choices(string.ascii_letters, k=8)).capitalize()
+    last_name = ''.join(random.choices(string.ascii_letters, k=10)).capitalize()
+    age = random.randint(18, 55)
+    birth_year = 2024 - age
+    date_of_birth = f"{birth_year}-{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+    bio = f"A random bio for testing. Age {age}, loves adventure and good conversation."
+    occupation = random.choice(["Software Engineer", "Teacher", "Doctor", "Artist", "Chef", "Designer"])
+    city = random.choice(["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia"])
+    interests = random.sample(["hiking", "reading", "traveling", "cooking", "music", "sports", "art", "technology"], 3)
+    
     return {
-        "name": name,
+        "firstName": first_name,
+        "lastName": last_name,
+        "dateOfBirth": date_of_birth,
         "bio": bio,
-        "profilePictureUrl": profile_picture_url,
-        "preferences": preferences
+        "occupation": occupation,
+        "city": city,
+        "interests": interests,
+        "height": random.randint(150, 200),
+        "education": random.choice(["High School", "Bachelor's", "Master's", "PhD"]),
+        "latitude": round(random.uniform(25.0, 49.0), 6),  # US latitude range
+        "longitude": round(random.uniform(-125.0, -66.0), 6)  # US longitude range
     }
 
 def generate_invalid_profile():
     # Missing fields or malformed data
     profiles = [
-        {"bio": "No name field"},
-        {"name": "", "bio": "Empty name"},
-        {"name": None, "bio": "None name"},
-        {"name": ''.join(random.choices(string.ascii_letters, k=10)), "bio": None},
-        {"name": ''.join(random.choices(string.ascii_letters, k=10)), "profilePictureUrl": "not-a-url"},
+        {"bio": "No required fields"},
+        {"firstName": "", "lastName": "Empty first name", "dateOfBirth": "1990-01-01"},
+        {"firstName": None, "lastName": "Smith", "dateOfBirth": "1990-01-01", "bio": "None firstName"},
+        {"firstName": "John", "lastName": "Doe", "dateOfBirth": None, "bio": "None dateOfBirth"},
+        {"firstName": "John", "lastName": "Doe", "dateOfBirth": "invalid-date", "bio": "Invalid date"},
+        {"firstName": "John", "lastName": "Doe", "dateOfBirth": "1990-01-01", "height": "not-a-number"},
     ]
     return random.choice(profiles)
 
 # Register a user in auth-service
 def register_user(auth_service_url, user_data):
-    register_endpoint = f"{auth_service_url}/api/Auth/register"
+    register_endpoint = f"{auth_service_url}/api/auth/register"
     response = requests.post(register_endpoint, json=user_data)
+    if response.status_code == 409:  # User already exists
+        print(f"User {user_data['email']} already exists, skipping registration")
+        return {"message": "User already exists"}
     response.raise_for_status()
     return response.json()
 
 # Login to auth-service to get a token
 def login_user(auth_service_url, user_data):
-    login_endpoint = f"{auth_service_url}/api/Auth/login"
+    login_endpoint = f"{auth_service_url}/api/auth/login"
     login_payload = {
         "email": user_data["email"],
         "password": user_data["password"]
     }
     response = requests.post(login_endpoint, json=login_payload)
     response.raise_for_status()
-    return response.json()["token"]
+    result = response.json()
+    return result.get("token") or result.get("accessToken")
 
 # Post to user-service with the token
 def post_to_user_service(user_service_url, token, profile_data):
     headers = {
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
     }
-    post_endpoint = f"{user_service_url}/api/UserProfiles"
+    post_endpoint = f"{user_service_url}/api/userprofiles"
     response = requests.post(post_endpoint, json=profile_data, headers=headers)
+    if response.status_code == 409:  # Profile already exists
+        print(f"Profile already exists for this user, trying to get existing profile")
+        get_response = requests.get(f"{user_service_url}/api/userprofiles/me", headers=headers)
+        if get_response.status_code == 200:
+            return get_response.json()
     response.raise_for_status()
     return response.json()
 
-def post_swipe(swipe_service_url, user_id, target_user_id, is_like, token=None):
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+def post_swipe(swipe_service_url, target_user_id, is_like, token):
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
     payload = {
-        "userId": user_id,
         "targetUserId": target_user_id,
         "isLike": is_like
     }
-    response = requests.post(f"{swipe_service_url}/api/Swipes", json=payload, headers=headers)
+    response = requests.post(f"{swipe_service_url}/api/swipes/swipe", json=payload, headers=headers)
     response.raise_for_status()
     return response.json()
 
@@ -87,15 +114,17 @@ def post_swipe(swipe_service_url, user_id, target_user_id, is_like, token=None):
 def fetch_all_profiles(user_service_url, token):
     headers = {"Authorization": f"Bearer {token}"}
     print(f"Fetching profiles with headers: {headers}")
-    response = requests.get(f"{user_service_url}/api/UserProfiles", headers=headers)
+    response = requests.get(f"{user_service_url}/api/userprofiles/search?page=1&pageSize=50", headers=headers)
     response.raise_for_status()
-    return response.json()
+    result = response.json()
+    return result.get('results', result)  # Handle both paginated and direct results
 
 if __name__ == "__main__":
     # Base URLs for services
     auth_service_url = "http://localhost:8081"
     user_service_url = "http://localhost:8082"
-    swipe_service_url = "http://localhost:8084"  # Fixed port to match docker-compose
+    swipe_service_url = "http://localhost:8084"
+    matchmaking_service_url = "http://localhost:8083"  # Fixed matchmaking service port
 
     # Allow user to specify number of users to create
     num_users = 10
@@ -165,7 +194,7 @@ if __name__ == "__main__":
         if not target_user_id:
             continue
         try:
-            post_swipe(swipe_service_url, user_id=test_user_id, target_user_id=target_user_id, is_like=True, token=test_token)
+            post_swipe(swipe_service_url, target_user_id=target_user_id, is_like=True, token=test_token)
         except Exception as e:
             print(f"Swipe failed for target {target_user_id}: {e}")
 
@@ -201,9 +230,9 @@ if __name__ == "__main__":
         for p in profiles:
             pid = p.get("id") or p.get("userId")
             if pid == own_id:
-                print(f"User {user['username']} sees their own profile! BUG.")
+                print(f"User {user['firstName']} sees their own profile! BUG.")
             else:
-                print(f"User {user['username']} does not see their own profile. OK.")
+                print(f"User {user['firstName']} does not see their own profile. OK.")
 
     # Mutual match scenario
     print("\n=== Testing mutual match scenario ===")
@@ -219,14 +248,15 @@ if __name__ == "__main__":
         id2 = profile2.get("id") or profile2.get("userId")
         if id1 and id2:
             try:
-                post_swipe(swipe_service_url, id1, id2, True, token1)
-                post_swipe(swipe_service_url, id2, id1, True, token2)
+                post_swipe(swipe_service_url, target_user_id=id2, is_like=True, token=token1)
+                post_swipe(swipe_service_url, target_user_id=id1, is_like=True, token=token2)
                 # Check for mutual match
-                resp = requests.get(f"{swipe_service_url}/api/Swipes/match/{id1}/{id2}")
+                headers = {"Authorization": f"Bearer {token1}"}
+                resp = requests.get(f"{swipe_service_url}/api/swipes/match/{id1}/{id2}", headers=headers)
                 if resp.ok and resp.json().get("isMutualMatch"):
-                    print(f"Mutual match detected between {user1['username']} and {user2['username']}! OK.")
+                    print(f"Mutual match detected between {user1['firstName']} and {user2['firstName']}! OK.")
                 else:
-                    print(f"No mutual match detected between {user1['username']} and {user2['username']}. BUG.")
+                    print(f"No mutual match detected between {user1['firstName']} and {user2['firstName']}. BUG.")
             except Exception as e:
                 print(f"Mutual match test failed: {e}")
         else:

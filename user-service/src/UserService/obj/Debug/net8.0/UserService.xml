@@ -4,45 +4,80 @@
         <name>UserService</name>
     </assembly>
     <members>
-        <member name="M:UserService.Controllers.UserProfilesController.GetUserProfiles">
+        <member name="M:UserService.Controllers.UserProfilesController.SearchUserProfiles(UserService.DTOs.SearchUsersDto)">
             <summary>
-            Retrieves all user profiles.
+            Search and retrieve user profiles with advanced filtering.
             </summary>
-            <returns>A list of user profiles.</returns>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.GetUserProfile(System.Int32)">
+            <summary>
+            Retrieves a specific user profile by ID with full details.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.CreateUserProfile(UserService.DTOs.CreateUserProfileDto)">
+            <summary>
+            Creates a new user profile.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.UpdateUserProfile(System.Int32,UserService.DTOs.UpdateUserProfileDto)">
+            <summary>
+            Updates a user profile.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.UpdateLocation(System.Int32,UserService.DTOs.LocationUpdateDto)">
+            <summary>
+            Updates user's location.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.UpdatePrivacySettings(System.Int32,UserService.DTOs.PrivacySettingsDto)">
+            <summary>
+            Updates user's privacy settings.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.UploadPhoto(System.Int32,UserService.DTOs.PhotoUploadDto)">
+            <summary>
+            Uploads a photo for the user.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.GetUserPhotos(System.Int32)">
+            <summary>
+            Gets all photos for a user.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.DeletePhoto(System.Int32,System.String)">
+            <summary>
+            Deletes a photo.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.RequestVerification(System.Int32,UserService.DTOs.VerificationRequestDto)">
+            <summary>
+            Requests verification for a user.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.GetVerificationStatus(System.Int32)">
+            <summary>
+            Gets verification status for a user.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.UpdateOnlineStatus(System.Int32,System.Boolean)">
+            <summary>
+            Updates user's online status.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.DeactivateUserProfile(System.Int32)">
+            <summary>
+            Deactivates a user profile.
+            </summary>
+        </member>
+        <member name="M:UserService.Controllers.UserProfilesController.HealthCheck">
+            <summary>
+            Health check endpoint.
+            </summary>
         </member>
         <member name="M:UserService.Controllers.UserProfilesController.DebugAuth">
             <summary>
             Debug endpoint to show current user's authentication status and claims.
             </summary>
-        </member>
-        <member name="M:UserService.Controllers.UserProfilesController.GetUserProfile(System.Int32)">
-            <summary>
-            Retrieves a specific user profile by ID.
-            </summary>
-            <param name="id">The ID of the user profile.</param>
-            <returns>The user profile if found, or a not found message.</returns>
-        </member>
-        <member name="M:UserService.Controllers.UserProfilesController.PutUserProfile(System.Int32,UserService.Models.UserProfile)">
-            <summary>
-            Updates a specific user profile by ID.
-            </summary>
-            <param name="id">The ID of the user profile.</param>
-            <param name="userProfile">The updated user profile data.</param>
-            <returns>No content if the update is successful, or an error message.</returns>
-        </member>
-        <member name="M:UserService.Controllers.UserProfilesController.PostUserProfile(UserService.Models.UserProfile)">
-            <summary>
-            Creates a new user profile.
-            </summary>
-            <param name="userProfile">The user profile data to create.</param>
-            <returns>The created user profile.</returns>
-        </member>
-        <member name="M:UserService.Controllers.UserProfilesController.DeleteUserProfile(System.Int32)">
-            <summary>
-            Deletes a specific user profile by ID.
-            </summary>
-            <param name="id">The ID of the user profile.</param>
-            <returns>No content if the deletion is successful, or a not found message.</returns>
         </member>
         <member name="T:UserService.Migrations.InitialCreate">
             <inheritdoc />
