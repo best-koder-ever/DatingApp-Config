@@ -9,9 +9,9 @@ set -e
 projects=(
   "auth-service"
   "dejting-yarp"
-  "user-service"
   "matchmaking-service"
   "swipe-service"
+  "TestDataGenerator"
   "../mobile-apps/flutter/dejtingapp"
 )
 
@@ -24,7 +24,7 @@ if [ -d .git ]; then
   git status
   git add -A
   if ! git diff --cached --quiet; then
-    git commit -m "Save all outstanding changes in root on $(date)"
+    git commit -m "🚀 Chrome-optimized development setup and E2E testing infrastructure - $(date)"
   else
     echo "No changes to commit in root."
   fi
@@ -53,7 +53,7 @@ for project in "${projects[@]}"; do
     git status
     git add -A
     if ! git diff --cached --quiet; then
-      git commit -m "Save all outstanding changes in $project on $(date)"
+      git commit -m "🚀 Updated $project for Chrome-optimized dating app - $(date)"
     else
       echo "No changes to commit in $project."
     fi
