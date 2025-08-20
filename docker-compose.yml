@@ -13,6 +13,7 @@ services:
       - user-service
       - matchmaking-service
       - swipe-service
+      - photo-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
@@ -175,6 +176,49 @@ services:
       timeout: 5s
       retries: 5
 
+  photo-service:
+    image: photo-service:latest
+    build:
+      context: ./photo-service
+      dockerfile: Dockerfile
+    ports:
+      - "5003:5003"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://*:5003
+      - ConnectionStrings__DefaultConnection=Server=photo-service-db;Port=3306;Database=PhotoServiceDb;User=photoservice_user;Password=photoservice_user_password;
+      - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long-for-security
+      - JwtSettings__Issuer=DatingApp
+      - JwtSettings__Audience=DatingApp-Users
+      - Storage__PhotosPath=/app/wwwroot/uploads/photos
+    depends_on:
+      photo-service-db:
+        condition: service_healthy
+    volumes:
+      - photo-storage:/app/wwwroot/uploads/photos
+    networks:
+      - app-network
+
+  photo-service-db:
+    image: mysql:8.0
+    container_name: photo-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: PhotoServiceDb
+      MYSQL_USER: photoservice_user
+      MYSQL_PASSWORD: photoservice_user_password
+    ports:
+      - "3311:3306"
+    volumes:
+      - photo-service-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "photo-service-db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   seq:
     image: datalust/seq:latest
     ports:
@@ -244,6 +288,8 @@ volumes:
   user-service-data:
   matchmaking-service-data:
   swipe-service-data:
+  photo-service-data:
+  photo-storage:
   seq-data:
   grafana-storage:
 
