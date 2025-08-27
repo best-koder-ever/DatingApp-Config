@@ -1,0 +1,62 @@
+groups:
+- name: dating_app_alerts
+  rules:
+  # Service Down Alerts
+  - alert: ServiceDown
+    expr: up == 0
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.instance }} is down"
+      description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 30 seconds."
+
+  # High Response Time
+  - alert: HighResponseTime
+    expr: http_request_duration_seconds{quantile="0.95"} > 2
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time on {{ $labels.instance }}"
+      description: "{{ $labels.job }} 95th percentile response time is above 2 seconds."
+
+  # High Error Rate
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate on {{ $labels.instance }}"
+      description: "{{ $labels.job }} has an error rate above 10%."
+
+  # Database Connection Issues
+  - alert: DatabaseConnectionFailure
+    expr: mysql_up == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Database connection failure"
+      description: "MySQL database is not reachable from exporter."
+
+  # Container Memory Usage
+  - alert: HighMemoryUsage
+    expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage on {{ $labels.container_label_com_docker_compose_service }}"
+      description: "Container memory usage is above 80%."
+
+  # Flutter App Availability (if monitoring endpoint exists)
+  - alert: FlutterAppDown
+    expr: probe_success{job="flutter-app"} == 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Flutter app is not accessible"
+      description: "Flutter web application is not responding to health checks."

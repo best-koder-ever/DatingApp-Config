@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # ===== MONITORING STACK =====
+  
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dating-app-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.listen-address=0.0.0.0:9090'
+    networks:
+      - monitoring
+      - default
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Grafana - Dashboards and visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dating-app-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=dating_app_2025
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # ===== WEB-BASED HEALTH DASHBOARD =====
+  
+  # Custom health dashboard
+  health-dashboard:
+    build:
+      context: ./monitoring/dashboard
+      dockerfile: Dockerfile
+    container_name: dating-app-health-dashboard
+    ports:
+      - "8090:80"
+    environment:
+      - API_GATEWAY_URL=http://host.docker.internal:8080
+      - AUTH_SERVICE_URL=http://host.docker.internal:8081
+      - USER_SERVICE_URL=http://host.docker.internal:8082
+      - MATCHMAKING_SERVICE_URL=http://host.docker.internal:8083
+      - SWIPE_SERVICE_URL=http://host.docker.internal:8084
+      - PHOTO_SERVICE_URL=http://host.docker.internal:8085
+    networks:
+      - monitoring
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  monitoring:
+    driver: bridge
