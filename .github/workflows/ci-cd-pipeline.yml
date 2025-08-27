@@ -1,0 +1,200 @@
+name: Dating App CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: best-koder-ever/dating-app
+
+jobs:
+  # ===== FLUTTER FRONTEND =====
+  flutter-tests:
+    name: Flutter Tests & Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mobile-apps/flutter/dejtingapp
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0'
+        channel: 'stable'
+    
+    - name: Get Flutter dependencies
+      run: flutter pub get
+    
+    - name: Run Flutter analyze
+      run: flutter analyze --fatal-infos
+    
+    - name: Run Flutter tests
+      run: flutter test --coverage
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./mobile-apps/flutter/dejtingapp/coverage/lcov.info
+        flags: flutter
+    
+    - name: Build Flutter Web
+      run: flutter build web --release
+    
+    - name: Upload Flutter artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: flutter-web-build
+        path: ./mobile-apps/flutter/dejtingapp/build/web/
+
+  # ===== .NET MICROSERVICES =====
+  dotnet-tests:
+    name: .NET Services Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore ${{ matrix.service }}/${{ matrix.service }}.sln
+    
+    - name: Build
+      run: dotnet build ${{ matrix.service }}/${{ matrix.service }}.sln --no-restore
+    
+    - name: Run tests
+      run: dotnet test ${{ matrix.service }}/${{ matrix.service }}.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./${{ matrix.service }}/**/coverage.cobertura.xml
+        flags: ${{ matrix.service }}
+
+  # ===== DOCKER BUILD & PUSH =====
+  docker-build:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [flutter-tests, dotnet-tests]
+    strategy:
+      matrix:
+        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service, dejting-yarp]
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./${{ matrix.service }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  # ===== E2E INTEGRATION TESTS =====
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js for Playwright
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Playwright
+      working-directory: ./e2e-tests
+      run: |
+        npm install
+        npx playwright install chromium
+    
+    - name: Start services with Docker Compose
+      run: |
+        docker-compose up -d
+        sleep 30
+    
+    - name: Wait for services to be healthy
+      run: |
+        for i in {1..30}; do
+          if curl -f http://localhost:8080/health; then
+            echo "Services are healthy"
+            break
+          fi
+          echo "Waiting for services... ($i/30)"
+          sleep 10
+        done
+    
+    - name: Setup Flutter for E2E
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0'
+    
+    - name: Start Flutter web app
+      working-directory: ./mobile-apps/flutter/dejtingapp
+      run: |
+        flutter pub get
+        flutter run -d web-server --web-port=36349 &
+        sleep 20
+    
+    - name: Run E2E tests
+      working-directory: ./e2e-tests
+      run: |
+        python test_login_enhanced.py
+        npx playwright test
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: e2e-test-results
+        path: |
+          ./e2e-tests/test-results/
+          ./e2e-tests/screenshots/
+    
+    - name: Cleanup
+      if: always()
+      run: docker-compose down
+
+  # ===== DEPLOYMENT =====
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [e2e-tests]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Deploy to server
+      run: |
+        echo "Deploying to production server..."
+        # Add your deployment commands here
+        # e.g., SSH to server, pull latest images, restart services
