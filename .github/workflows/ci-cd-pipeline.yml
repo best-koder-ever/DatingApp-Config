@@ -31,16 +31,16 @@ jobs:
       run: |
         case "${{ matrix.service }}" in
           "auth-service")
-            dotnet restore ${{ matrix.service }}/auth-service.sln
+            dotnet restore ${{ matrix.service }}/AuthService.csproj
             ;;
           "user-service")
             dotnet restore ${{ matrix.service }}/UserService.csproj
             ;;
           "matchmaking-service")
-            dotnet restore ${{ matrix.service }}/matchmaking-service.sln
+            dotnet restore ${{ matrix.service }}/MatchmakingService.csproj
             ;;
           "swipe-service")
-            dotnet restore ${{ matrix.service }}/swipe-service.sln
+            dotnet restore ${{ matrix.service }}/swipe-service.csproj
             ;;
           "photo-service")
             dotnet restore ${{ matrix.service }}/PhotoService.csproj
@@ -51,16 +51,16 @@ jobs:
       run: |
         case "${{ matrix.service }}" in
           "auth-service")
-            dotnet build ${{ matrix.service }}/auth-service.sln --no-restore
+            dotnet build ${{ matrix.service }}/AuthService.csproj --no-restore
             ;;
           "user-service")
             dotnet build ${{ matrix.service }}/UserService.csproj --no-restore
             ;;
           "matchmaking-service")
-            dotnet build ${{ matrix.service }}/matchmaking-service.sln --no-restore
+            dotnet build ${{ matrix.service }}/MatchmakingService.csproj --no-restore
             ;;
           "swipe-service")
-            dotnet build ${{ matrix.service }}/swipe-service.sln --no-restore
+            dotnet build ${{ matrix.service }}/swipe-service.csproj --no-restore
             ;;
           "photo-service")
             dotnet build ${{ matrix.service }}/PhotoService.csproj --no-restore
@@ -71,39 +71,27 @@ jobs:
       run: |
         case "${{ matrix.service }}" in
           "auth-service")
-            if dotnet test ${{ matrix.service }}/auth-service.sln --list-tests > /dev/null 2>&1; then
-              dotnet test ${{ matrix.service }}/auth-service.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
+            if [ -f "${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj" ]; then
+              dotnet test ${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
             else
               echo "No tests found for auth-service, skipping..."
             fi
             ;;
           "user-service")
-            if dotnet test ${{ matrix.service }}/UserService.csproj --list-tests > /dev/null 2>&1; then
-              dotnet test ${{ matrix.service }}/UserService.csproj --no-build --verbosity normal --collect:"XPlat Code Coverage"
+            if [ -f "${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj" ]; then
+              dotnet test ${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
             else
               echo "No tests found for user-service, skipping..."
             fi
             ;;
           "matchmaking-service")
-            if dotnet test ${{ matrix.service }}/matchmaking-service.sln --list-tests > /dev/null 2>&1; then
-              dotnet test ${{ matrix.service }}/matchmaking-service.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
-            else
-              echo "No tests found for matchmaking-service, skipping..."
-            fi
+            echo "No tests found for matchmaking-service, skipping..."
             ;;
           "swipe-service")
-            if dotnet test ${{ matrix.service }}/swipe-service.sln --list-tests > /dev/null 2>&1; then
-              dotnet test ${{ matrix.service }}/swipe-service.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
-            else
-              echo "No tests found for swipe-service, skipping..."
-            fi
+            echo "No tests found for swipe-service, skipping..."
             ;;
           "photo-service")
-            if dotnet test ${{ matrix.service }}/PhotoService.csproj --list-tests > /dev/null 2>&1; then
-              dotnet test ${{ matrix.service }}/PhotoService.csproj --no-build --verbosity normal --collect:"XPlat Code Coverage"
-            else
-              echo "No tests found for photo-service, skipping..."
-            fi
+            echo "No tests found for photo-service, skipping..."
             ;;
         esac
     
@@ -169,16 +157,16 @@ jobs:
           echo "Testing $service compilation..."
           case "$service" in
             "auth-service")
-              dotnet build $service/auth-service.sln --verbosity minimal
+              dotnet build $service/AuthService.csproj --verbosity minimal
               ;;
             "user-service")
               dotnet build $service/UserService.csproj --verbosity minimal
               ;;
             "matchmaking-service")
-              dotnet build $service/matchmaking-service.sln --verbosity minimal
+              dotnet build $service/MatchmakingService.csproj --verbosity minimal
               ;;
             "swipe-service")
-              dotnet build $service/swipe-service.sln --verbosity minimal
+              dotnet build $service/swipe-service.csproj --verbosity minimal
               ;;
             "photo-service")
               dotnet build $service/PhotoService.csproj --verbosity minimal
