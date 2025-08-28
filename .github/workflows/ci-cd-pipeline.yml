@@ -43,7 +43,7 @@ jobs:
             dotnet restore ${{ matrix.service }}/swipe-service.sln
             ;;
           "photo-service")
-            dotnet restore ${{ matrix.service }}/photo-service.sln
+            dotnet restore ${{ matrix.service }}/PhotoService.csproj
             ;;
         esac
     
@@ -63,7 +63,7 @@ jobs:
             dotnet build ${{ matrix.service }}/swipe-service.sln --no-restore
             ;;
           "photo-service")
-            dotnet build ${{ matrix.service }}/photo-service.sln --no-restore
+            dotnet build ${{ matrix.service }}/PhotoService.csproj --no-restore
             ;;
         esac
     
@@ -99,8 +99,8 @@ jobs:
             fi
             ;;
           "photo-service")
-            if dotnet test ${{ matrix.service }}/photo-service.sln --list-tests > /dev/null 2>&1; then
-              dotnet test ${{ matrix.service }}/photo-service.sln --no-build --verbosity normal --collect:"XPlat Code Coverage"
+            if dotnet test ${{ matrix.service }}/PhotoService.csproj --list-tests > /dev/null 2>&1; then
+              dotnet test ${{ matrix.service }}/PhotoService.csproj --no-build --verbosity normal --collect:"XPlat Code Coverage"
             else
               echo "No tests found for photo-service, skipping..."
             fi
@@ -181,7 +181,7 @@ jobs:
               dotnet build $service/swipe-service.sln --verbosity minimal
               ;;
             "photo-service")
-              dotnet build $service/photo-service.sln --verbosity minimal
+              dotnet build $service/PhotoService.csproj --verbosity minimal
               ;;
           esac
         done
