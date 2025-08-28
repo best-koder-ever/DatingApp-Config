@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,12 +8,6 @@
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
-  <!-- Conditional compilation for CI vs Local builds -->
-  <PropertyGroup Condition="'$(CI_BUILD)' == 'true'">
-    <DefineConstants>$(DefineConstants);CI_BUILD</DefineConstants>
-  </PropertyGroup>
-
-  <!-- Core packages always included -->
   <ItemGroup>
     <PackageReference Include="Bogus" Version="35.5.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.13" />
@@ -27,22 +21,22 @@
     </PackageReference>
     <PackageReference Include="Spectre.Console" Version="0.50.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
-    <PackageReference Include="MySqlConnector" Version="2.2.5" />
-  </ItemGroup>
-
-  <!-- Project references only for local builds -->
-  <ItemGroup Condition="'$(CI_BUILD)' != 'true'">
-    <ProjectReference Include="..\auth-service\AuthService.csproj" />
-    <ProjectReference Include="..\matchmaking-service\MatchmakingService.csproj" />
-    <ProjectReference Include="..\dejting-yarp\src\dejting-yarp\dejting-yarp.csproj" />
-    <ProjectReference Include="..\swipe-service\src\SwipeService\SwipeService.csproj" />
-    <ProjectReference Include="..\user-service\UserService.csproj" />
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <!-- Only include project references when building locally (not in CI) -->
+  <ItemGroup Condition="'$(CI)' != 'true'">
+    <ProjectReference Include="..\auth-service\AuthService.csproj" />
+    <ProjectReference Include="..\matchmaking-service\MatchmakingService.csproj" />
+    <ProjectReference Include="..\dejting-yarp\src\dejting-yarp\dejting-yarp.csproj" />
+    <ProjectReference Include="..\swipe-service\src\SwipeService\SwipeService.csproj" />
+    <ProjectReference Include="..\user-service\src\UserService\UserService.csproj" />
   </ItemGroup>
 
 </Project>
