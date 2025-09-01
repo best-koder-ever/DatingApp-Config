@@ -1,0 +1,35 @@
+# 🤖 AI Development Aliases for Dating App
+# Quick setup since Gemini CLI is already installed
+# Add to your .bashrc: source ~/.ai_dating_aliases
+
+# Core AI development commands for your dating app
+alias ai-review="gemini 'Review my latest dating app changes for best practices, security, and performance'"
+alias ai-plan="gemini 'Help me plan the next feature for my dating app. Tech stack: .NET microservices (auth, user, matchmaking, swipe, photo) + Flutter mobile app'"
+alias ai-debug="echo 'Usage: ai-debug \"describe your issue\"'; gemini 'Help me debug this dating app issue: '"
+alias ai-optimize="gemini 'Suggest performance optimizations for my dating app. Architecture: .NET microservices + Flutter + PostgreSQL'"
+
+# Dating app specific AI assistants
+alias ai-matching="gemini 'Optimize my dating app matching algorithm for better accuracy and performance'"
+alias ai-realtime="gemini 'Best practices for implementing real-time messaging in a dating app using .NET SignalR'"
+alias ai-mobile="gemini 'Flutter dating app UI/UX best practices, performance tips, and user engagement strategies'"
+alias ai-backend="gemini 'Dating app .NET microservices architecture optimization and scalability improvements'"
+alias ai-security="gemini 'Dating app security best practices: authentication, data protection, photo storage, user privacy'"
+alias ai-database="gemini 'PostgreSQL optimization for dating app: user matching queries, photo storage, message history'"
+
+# Development workflow integration
+alias ai-feature="ai-plan && echo ''; echo '💡 Now implement with GitHub Copilot in VS Code!'"
+alias ai-commit="ai-review && echo ''; echo '✅ If review looks good, commit and run: ./github_helpers.sh pro'"
+
+# Quick development cycle
+alias dev-ai="echo '🚀 AI-Powered Dating App Development Cycle:'; echo '1. ai-plan     (plan features)'; echo '2. VS Code     (implement with Copilot)'; echo '3. ai-review   (review changes)'; echo '4. git commit  (commit changes)'; echo '5. ./github_helpers.sh pro (professional CI/CD)'"
+
+# Debugging helpers
+alias ai-error="echo 'Describe your error and get AI help:'; read -r ERROR; gemini \"Help me fix this dating app error: $ERROR\""
+alias ai-performance="gemini 'My dating app is slow. Help me identify and fix performance bottlenecks in .NET microservices and Flutter'"
+
+# Architecture and scaling
+alias ai-scale="gemini 'How to scale my dating app architecture for 100k+ concurrent users? Current: .NET microservices + Flutter + PostgreSQL'"
+alias ai-deploy="gemini 'Best practices for deploying a dating app to production: containers, monitoring, security, scaling'"
+
+echo "🤖 AI aliases loaded for dating app development!"
+echo "💡 Try: ai-plan, ai-review, ai-matching, dev-ai"

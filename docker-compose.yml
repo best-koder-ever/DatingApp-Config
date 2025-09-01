@@ -14,6 +14,7 @@ services:
       - matchmaking-service
       - swipe-service
       - photo-service
+      - messaging-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
@@ -219,6 +220,44 @@ services:
       timeout: 5s
       retries: 5
 
+  messaging-service:
+    image: messaging-service:latest
+    build:
+      context: ./messaging-service
+      dockerfile: Dockerfile
+    ports:
+      - "5007:5007"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://*:5007
+      - ConnectionStrings__DefaultConnection=Server=messaging-service-db;Port=3306;Database=MessagingServiceDb;User=messagingservice_user;Password=messagingservice_user_password;
+      - Jwt__Key=your-super-secret-key-that-is-at-least-32-characters-long-for-security
+    depends_on:
+      messaging-service-db:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  messaging-service-db:
+    image: mysql:8.0
+    container_name: messaging-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: MessagingServiceDb
+      MYSQL_USER: messagingservice_user
+      MYSQL_PASSWORD: messagingservice_user_password
+    ports:
+      - "3312:3306"
+    volumes:
+      - messaging-service-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "messaging-service-db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   seq:
     image: datalust/seq:latest
     ports:
@@ -290,6 +329,7 @@ volumes:
   swipe-service-data:
   photo-service-data:
   photo-storage:
+  messaging-service-data:
   seq-data:
   grafana-storage:
 
