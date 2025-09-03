@@ -335,3 +335,23 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Sensitive Keys and Certificates
+*.key
+*.pem
+*.p12
+*.pfx
+private.key
+public.key
+
+# Configuration files with sensitive data
+appsettings.Development.json
+appsettings.Production.json
+.env
+.env.*
+secrets.json
+
+# JWT Keys and tokens
+jwt.key
+auth.key
+*.jwt
