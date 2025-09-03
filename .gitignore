@@ -49,6 +49,9 @@ docker-compose.override.yml
 
 # Logs that might contain sensitive data
 *.log
+
+# Project management and history files
+.specstory/
 logs/
 
 # Package managers
