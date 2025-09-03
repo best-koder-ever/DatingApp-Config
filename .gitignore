@@ -1,1 +1,56 @@
+# Python virtual environments
 e2e-tests/venv/
+
+# Sensitive Keys and Certificates
+*.key
+*.pem
+*.p12
+*.pfx
+private.key
+public.key
+
+# Configuration files with sensitive data
+appsettings.Development.json
+appsettings.Production.json
+.env
+.env.*
+secrets.json
+
+# JWT Keys and tokens
+jwt.key
+auth.key
+*.jwt
+
+# Database connection strings (if in separate files)
+connectionstrings.json
+
+# Build outputs that might contain embedded secrets
+bin/
+obj/
+publish/
+out/
+
+# IDE and temporary files
+.vs/
+.vscode/settings.json
+.idea/
+*.user
+*.suo
+*.cache
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# Docker secrets
+docker-compose.override.yml
+.dockerignore
+
+# Logs that might contain sensitive data
+*.log
+logs/
+
+# Package managers
+*.lock
+package-lock.json
