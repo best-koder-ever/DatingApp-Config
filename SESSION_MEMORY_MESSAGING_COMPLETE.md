@@ -57,12 +57,12 @@
 ### **Backend Services (All Ready)**
 ```
 DatingApp/
-├── auth-service/          ✅ Port 5001 - JWT Authentication
+├── AuthService/          ✅ Port 5001 - JWT Authentication
 ├── messaging-service/     ✅ Port 5007 - Real-time Messaging (NEW)
-├── matchmaking-service/   ✅ Port 5003 - Match Algorithm
+├── MatchmakingService/   ✅ Port 5003 - Match Algorithm
 ├── dejting-yarp/          ✅ Gateway/Proxy Service
 ├── swipe-service/         ✅ Swipe Logic
-├── user-service/          ✅ User Profiles
+├── UserService/          ✅ User Profiles
 ├── photo-service/         ✅ Photo Management
 └── TestDataGenerator/     ✅ Sample Data Creation
 ```

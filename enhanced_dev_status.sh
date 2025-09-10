@@ -228,7 +228,7 @@ check_test_status() {
     
     # Check .NET tests
     local dotnet_tests_found=0
-    for service in auth-service user-service matchmaking-service swipe-service photo-service; do
+    for service in AuthService UserService MatchmakingService swipe-service photo-service; do
         if [ -d "$service" ] && find "$service" -name "*Tests.csproj" -o -name "*Test.csproj" | grep -q .; then
             ((dotnet_tests_found++))
         fi
@@ -250,7 +250,7 @@ check_git_repositories() {
     check_git_status "." "DatingApp (main)"
     
     # Individual services
-    for service in auth-service user-service matchmaking-service swipe-service photo-service dejting-yarp TestDataGenerator; do
+    for service in AuthService UserService MatchmakingService swipe-service photo-service dejting-yarp TestDataGenerator; do
         if [ -d "$service" ]; then
             check_git_status "$service" "$service"
         fi

@@ -111,10 +111,10 @@ git push origin main  # ✅ FREE (was $0.36)
 ## 📈 **Your Specific Savings Calculation**
 
 ### **Current Monthly CI/CD Runs Estimate:**
-- **auth-service**: ~8 pushes/month × 45 min = 360 min
-- **matchmaking-service**: ~8 pushes/month × 45 min = 360 min  
+- **AuthService**: ~8 pushes/month × 45 min = 360 min
+- **MatchmakingService**: ~8 pushes/month × 45 min = 360 min  
 - **photo-service**: ~6 pushes/month × 45 min = 270 min
-- **user-service**: ~6 pushes/month × 45 min = 270 min
+- **UserService**: ~6 pushes/month × 45 min = 270 min
 - **swipe-service**: ~6 pushes/month × 45 min = 270 min
 - **mobile_dejtingapp**: ~15 pushes/month × 45 min = 675 min
 - **dejting-yarp**: ~4 pushes/month × 45 min = 180 min

@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service]
+        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service]
     
     steps:
     - uses: actions/checkout@v4
@@ -30,13 +30,13 @@ jobs:
     - name: Restore dependencies
       run: |
         case "${{ matrix.service }}" in
-          "auth-service")
+          "AuthService")
             dotnet restore ${{ matrix.service }}/AuthService.csproj
             ;;
-          "user-service")
+          "UserService")
             dotnet restore ${{ matrix.service }}/UserService.csproj
             ;;
-          "matchmaking-service")
+          "MatchmakingService")
             dotnet restore ${{ matrix.service }}/MatchmakingService.csproj
             ;;
           "swipe-service")
@@ -50,13 +50,13 @@ jobs:
     - name: Build
       run: |
         case "${{ matrix.service }}" in
-          "auth-service")
+          "AuthService")
             dotnet build ${{ matrix.service }}/AuthService.csproj --no-restore
             ;;
-          "user-service")
+          "UserService")
             dotnet build ${{ matrix.service }}/UserService.csproj --no-restore
             ;;
-          "matchmaking-service")
+          "MatchmakingService")
             dotnet build ${{ matrix.service }}/MatchmakingService.csproj --no-restore
             ;;
           "swipe-service")
@@ -70,22 +70,22 @@ jobs:
     - name: Run tests
       run: |
         case "${{ matrix.service }}" in
-          "auth-service")
+          "AuthService")
             if [ -f "${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj" ]; then
               dotnet test ${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
             else
-              echo "No tests found for auth-service, skipping..."
+              echo "No tests found for AuthService, skipping..."
             fi
             ;;
-          "user-service")
+          "UserService")
             if [ -f "${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj" ]; then
               dotnet test ${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
             else
-              echo "No tests found for user-service, skipping..."
+              echo "No tests found for UserService, skipping..."
             fi
             ;;
-          "matchmaking-service")
-            echo "No tests found for matchmaking-service, skipping..."
+          "MatchmakingService")
+            echo "No tests found for MatchmakingService, skipping..."
             ;;
           "swipe-service")
             echo "No tests found for swipe-service, skipping..."
@@ -108,7 +108,7 @@ jobs:
     needs: [dotnet-tests]
     strategy:
       matrix:
-        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service, dejting-yarp]
+        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service, dejting-yarp]
     
     steps:
     - name: Checkout
@@ -153,16 +153,16 @@ jobs:
       run: |
         echo "Running basic integration tests..."
         # Test basic service compilation
-        for service in auth-service user-service matchmaking-service swipe-service photo-service; do
+        for service in AuthService UserService MatchmakingService swipe-service photo-service; do
           echo "Testing $service compilation..."
           case "$service" in
-            "auth-service")
+            "AuthService")
               dotnet build $service/AuthService.csproj --verbosity minimal
               ;;
-            "user-service")
+            "UserService")
               dotnet build $service/UserService.csproj --verbosity minimal
               ;;
-            "matchmaking-service")
+            "MatchmakingService")
               dotnet build $service/MatchmakingService.csproj --verbosity minimal
               ;;
             "swipe-service")

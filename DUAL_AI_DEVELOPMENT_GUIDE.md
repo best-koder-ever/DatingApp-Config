@@ -30,7 +30,7 @@ gemini "Analyze my dating app architecture and suggest improvements for the matc
 gemini "How should I implement real-time messaging in my .NET microservices architecture?"
 
 # Review code quality
-gemini "Review my auth-service code for security best practices"
+gemini "Review my AuthService code for security best practices"
 ```
 
 #### 2. **Implementation Phase** (Copilot)

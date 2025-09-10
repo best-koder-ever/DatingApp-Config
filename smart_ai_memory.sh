@@ -29,7 +29,7 @@ $(git status --porcelain | head -10)
 
 ## 🏗️ Project Architecture
 Services:
-$(ls -la | grep -E "(auth-service|matchmaking-service|dejting-yarp|TestDataGenerator)" | awk '{print "  - " $9}')
+$(ls -la | grep -E "(AuthService|MatchmakingService|dejting-yarp|TestDataGenerator)" | awk '{print "  - " $9}')
 
 Flutter App:
 $(ls -la ../mobile-apps/flutter/dejtingapp 2>/dev/null | head -5 | awk '{print "  - " $9}')
@@ -49,10 +49,10 @@ $(git log --oneline --grep="migration\|database\|schema\|model" -10)
 
 ## 📦 Dependencies Status
 Auth Service:
-$(grep -A 5 -B 5 "PackageReference" auth-service/AuthService.csproj 2>/dev/null | head -10)
+$(grep -A 5 -B 5 "PackageReference" AuthService/AuthService.csproj 2>/dev/null | head -10)
 
 Matchmaking Service:  
-$(grep -A 5 -B 5 "PackageReference" matchmaking-service/MatchmakingService.csproj 2>/dev/null | head -10)
+$(grep -A 5 -B 5 "PackageReference" MatchmakingService/MatchmakingService.csproj 2>/dev/null | head -10)
 
 ## 🎯 Last AI Session Context
 $(cat "$HOME/.last_ai_session.md" 2>/dev/null || echo "No previous AI session")
@@ -179,7 +179,7 @@ auto_track_progress() {
     # Track commits with dating app context
     local recent_commits=$(git log --oneline -5 --grep="feat\|fix\|add\|implement")
     local files_changed=$(git diff --name-only HEAD~1)
-    local services_touched=$(echo "$files_changed" | grep -E "(auth-service|user-service|matchmaking|swipe|photo)" | cut -d'/' -f1 | sort -u)
+    local services_touched=$(echo "$files_changed" | grep -E "(AuthService|UserService|matchmaking|swipe|photo)" | cut -d'/' -f1 | sort -u)
     
     echo "Recent Progress:"
     echo "- Commits: $(echo "$recent_commits" | wc -l) feature commits"

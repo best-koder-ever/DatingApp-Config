@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service]
+        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service]
     
     steps:
     - uses: actions/checkout@v4
@@ -31,9 +31,9 @@ jobs:
     - name: Restore & Build
       run: |
         case "${{ matrix.service }}" in
-          "auth-service") PROJECT="AuthService.csproj" ;;
-          "user-service") PROJECT="UserService.csproj" ;;
-          "matchmaking-service") PROJECT="MatchmakingService.csproj" ;;
+          "AuthService") PROJECT="AuthService.csproj" ;;
+          "UserService") PROJECT="UserService.csproj" ;;
+          "MatchmakingService") PROJECT="MatchmakingService.csproj" ;;
           "swipe-service") PROJECT="swipe-service.csproj" ;;
           "photo-service") PROJECT="PhotoService.csproj" ;;
         esac
@@ -109,7 +109,7 @@ jobs:
         echo "🧪 Running integration tests..."
         
         # Start auth service for basic API testing
-        cd auth-service
+        cd AuthService
         timeout 30s dotnet run --urls="http://localhost:8081" &
         sleep 10
         
@@ -130,7 +130,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     strategy:
       matrix:
-        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service]
+        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service]
     
     steps:
     - name: Checkout

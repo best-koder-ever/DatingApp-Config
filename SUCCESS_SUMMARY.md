@@ -35,9 +35,9 @@ Actions URL: https://github.com/best-koder-ever/DatingApp-Config/actions
 - ✅ Artifact generation
 
 #### 🔧 **5 .NET Microservices**
-1. **auth-service** - Authentication & JWT tokens
-2. **user-service** - User profiles & management (FIXED ✅)
-3. **matchmaking-service** - Dating algorithm & matching
+1. **AuthService** - Authentication & JWT tokens
+2. **UserService** - User profiles & management (FIXED ✅)
+3. **MatchmakingService** - Dating algorithm & matching
 4. **swipe-service** - Like/dislike functionality
 5. **photo-service** - Image upload & management
 

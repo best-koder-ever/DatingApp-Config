@@ -106,7 +106,7 @@ messaging-service:
     - ConnectionStrings__DefaultConnection=Server=mysql;Database=messaging_db;...
   depends_on:
     - mysql
-    - auth-service
+    - AuthService
 ```
 
 ### Service Endpoints
@@ -137,7 +137,7 @@ messaging-service:
 ### Authentication & Authorization
 - **JWT token validation** for all messaging endpoints
 - **User identity verification** for message sending
-- **Cross-service authentication** with auth-service
+- **Cross-service authentication** with AuthService
 - **Token refresh handling** in Flutter app
 
 ### Content Moderation

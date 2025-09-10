@@ -9,9 +9,9 @@
 ## 🏗️ Current Architecture Status
 
 ### **Backend Services (.NET 8.0 Microservices)**
-- ✅ **auth-service** - User authentication & JWT tokens
-- ✅ **user-service** - User profiles and management  
-- ✅ **matchmaking-service** - Compatibility algorithms
+- ✅ **AuthService** - User authentication & JWT tokens
+- ✅ **UserService** - User profiles and management  
+- ✅ **MatchmakingService** - Compatibility algorithms
 - ✅ **swipe-service** - Swipe mechanics & preferences
 - ✅ **photo-service** - Photo upload & storage
 - ✅ **dejting-yarp** - API Gateway & routing

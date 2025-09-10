@@ -205,7 +205,7 @@ chmod +x check_actions_usage.sh
 # Modify the script for specific repos only:
 # Edit github_repo_toggle.sh and add repo filtering:
 
-REPOS_TO_TOGGLE=("mobile_dejtingapp" "auth-service" "matchmaking-service")
+REPOS_TO_TOGGLE=("mobile_dejtingapp" "AuthService" "MatchmakingService")
 # Only toggle repos in this array
 ```
 

@@ -491,7 +491,7 @@ sync_with_github() {
     cd /home/m/development/DatingApp
     
     # Get all repos
-    repos=("auth-service" "messaging-service" "matchmaking-service" "swipe-service" "user-service" "photo-service")
+    repos=("AuthService" "messaging-service" "MatchmakingService" "swipe-service" "UserService" "photo-service")
     
     for repo in "${repos[@]}"; do
         if [ -d "$repo" ]; then

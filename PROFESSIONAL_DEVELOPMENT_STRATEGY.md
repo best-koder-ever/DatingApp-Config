@@ -99,7 +99,7 @@ git push origin main
 ### **Step 3: Add Unit Tests (This Week)**
 ```bash
 # Create basic unit test structure
-for service in auth-service user-service matchmaking-service swipe-service photo-service; do
+for service in AuthService UserService MatchmakingService swipe-service photo-service; do
   mkdir -p $service/Tests
   echo "// TODO: Add unit tests for $service" > $service/Tests/README.md
 done

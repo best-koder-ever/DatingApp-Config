@@ -7,9 +7,9 @@ set -e
 
 # List of project directories (relative to this script's location)
 projects=(
-  "auth-service"
+  "AuthService"
   "dejting-yarp"
-  "matchmaking-service"
+  "MatchmakingService"
   "messaging-service"
   "swipe-service"
   "TestDataGenerator"

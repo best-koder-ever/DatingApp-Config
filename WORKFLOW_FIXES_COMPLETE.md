@@ -34,9 +34,9 @@ This request has been automatically failed because it uses a deprecated version 
 ### **2. Fixed .NET Service Build Paths** ✅
 ```yaml
 # Fixed project file detection for each service:
-- auth-service: → auth-service.sln
-- user-service: → UserService.csproj
-- matchmaking-service: → matchmaking-service.sln
+- AuthService: → AuthService.sln
+- UserService: → UserService.csproj
+- MatchmakingService: → MatchmakingService.sln
 - swipe-service: → swipe-service.sln
 - photo-service: → photo-service.sln
 ```
@@ -71,9 +71,9 @@ EVENT: push
 
 ### **Job 1: .NET Services Tests** 🔄
 Testing all 5 microservices in parallel:
-- 🔐 auth-service
-- 👤 user-service  
-- 💕 matchmaking-service
+- 🔐 AuthService
+- 👤 UserService  
+- 💕 MatchmakingService
 - 👆 swipe-service
 - 📸 photo-service
 

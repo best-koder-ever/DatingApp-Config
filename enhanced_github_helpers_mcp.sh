@@ -16,7 +16,7 @@ show_mcp_status() {
     
     echo ""
     echo "🏗️ Dating App Services with MCP Context:"
-    services=("auth-service" "messaging-service" "matchmaking-service" "swipe-service" "user-service" "photo-service")
+    services=("AuthService" "messaging-service" "MatchmakingService" "swipe-service" "UserService" "photo-service")
     for service in "${services[@]}"; do
         if [ -d "$ROOT_DIR/$service" ]; then
             # Check if service has recent activity
@@ -153,11 +153,11 @@ setup_claude4_integration() {
       "JWT Authentication"
     ],
     "services": {
-      "auth-service": "Port 5001 - JWT Authentication & User Management",
+      "AuthService": "Port 5001 - JWT Authentication & User Management",
       "messaging-service": "Port 5007 - Real-time messaging with SignalR", 
-      "matchmaking-service": "Port 5003 - Match algorithm & recommendations",
+      "MatchmakingService": "Port 5003 - Match algorithm & recommendations",
       "swipe-service": "Port 5005 - Swipe logic & user interactions",
-      "user-service": "Port 5002 - User profiles & preferences",
+      "UserService": "Port 5002 - User profiles & preferences",
       "photo-service": "Port 5004 - Photo upload & management"
     },
     "databases": {

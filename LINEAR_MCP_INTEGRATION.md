@@ -50,11 +50,11 @@ This guide helps you connect your .NET microservices and Flutter app with Linear
 │                Dating App Ecosystem                         │
 │                                                             │
 │  Backend Services (.NET Core 8.0):                         │
-│  ├── 🔐 auth-service         (Port 5001)                   │
+│  ├── 🔐 AuthService         (Port 5001)                   │
 │  ├── 💬 messaging-service    (Port 5007)                   │
-│  ├── 🤝 matchmaking-service  (Port 5003)                   │
+│  ├── 🤝 MatchmakingService  (Port 5003)                   │
 │  ├── 👆 swipe-service        (Port 5005)                   │
-│  ├── 👤 user-service         (Port 5002)                   │
+│  ├── 👤 UserService         (Port 5002)                   │
 │  └── 📸 photo-service        (Port 5004)                   │
 │                                                             │
 │  Frontend:                                                  │
@@ -161,11 +161,11 @@ git commit -m "fix: SignalR callback type errors in messaging service"
 Your Linear workspace will use these labels:
 
 - **Service Labels:**
-  - `auth-service` - Authentication issues
+  - `AuthService` - Authentication issues
   - `messaging-service` - Chat/messaging issues
-  - `matchmaking-service` - Algorithm issues
+  - `MatchmakingService` - Algorithm issues
   - `swipe-service` - User interaction issues
-  - `user-service` - Profile management issues
+  - `UserService` - Profile management issues
   - `photo-service` - Media handling issues
   - `flutter-app` - Mobile app issues
 

@@ -14,7 +14,7 @@
 ✅ dejting-yarp          - PUBLIC (FREE Actions)
 ✅ swipe-service         - PUBLIC (FREE Actions)
 ✅ MatchmakingService    - PUBLIC (FREE Actions)
-✅ auth-service          - PUBLIC (FREE Actions)
+✅ AuthService          - PUBLIC (FREE Actions)
 
 Total: 9/9 repos = UNLIMITED GitHub Actions! 🎯
 ```

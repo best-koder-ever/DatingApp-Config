@@ -25,7 +25,7 @@
 #### 1. **Fix Blocking Issues First** 🔥
 ```bash
 # Priority: HIGH - Users can't register
-- Fix auth-service 500 errors 
+- Fix AuthService 500 errors 
 - Validate database connections
 - Ensure all services can communicate
 - Test user registration flow
@@ -76,7 +76,7 @@
 ```bash
 cd /home/m/development/DatingApp
 ./dev_status.sh                    # Check all services
-docker-compose logs auth-service   # Debug registration errors
+docker-compose logs AuthService   # Debug registration errors
 ```
 
 ### **Step 2: End-to-End Validation**

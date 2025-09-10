@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service]
+        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service]
     
     steps:
     - uses: actions/checkout@v4
@@ -32,13 +32,13 @@ jobs:
     - name: Restore dependencies
       run: |
         case "${{ matrix.service }}" in
-          "auth-service")
+          "AuthService")
             dotnet restore ${{ matrix.service }}/AuthService.csproj
             ;;
-          "user-service")
+          "UserService")
             dotnet restore ${{ matrix.service }}/UserService.csproj
             ;;
-          "matchmaking-service")
+          "MatchmakingService")
             dotnet restore ${{ matrix.service }}/MatchmakingService.csproj
             ;;
           "swipe-service")
@@ -52,13 +52,13 @@ jobs:
     - name: Build
       run: |
         case "${{ matrix.service }}" in
-          "auth-service")
+          "AuthService")
             dotnet build ${{ matrix.service }}/AuthService.csproj --no-restore
             ;;
-          "user-service")
+          "UserService")
             dotnet build ${{ matrix.service }}/UserService.csproj --no-restore
             ;;
-          "matchmaking-service")
+          "MatchmakingService")
             dotnet build ${{ matrix.service }}/MatchmakingService.csproj --no-restore
             ;;
           "swipe-service")
@@ -72,22 +72,22 @@ jobs:
     - name: Run unit tests
       run: |
         case "${{ matrix.service }}" in
-          "auth-service")
+          "AuthService")
             if [ -f "${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj" ]; then
               dotnet test ${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
             else
-              echo "No unit tests found for auth-service, creating basic test..."
+              echo "No unit tests found for AuthService, creating basic test..."
               mkdir -p ${{ matrix.service }}/Tests
-              echo "// TODO: Add unit tests for auth-service" > ${{ matrix.service }}/Tests/placeholder.txt
+              echo "// TODO: Add unit tests for AuthService" > ${{ matrix.service }}/Tests/placeholder.txt
             fi
             ;;
-          "user-service")
+          "UserService")
             if [ -f "${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj" ]; then
               dotnet test ${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
             else
-              echo "No unit tests found for user-service, creating basic test..."
+              echo "No unit tests found for UserService, creating basic test..."
               mkdir -p ${{ matrix.service }}/Tests
-              echo "// TODO: Add unit tests for user-service" > ${{ matrix.service }}/Tests/placeholder.txt
+              echo "// TODO: Add unit tests for UserService" > ${{ matrix.service }}/Tests/placeholder.txt
             fi
             ;;
           *)
@@ -178,13 +178,13 @@ jobs:
         ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword"
       run: |
         # Run migrations for each service
-        cd auth-service
+        cd AuthService
         dotnet ef database update --connection "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword" || echo "Auth DB migration failed"
         
-        cd ../user-service
+        cd ../UserService
         dotnet ef database update --connection "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword" || echo "User DB migration failed"
         
-        cd ../matchmaking-service
+        cd ../MatchmakingService
         dotnet ef database update --connection "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword" || echo "Matchmaking DB migration failed"
 
     - name: Generate test data
@@ -248,11 +248,11 @@ jobs:
         ASPNETCORE_ENVIRONMENT: Testing
       run: |
         # Start services in background
-        cd auth-service && dotnet run --urls="http://localhost:8081" &
+        cd AuthService && dotnet run --urls="http://localhost:8081" &
         sleep 10
-        cd ../user-service && dotnet run --urls="http://localhost:8082" &
+        cd ../UserService && dotnet run --urls="http://localhost:8082" &
         sleep 10
-        cd ../matchmaking-service && dotnet run --urls="http://localhost:8083" &
+        cd ../MatchmakingService && dotnet run --urls="http://localhost:8083" &
         sleep 10
         cd ../swipe-service && dotnet run --urls="http://localhost:8084" &
         sleep 10
@@ -365,9 +365,9 @@ jobs:
         ASPNETCORE_ENVIRONMENT: Testing
       run: |
         # Start all services
-        cd auth-service && dotnet run --urls="http://localhost:8081" &
-        cd ../user-service && dotnet run --urls="http://localhost:8082" &
-        cd ../matchmaking-service && dotnet run --urls="http://localhost:8083" &
+        cd AuthService && dotnet run --urls="http://localhost:8081" &
+        cd ../UserService && dotnet run --urls="http://localhost:8082" &
+        cd ../MatchmakingService && dotnet run --urls="http://localhost:8083" &
         cd ../swipe-service && dotnet run --urls="http://localhost:8084" &
         cd ../photo-service && dotnet run --urls="http://localhost:8085" &
         cd ../dejting-yarp && dotnet run --urls="http://localhost:8080" &
@@ -398,7 +398,7 @@ jobs:
     needs: [e2e-tests]
     strategy:
       matrix:
-        service: [auth-service, user-service, matchmaking-service, swipe-service, photo-service, dejting-yarp]
+        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service, dejting-yarp]
     
     steps:
     - name: Checkout

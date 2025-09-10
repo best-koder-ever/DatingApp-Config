@@ -11,7 +11,7 @@ export PATH="$HOME/bin:$PATH"
 # Function to test a specific job
 test_job() {
     local job_name=$1
-    local service_name=${2:-"auth-service"}
+    local service_name=${2:-"AuthService"}
     
     echo "🔍 Testing job: $job_name with service: $service_name"
     echo "=============================================="
@@ -29,7 +29,7 @@ test_build_locally() {
     echo "🔧 TESTING BUILDS LOCALLY (without containers)"
     echo "=============================================="
     
-    services=("auth-service" "user-service" "matchmaking-service" "swipe-service" "photo-service")
+    services=("AuthService" "UserService" "MatchmakingService" "swipe-service" "photo-service")
     projects=("AuthService.csproj" "UserService.csproj" "MatchmakingService.csproj" "swipe-service.csproj" "PhotoService.csproj")
     
     for i in "${!services[@]}"; do
@@ -73,7 +73,7 @@ show_menu() {
     echo "  build-local    - Test all service builds locally (fastest)"
     echo "  test-dotnet    - Test .NET job with act (slower, more accurate)"
     echo "  test-docker    - Test Docker build job with act"
-    echo "  test-auth      - Test just auth-service with act"
+    echo "  test-auth      - Test just AuthService with act"
     echo "  test-photo     - Test just photo-service with act"
     echo "  list-jobs      - List all available jobs in workflow"
     echo "  help           - Show this help"
@@ -92,13 +92,13 @@ case "${1:-help}" in
         test_build_locally
         ;;
     "test-dotnet"|"dotnet"|"d")
-        test_job "dotnet-tests" "auth-service"
+        test_job "dotnet-tests" "AuthService"
         ;;
     "test-docker"|"docker")
-        test_job "docker-build" "auth-service"
+        test_job "docker-build" "AuthService"
         ;;
     "test-auth"|"auth")
-        test_job "dotnet-tests" "auth-service"
+        test_job "dotnet-tests" "AuthService"
         ;;
     "test-photo"|"photo")
         test_job "dotnet-tests" "photo-service"

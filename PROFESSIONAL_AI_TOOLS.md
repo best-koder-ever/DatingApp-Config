@@ -147,7 +147,7 @@ aider --model gemini/gemini-pro
 ```
 You: "What should I add to my dating app next?"
 
-Professional AI: "I see you have auth-service, user-service, matchmaking-service, 
+Professional AI: "I see you have AuthService, UserService, MatchmakingService, 
 swipe-service, and photo-service implemented. Your Flutter app has basic UI. 
 
 Missing critical features:

@@ -86,11 +86,11 @@ class DatingAppMCP:
         """Check health of all services"""
         health = {}
         ports = {
-            "auth-service": 5001,
+            "AuthService": 5001,
             "messaging-service": 5007, 
-            "matchmaking-service": 5003,
+            "MatchmakingService": 5003,
             "swipe-service": 5005,
-            "user-service": 5002,
+            "UserService": 5002,
             "photo-service": 5004
         }
         

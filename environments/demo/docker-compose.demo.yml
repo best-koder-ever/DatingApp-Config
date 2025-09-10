@@ -1,0 +1,102 @@
+# Demo Environment Docker Compose
+# Extends base configuration with demo-specific settings
+version: '3.8'
+
+services:
+  # MySQL with demo databases
+  mysql-demo:
+    image: mysql:8.0
+    container_name: dating-mysql-demo
+    environment:
+      MYSQL_ROOT_PASSWORD: demo_root_password
+      MYSQL_DATABASE: auth_service_demo
+    ports:
+      - "3307:3306"  # Different port to avoid conflicts
+    volumes:
+      - mysql_demo_data:/var/lib/mysql
+      - ./init-demo-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    networks:
+      - dating-demo-network
+
+  # YARP Gateway - Demo
+  yarp-gateway-demo:
+    build: ./dejting-yarp
+    container_name: dating-yarp-demo
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Demo
+      - ASPNETCORE_URLS=http://+:80
+    ports:
+      - "5000:80"  # Demo gateway port
+    depends_on:
+      - AuthService-demo
+      - UserService-demo
+    networks:
+      - dating-demo-network
+
+  # Auth Service - Demo
+  AuthService-demo:
+    build: ./AuthService
+    container_name: dating-auth-demo
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Demo
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mysql-demo;Database=auth_service_demo;Uid=root;Pwd=demo_root_password;
+    ports:
+      - "5001:80"
+    depends_on:
+      - mysql-demo
+    networks:
+      - dating-demo-network
+
+  # User Service - Demo  
+  UserService-demo:
+    build: ./UserService
+    container_name: dating-user-demo
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Demo
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mysql-demo;Database=user_service_demo;Uid=root;Pwd=demo_root_password;
+    ports:
+      - "5002:80"
+    depends_on:
+      - mysql-demo
+    networks:
+      - dating-demo-network
+
+  # Matchmaking Service - Demo
+  MatchmakingService-demo:
+    build: ./MatchmakingService
+    container_name: dating-matchmaking-demo
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Demo
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mysql-demo;Database=matchmaking_service_demo;Uid=root;Pwd=demo_root_password;
+    ports:
+      - "5003:80"
+    depends_on:
+      - mysql-demo
+    networks:
+      - dating-demo-network
+
+  # Test Data Generator - Demo Mode
+  test-data-generator-demo:
+    build: ./TestDataGenerator
+    container_name: dating-datagen-demo
+    environment:
+      - ENVIRONMENT=demo
+    depends_on:
+      - AuthService-demo
+      - UserService-demo
+      - MatchmakingService-demo
+    volumes:
+      - ./TestDataGenerator/Configurations:/app/Configurations
+    networks:
+      - dating-demo-network
+    command: ["dotnet", "TestDataGenerator.dll", "--environment", "demo", "--create-users", "50", "--api"]
+
+volumes:
+  mysql_demo_data:
+
+networks:
+  dating-demo-network:
+    driver: bridge

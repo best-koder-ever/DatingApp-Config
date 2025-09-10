@@ -26,7 +26,7 @@ services:
   auth-service:
     image: auth-service:latest  
     build:
-      context: ./auth-service
+      context: ./AuthService
       dockerfile: Dockerfile
     ports:
       - "8081:8081"
@@ -35,16 +35,16 @@ services:
       - ASPNETCORE_HTTP_PORTS=8081
       - ASPNETCORE_HTTPS_PORTS=8081
       - ASPNETCORE_URLS=http://*:8081
-      - ConnectionStrings__DefaultConnection=Server=auth-service-db;Port=3306;Database=AuthServiceDb;User=authuser;Password=authuser_password;
+      - ConnectionStrings__DefaultConnection=Server=AuthService-db;Port=3306;Database=AuthServiceDb;User=authuser;Password=authuser_password;
     depends_on:
-      auth-service-db:
+      AuthService-db:
         condition: service_healthy
     networks:
       - app-network
 
-  auth-service-db:
+  AuthService-db:
     image: mysql:8.0
-    container_name: auth-service-db
+    container_name: AuthService-db
     restart: always    
     environment:
       MYSQL_ROOT_PASSWORD: root_password
@@ -54,11 +54,11 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - auth-service-data:/var/lib/mysql
+      - AuthService-data:/var/lib/mysql
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "auth-service-db"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "AuthService-db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -66,7 +66,7 @@ services:
   user-service:
     image: user-service:latest
     build:
-      context: ./user-service
+      context: ./UserService
       dockerfile: Dockerfile
     ports:
       - "8082:8082"
@@ -75,15 +75,15 @@ services:
       - ASPNETCORE_HTTP_PORTS=8082
       - ASPNETCORE_HTTPS_PORTS=8082
       - ASPNETCORE_URLS=http://*:8082
-      - ConnectionStrings__DefaultConnection=Server=user-service-db;Port=3306;Database=UserServiceDb;User=userservice_user;Password=userservice_user_password;  
+      - ConnectionStrings__DefaultConnection=Server=UserService-db;Port=3306;Database=UserServiceDb;User=userservice_user;Password=userservice_user_password;  
     depends_on:
-      - user-service-db
+      - UserService-db
     networks:
       - app-network
 
-  user-service-db:
+  UserService-db:
     image: mysql:8.0
-    container_name: user-service-db
+    container_name: UserService-db
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: UserServiceDb
@@ -92,11 +92,11 @@ services:
     ports:
       - "3308:3306"
     volumes:
-      - user-service-data:/var/lib/mysql
+      - UserService-data:/var/lib/mysql
     networks:
       - app-network  
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "user-service-db"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "UserService-db"]
       interval: 10s
       timeout: 5s
       retries: 5      
@@ -105,7 +105,7 @@ services:
     image: matchmaking-service:latest
     build:
       context: .
-      dockerfile: ./matchmaking-service/Dockerfile
+      dockerfile: ./MatchmakingService/Dockerfile
     ports:
       - "8083:8083"
     environment:
@@ -113,15 +113,15 @@ services:
       - ASPNETCORE_HTTP_PORTS=8083
       - ASPNETCORE_HTTPS_PORTS=8083
       - ASPNETCORE_URLS=http://*:8083
-      - ConnectionStrings__DefaultConnection=Server=matchmaking-service-db;Port=3306;Database=MatchmakingServiceDb;User=matchmakingservice_user;Password=matchmakingservice_user_password;  
+      - ConnectionStrings__DefaultConnection=Server=MatchmakingService-db;Port=3306;Database=MatchmakingServiceDb;User=matchmakingservice_user;Password=matchmakingservice_user_password;  
     depends_on:
-      - matchmaking-service-db
+      - MatchmakingService-db
     networks:
       - app-network
 
-  matchmaking-service-db:
+  MatchmakingService-db:
     image: mysql:8.0
-    container_name: matchmaking-service-db
+    container_name: MatchmakingService-db
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: MatchmakingServiceDb
@@ -130,11 +130,11 @@ services:
     ports:
       - "3309:3306"
     volumes:
-      - matchmaking-service-data:/var/lib/mysql
+      - MatchmakingService-data:/var/lib/mysql
     networks:
       - app-network  
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "matchmaking-service-db"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "MatchmakingService-db"]
       interval: 10s
       timeout: 5s
       retries: 5     
@@ -323,9 +323,9 @@ services:
 
 volumes:
   loki-data:
-  auth-service-data:
-  user-service-data:
-  matchmaking-service-data:
+  AuthService-data:
+  UserService-data:
+  MatchmakingService-data:
   swipe-service-data:
   photo-service-data:
   photo-storage:

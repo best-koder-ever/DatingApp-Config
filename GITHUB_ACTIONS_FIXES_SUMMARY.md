@@ -14,9 +14,9 @@ All GitHub Actions workflows were failing with "deprecated version of actions/up
 ### 2. Fixed Project File Path Issues
 - **Before:** Incorrect references to `.sln` files and misnamed projects
 - **After:** Direct `.csproj` file references for each service:
-  - `auth-service/AuthService.csproj`
-  - `user-service/UserService.csproj`
-  - `matchmaking-service/MatchmakingService.csproj`
+  - `AuthService/AuthService.csproj`
+  - `UserService/UserService.csproj`
+  - `MatchmakingService/MatchmakingService.csproj`
   - `swipe-service/swipe-service.csproj`
   - `photo-service/PhotoService.csproj`
 

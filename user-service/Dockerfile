@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 WORKDIR /app
 
 # Copy the project file and restore dependencies
-COPY user-service.csproj ./
+COPY UserService.csproj ./
 RUN dotnet restore
 
 # Copy the entire project and build the application

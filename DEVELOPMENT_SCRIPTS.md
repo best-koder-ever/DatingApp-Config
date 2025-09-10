@@ -57,7 +57,7 @@ docker-compose down
 docker-compose logs -f
 
 # Restart a specific service
-docker-compose restart auth-service
+docker-compose restart AuthService
 ```
 
 ### Flutter Commands
@@ -94,7 +94,7 @@ flutter build web
 docker-compose ps
 
 # View specific service logs
-docker-compose logs auth-service
+docker-compose logs AuthService
 docker-compose logs yarp
 
 # Rebuild services
@@ -144,9 +144,9 @@ DatingApp/
 ├── start_dating_app.sh     # Full startup script
 ├── start_backend.sh        # Backend only
 ├── docker-compose.yml      # Backend services
-├── auth-service/           # Authentication microservice
-├── user-service/           # User profile microservice  
-├── matchmaking-service/    # Matching algorithms
+├── AuthService/           # Authentication microservice
+├── UserService/           # User profile microservice  
+├── MatchmakingService/    # Matching algorithms
 ├── swipe-service/          # Swipe functionality
 └── dejting-yarp/           # API gateway
 

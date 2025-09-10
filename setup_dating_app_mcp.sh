@@ -10,11 +10,11 @@ echo "⚙️  Creating Dating App specific MCP configuration..."
 cat > ~/.config/mcp/dating-app-config.json << 'EOF'
 {
   "mcpServers": {
-    "auth-service": {
+    "AuthService": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-filesystem", "/home/m/development/DatingApp/auth-service"],
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/m/development/DatingApp/AuthService"],
       "env": {
-        "SERVICE_NAME": "auth-service",
+        "SERVICE_NAME": "AuthService",
         "PORT": "5001"
       }
     },
@@ -26,11 +26,11 @@ cat > ~/.config/mcp/dating-app-config.json << 'EOF'
         "PORT": "5007"
       }
     },
-    "matchmaking-service": {
+    "MatchmakingService": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-filesystem", "/home/m/development/DatingApp/matchmaking-service"],
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/m/development/DatingApp/MatchmakingService"],
       "env": {
-        "SERVICE_NAME": "matchmaking-service",
+        "SERVICE_NAME": "MatchmakingService",
         "PORT": "5003"
       }
     },
@@ -42,11 +42,11 @@ cat > ~/.config/mcp/dating-app-config.json << 'EOF'
         "PORT": "5005"
       }
     },
-    "user-service": {
+    "UserService": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-filesystem", "/home/m/development/DatingApp/user-service"],
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/m/development/DatingApp/UserService"],
       "env": {
-        "SERVICE_NAME": "user-service",
+        "SERVICE_NAME": "UserService",
         "PORT": "5002"
       }
     },
@@ -94,9 +94,9 @@ cat > ~/.config/mcp/service-shortcuts.json << 'EOF'
   "shortcuts": {
     "start-all": "docker-compose up -d",
     "stop-all": "docker-compose down",
-    "logs-auth": "docker-compose logs -f auth-service",
+    "logs-auth": "docker-compose logs -f AuthService",
     "logs-messaging": "docker-compose logs -f messaging-service", 
-    "logs-matching": "docker-compose logs -f matchmaking-service",
+    "logs-matching": "docker-compose logs -f MatchmakingService",
     "restart-messaging": "docker-compose restart messaging-service",
     "db-status": "mysql -e 'SHOW DATABASES;' | grep -E '(dating|auth|messaging)'",
     "test-all": "./run_all_tests.sh",
@@ -115,7 +115,7 @@ echo "=========================================="
 # Test each MCP server
 echo "📋 Testing MCP servers:"
 
-servers=("auth-service" "messaging-service" "matchmaking-service" "flutter-app" "docker-services")
+servers=("AuthService" "messaging-service" "MatchmakingService" "flutter-app" "docker-services")
 for server in "${servers[@]}"; do
     echo -n "   Testing $server: "
     if mcp test-connection "$server" 2>/dev/null; then
@@ -127,7 +127,7 @@ done
 
 echo ""
 echo "🏗️ Service Directory Status:"
-services=("auth-service" "messaging-service" "matchmaking-service" "swipe-service" "user-service" "photo-service")
+services=("AuthService" "messaging-service" "MatchmakingService" "swipe-service" "UserService" "photo-service")
 for service in "${services[@]}"; do
     if [ -d "/home/m/development/DatingApp/$service" ]; then
         echo "   ✅ $service - Found"

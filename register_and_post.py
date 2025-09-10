@@ -59,7 +59,7 @@ def generate_invalid_profile():
     ]
     return random.choice(profiles)
 
-# Register a user in auth-service
+# Register a user in AuthService
 def register_user(auth_service_url, user_data):
     register_endpoint = f"{auth_service_url}/api/auth/register"
     response = requests.post(register_endpoint, json=user_data)
@@ -69,7 +69,7 @@ def register_user(auth_service_url, user_data):
     response.raise_for_status()
     return response.json()
 
-# Login to auth-service to get a token
+# Login to AuthService to get a token
 def login_user(auth_service_url, user_data):
     login_endpoint = f"{auth_service_url}/api/auth/login"
     login_payload = {
@@ -81,7 +81,7 @@ def login_user(auth_service_url, user_data):
     result = response.json()
     return result.get("token") or result.get("accessToken")
 
-# Post to user-service with the token
+# Post to UserService with the token
 def post_to_user_service(user_service_url, token, profile_data):
     headers = {
         "Authorization": f"Bearer {token}",
@@ -141,14 +141,14 @@ if __name__ == "__main__":
         user_data = generate_fake_user()
         print("Registering user:", user_data)
 
-        # Step 2: Register the user in auth-service
+        # Step 2: Register the user in AuthService
         try:
             register_user(auth_service_url, user_data)
         except Exception as e:
             print(f"Registration failed: {e}")
             continue
 
-        # Step 3: Login to auth-service to get a token
+        # Step 3: Login to AuthService to get a token
         try:
             token = login_user(auth_service_url, user_data)
             print("Received token:", token)
@@ -160,7 +160,7 @@ if __name__ == "__main__":
         profile_data = generate_fake_profile()
         print("Posting profile:", profile_data)
 
-        # Step 5: Post to user-service with the token
+        # Step 5: Post to UserService with the token
         try:
             result = post_to_user_service(user_service_url, token, profile_data)
             print("Profile created:", result)

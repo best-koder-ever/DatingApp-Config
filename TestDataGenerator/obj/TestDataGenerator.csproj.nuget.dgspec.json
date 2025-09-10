@@ -4,119 +4,14 @@
     "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj": {}
   },
   "projects": {
-    "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj": {
+    "/home/m/development/DatingApp/AuthService/AuthService.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj",
-        "projectName": "TestDataGenerator",
-        "projectPath": "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj",
-        "packagesPath": "/home/m/.nuget/packages/",
-        "outputPath": "/home/m/development/DatingApp/TestDataGenerator/obj/",
-        "projectStyle": "PackageReference",
-        "configFilePaths": [
-          "/home/m/.nuget/NuGet/NuGet.Config"
-        ],
-        "originalTargetFrameworks": [
-          "net8.0"
-        ],
-        "sources": {
-          "https://api.nuget.org/v3/index.json": {}
-        },
-        "frameworks": {
-          "net8.0": {
-            "targetAlias": "net8.0",
-            "projectReferences": {
-              "/home/m/development/DatingApp/auth-service/AuthService.csproj": {
-                "projectPath": "/home/m/development/DatingApp/auth-service/AuthService.csproj"
-              },
-              "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj": {
-                "projectPath": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj"
-              },
-              "/home/m/development/DatingApp/matchmaking-service/MatchmakingService.csproj": {
-                "projectPath": "/home/m/development/DatingApp/matchmaking-service/MatchmakingService.csproj"
-              },
-              "/home/m/development/DatingApp/swipe-service/src/SwipeService/SwipeService.csproj": {
-                "projectPath": "/home/m/development/DatingApp/swipe-service/src/SwipeService/SwipeService.csproj"
-              },
-              "/home/m/development/DatingApp/user-service/src/UserService/UserService.csproj": {
-                "projectPath": "/home/m/development/DatingApp/user-service/src/UserService/UserService.csproj"
-              }
-            }
-          }
-        },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        }
-      },
-      "frameworks": {
-        "net8.0": {
-          "targetAlias": "net8.0",
-          "dependencies": {
-            "Bogus": {
-              "target": "Package",
-              "version": "[35.5.1, )"
-            },
-            "Microsoft.EntityFrameworkCore": {
-              "target": "Package",
-              "version": "[8.0.13, )"
-            },
-            "Microsoft.EntityFrameworkCore.Design": {
-              "target": "Package",
-              "version": "[8.0.13, )"
-            },
-            "Microsoft.EntityFrameworkCore.Relational": {
-              "target": "Package",
-              "version": "[8.0.13, )"
-            },
-            "Microsoft.EntityFrameworkCore.Tools": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[8.0.13, )"
-            },
-            "Microsoft.Extensions.Configuration.Json": {
-              "target": "Package",
-              "version": "[8.0.0, )"
-            },
-            "Pomelo.EntityFrameworkCore.MySql": {
-              "target": "Package",
-              "version": "[8.0.3, )"
-            },
-            "Spectre.Console": {
-              "target": "Package",
-              "version": "[0.50.0, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.118/PortableRuntimeIdentifierGraph.json"
-        }
-      }
-    },
-    "/home/m/development/DatingApp/auth-service/AuthService.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "/home/m/development/DatingApp/auth-service/AuthService.csproj",
+        "projectUniqueName": "/home/m/development/DatingApp/AuthService/AuthService.csproj",
         "projectName": "AuthService",
-        "projectPath": "/home/m/development/DatingApp/auth-service/AuthService.csproj",
+        "projectPath": "/home/m/development/DatingApp/AuthService/AuthService.csproj",
         "packagesPath": "/home/m/.nuget/packages/",
-        "outputPath": "/home/m/development/DatingApp/auth-service/obj/",
+        "outputPath": "/home/m/development/DatingApp/AuthService/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/m/.nuget/NuGet/NuGet.Config"
@@ -255,84 +150,14 @@
         }
       }
     },
-    "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj": {
+    "/home/m/development/DatingApp/MatchmakingService/MatchmakingService.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj",
-        "projectName": "dejting-yarp",
-        "projectPath": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj",
-        "packagesPath": "/home/m/.nuget/packages/",
-        "outputPath": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/obj/",
-        "projectStyle": "PackageReference",
-        "configFilePaths": [
-          "/home/m/.nuget/NuGet/NuGet.Config"
-        ],
-        "originalTargetFrameworks": [
-          "net8.0"
-        ],
-        "sources": {
-          "https://api.nuget.org/v3/index.json": {}
-        },
-        "frameworks": {
-          "net8.0": {
-            "targetAlias": "net8.0",
-            "projectReferences": {}
-          }
-        },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        }
-      },
-      "frameworks": {
-        "net8.0": {
-          "targetAlias": "net8.0",
-          "dependencies": {
-            "Microsoft.AspNetCore.OpenApi": {
-              "target": "Package",
-              "version": "[8.0.12, )"
-            },
-            "Swashbuckle.AspNetCore": {
-              "target": "Package",
-              "version": "[6.6.2, )"
-            },
-            "Yarp.ReverseProxy": {
-              "target": "Package",
-              "version": "[2.2.0, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "frameworkReferences": {
-            "Microsoft.AspNetCore.App": {
-              "privateAssets": "none"
-            },
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.118/PortableRuntimeIdentifierGraph.json"
-        }
-      }
-    },
-    "/home/m/development/DatingApp/matchmaking-service/MatchmakingService.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "/home/m/development/DatingApp/matchmaking-service/MatchmakingService.csproj",
+        "projectUniqueName": "/home/m/development/DatingApp/MatchmakingService/MatchmakingService.csproj",
         "projectName": "MatchmakingService",
-        "projectPath": "/home/m/development/DatingApp/matchmaking-service/MatchmakingService.csproj",
+        "projectPath": "/home/m/development/DatingApp/MatchmakingService/MatchmakingService.csproj",
         "packagesPath": "/home/m/.nuget/packages/",
-        "outputPath": "/home/m/development/DatingApp/matchmaking-service/obj/",
+        "outputPath": "/home/m/development/DatingApp/MatchmakingService/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/m/.nuget/NuGet/NuGet.Config"
@@ -447,14 +272,14 @@
         }
       }
     },
-    "/home/m/development/DatingApp/swipe-service/src/SwipeService/SwipeService.csproj": {
+    "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/m/development/DatingApp/swipe-service/src/SwipeService/SwipeService.csproj",
-        "projectName": "SwipeService",
-        "projectPath": "/home/m/development/DatingApp/swipe-service/src/SwipeService/SwipeService.csproj",
+        "projectUniqueName": "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj",
+        "projectName": "TestDataGenerator",
+        "projectPath": "/home/m/development/DatingApp/TestDataGenerator/TestDataGenerator.csproj",
         "packagesPath": "/home/m/.nuget/packages/",
-        "outputPath": "/home/m/development/DatingApp/swipe-service/src/SwipeService/obj/",
+        "outputPath": "/home/m/development/DatingApp/TestDataGenerator/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/m/.nuget/NuGet/NuGet.Config"
@@ -468,7 +293,20 @@
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "/home/m/development/DatingApp/AuthService/AuthService.csproj": {
+                "projectPath": "/home/m/development/DatingApp/AuthService/AuthService.csproj"
+              },
+              "/home/m/development/DatingApp/MatchmakingService/MatchmakingService.csproj": {
+                "projectPath": "/home/m/development/DatingApp/MatchmakingService/MatchmakingService.csproj"
+              },
+              "/home/m/development/DatingApp/UserService/UserService.csproj": {
+                "projectPath": "/home/m/development/DatingApp/UserService/UserService.csproj"
+              },
+              "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj": {
+                "projectPath": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
@@ -481,17 +319,19 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
-            "Microsoft.AspNetCore.OpenApi": {
+            "Bogus": {
               "target": "Package",
-              "version": "[8.0.0, )"
+              "version": "[35.5.1, )"
+            },
+            "Microsoft.AspNetCore.Identity": {
+              "target": "Package",
+              "version": "[2.2.0, )"
             },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.13, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
               "target": "Package",
               "version": "[8.0.13, )"
             },
@@ -505,13 +345,21 @@
               "target": "Package",
               "version": "[8.0.13, )"
             },
+            "Microsoft.Extensions.Configuration.Json": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "MySqlConnector": {
+              "target": "Package",
+              "version": "[2.3.5, )"
+            },
             "Pomelo.EntityFrameworkCore.MySql": {
               "target": "Package",
               "version": "[8.0.3, )"
             },
-            "Swashbuckle.AspNetCore": {
+            "Spectre.Console": {
               "target": "Package",
-              "version": "[6.5.0, )"
+              "version": "[0.50.0, )"
             }
           },
           "imports": [
@@ -526,9 +374,6 @@
           "assetTargetFallback": true,
           "warn": true,
           "frameworkReferences": {
-            "Microsoft.AspNetCore.App": {
-              "privateAssets": "none"
-            },
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
@@ -537,14 +382,14 @@
         }
       }
     },
-    "/home/m/development/DatingApp/user-service/src/UserService/UserService.csproj": {
+    "/home/m/development/DatingApp/UserService/UserService.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/m/development/DatingApp/user-service/src/UserService/UserService.csproj",
+        "projectUniqueName": "/home/m/development/DatingApp/UserService/UserService.csproj",
         "projectName": "UserService",
-        "projectPath": "/home/m/development/DatingApp/user-service/src/UserService/UserService.csproj",
+        "projectPath": "/home/m/development/DatingApp/UserService/UserService.csproj",
         "packagesPath": "/home/m/.nuget/packages/",
-        "outputPath": "/home/m/development/DatingApp/user-service/src/UserService/obj/",
+        "outputPath": "/home/m/development/DatingApp/UserService/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/m/.nuget/NuGet/NuGet.Config"
@@ -600,6 +445,76 @@
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.5.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.118/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj",
+        "projectName": "dejting-yarp",
+        "projectPath": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/dejting-yarp.csproj",
+        "packagesPath": "/home/m/.nuget/packages/",
+        "outputPath": "/home/m/development/DatingApp/dejting-yarp/src/dejting-yarp/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/m/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[8.0.12, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.6.2, )"
+            },
+            "Yarp.ReverseProxy": {
+              "target": "Package",
+              "version": "[2.2.0, )"
             }
           },
           "imports": [

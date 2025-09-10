@@ -1,0 +1,89 @@
+# Demo Environment - Simplified Setup
+# Start with core services first, then expand
+version: '3.8'
+
+services:
+  # Demo MySQL Database
+  demo-mysql:
+    image: mysql:8.0
+    container_name: demo-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: demo_root_123
+      MYSQL_DATABASE: auth_service_demo
+    ports:
+      - "3320:3306"  # Different port to avoid conflicts
+    volumes:
+      - demo_mysql_data:/var/lib/mysql
+      - ./init-demo-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Auth Service - Demo
+  demo-auth:
+    build: 
+      context: ../../AuthService
+      dockerfile: Dockerfile
+    container_name: demo-auth
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=demo-mysql;Database=auth_service_demo;Uid=root;Pwd=demo_root_123;
+    ports:
+      - "5001:8081"
+    depends_on:
+      demo-mysql:
+        condition: service_healthy
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+  # User Service - Demo
+  demo-user:
+    build:
+      context: ../../UserService
+      dockerfile: Dockerfile
+    container_name: demo-user
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=demo-mysql;Database=user_service_demo;Uid=root;Pwd=demo_root_123;
+    ports:
+      - "5002:8082"
+    depends_on:
+      demo-mysql:
+        condition: service_healthy
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+  # Matchmaking Service - Demo
+  demo-matchmaking:
+    build:
+      context: ../../MatchmakingService
+      dockerfile: Dockerfile
+    container_name: demo-matchmaking
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=demo-mysql;Database=matchmaking_service_demo;Uid=root;Pwd=demo_root_123;
+    ports:
+      - "5003:8083"
+    depends_on:
+      demo-mysql:
+        condition: service_healthy
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+volumes:
+  demo_mysql_data:
+    name: demo_mysql_data
+
+networks:
+  demo-network:
+    name: demo-network
+    driver: bridge

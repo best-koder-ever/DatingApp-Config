@@ -81,16 +81,16 @@ fi
 echo "Starting services in dependency order..."
 
 # AuthService (port 5001)
-start_service "AuthService" "/home/m/development/DatingApp/auth-service" 5001 "AuthService.csproj"
+start_service "AuthService" "/home/m/development/DatingApp/AuthService" 5001 "AuthService.csproj"
 
 # UserService (port 5002)  
-start_service "UserService" "/home/m/development/DatingApp/user-service/src/UserService" 5002
+start_service "UserService" "/home/m/development/DatingApp/UserService/src/UserService" 5002
 
 # SwipeService (port 5003)
 start_service "SwipeService" "/home/m/development/DatingApp/swipe-service/src/SwipeService" 5003
 
 # MatchmakingService (port 5004)
-start_service "MatchmakingService" "/home/m/development/DatingApp/matchmaking-service" 5004 "MatchmakingService.csproj"
+start_service "MatchmakingService" "/home/m/development/DatingApp/MatchmakingService" 5004 "MatchmakingService.csproj"
 
 echo ""
 echo -e "${GREEN}🎉 All services started!${NC}"

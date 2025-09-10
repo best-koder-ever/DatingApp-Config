@@ -43,7 +43,7 @@ Goal: Get basic user flow working
 ```
 
 1. **Debug Registration Errors**
-   - Check auth-service logs
+   - Check AuthService logs
    - Validate database connections
    - Fix 500 error responses
 
