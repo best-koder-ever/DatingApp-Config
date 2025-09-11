@@ -1,0 +1,26 @@
+{
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "http://*:80"
+      }
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Port=3307;Database=CHANGEME_service_demo;Uid=root;Pwd=demo_root_password;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Jwt": {
+    "Key": "your-secret-key-here-make-it-long-enough-32-chars",
+    "Issuer": "YourApp",
+    "Audience": "YourAppUsers",
+    "ExpiryInDays": 7,
+    "PublicKeyPath": "public.key"
+  },
+  "AllowedHosts": "*"
+}

@@ -1,0 +1,62 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🔍 Validate Demo Environment",
+            "type": "shell",
+            "command": "docker-compose",
+            "args": ["-f", "environments/demo/docker-compose.demo.yml", "config"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "new",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Validates docker-compose configuration"
+        },
+        {
+            "label": "🏥 Quick Health Check",
+            "type": "shell", 
+            "command": "bash",
+            "args": ["-c", "echo '🔍 Checking services...' && curl -s http://localhost:5001/health && echo ' ✅ Auth OK' && curl -s http://localhost:5002/health && echo ' ✅ User OK' && curl -s http://localhost:5003/health && echo ' ✅ Matchmaking OK' || echo '❌ Some services down'"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "new",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🚀 Start Demo Environment", 
+            "type": "shell",
+            "command": "docker-compose",
+            "args": ["-f", "environments/demo/docker-compose.demo.yml", "up", "-d"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always", 
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🛑 Stop Demo Environment",
+            "type": "shell",
+            "command": "docker-compose", 
+            "args": ["-f", "environments/demo/docker-compose.demo.yml", "down"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

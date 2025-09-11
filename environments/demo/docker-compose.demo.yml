@@ -20,7 +20,7 @@ services:
 
   # YARP Gateway - Demo
   yarp-gateway-demo:
-    build: ./dejting-yarp
+    build: ../../dejting-yarp
     container_name: dating-yarp-demo
     environment:
       - ASPNETCORE_ENVIRONMENT=Demo
@@ -28,14 +28,14 @@ services:
     ports:
       - "5000:80"  # Demo gateway port
     depends_on:
-      - AuthService-demo
-      - UserService-demo
+      - auth-service-demo
+      - user-service-demo
     networks:
       - dating-demo-network
 
   # Auth Service - Demo
-  AuthService-demo:
-    build: ./AuthService
+  auth-service-demo:
+    build: ../../AuthService
     container_name: dating-auth-demo
     environment:
       - ASPNETCORE_ENVIRONMENT=Demo
@@ -49,8 +49,8 @@ services:
       - dating-demo-network
 
   # User Service - Demo  
-  UserService-demo:
-    build: ./UserService
+  user-service-demo:
+    build: ../../UserService
     container_name: dating-user-demo
     environment:
       - ASPNETCORE_ENVIRONMENT=Demo
@@ -64,8 +64,8 @@ services:
       - dating-demo-network
 
   # Matchmaking Service - Demo
-  MatchmakingService-demo:
-    build: ./MatchmakingService
+  matchmaking-service-demo:
+    build: ../../MatchmakingService
     container_name: dating-matchmaking-demo
     environment:
       - ASPNETCORE_ENVIRONMENT=Demo
@@ -77,22 +77,6 @@ services:
       - mysql-demo
     networks:
       - dating-demo-network
-
-  # Test Data Generator - Demo Mode
-  test-data-generator-demo:
-    build: ./TestDataGenerator
-    container_name: dating-datagen-demo
-    environment:
-      - ENVIRONMENT=demo
-    depends_on:
-      - AuthService-demo
-      - UserService-demo
-      - MatchmakingService-demo
-    volumes:
-      - ./TestDataGenerator/Configurations:/app/Configurations
-    networks:
-      - dating-demo-network
-    command: ["dotnet", "TestDataGenerator.dll", "--environment", "demo", "--create-users", "50", "--api"]
 
 volumes:
   mysql_demo_data:
