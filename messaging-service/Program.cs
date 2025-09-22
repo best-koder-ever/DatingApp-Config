@@ -5,30 +5,45 @@ using MessagingService.Data;
 using MessagingService.Hubs;
 using MessagingService.Services;
 using MessagingService.Middleware;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddDbContext<MessagingDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 25))
-    )
-);
+var isDemoMode = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
+
+if (isDemoMode)
+{
+    Console.WriteLine("MessagingService: Using in-memory database for demo mode");
+    builder.Services.AddDbContext<MessagingDbContext>(options =>
+        options.UseInMemoryDatabase("MessagingServiceDemo"));
+}
+else
+{
+    builder.Services.AddDbContext<MessagingDbContext>(options =>
+        options.UseMySql(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            new MySqlServerVersion(new Version(8, 0, 25))
+        )
+    );
+}
 
 // Add Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        var isDemoModeForAuth = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key not found"))
-            ),
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            IssuerSigningKey = GetPublicKey(),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
@@ -43,6 +58,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/messagingHub"))
                 {
                     context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                if (isDemoMode && context.SecurityToken is JwtSecurityToken jwtToken)
+                {
+                    // Accept DEMO_TOKEN as valid in demo mode
+                    if (jwtToken.RawData == "DEMO_TOKEN")
+                    {
+                        // Bypass validation for demo
+                        context.Success();
+                    }
+                }
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                if (isDemoMode && context.Request.Headers["Authorization"].ToString().Contains("DEMO_TOKEN"))
+                {
+                    // Bypass failure for demo token
+                    context.NoResult();
+                    context.Success();
                 }
                 return Task.CompletedTask;
             }
@@ -90,13 +128,13 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() 
-    { 
-        Title = "Dating App Messaging Service API", 
+    c.SwaggerDoc("v1", new()
+    {
+        Title = "Dating App Messaging Service API",
         Version = "v1",
         Description = "Real-time messaging service with proactive safety features including content moderation, spam detection, and personal information protection."
     });
-    
+
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
@@ -130,7 +168,49 @@ app.MapHub<MessagingHub>("/messagingHub");
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<MessagingDbContext>();
-    context.Database.EnsureCreated();
+    if (isDemoMode)
+    {
+        Console.WriteLine("MessagingService: Using in-memory database, skipping migrations");
+        context.Database.EnsureCreated();
+    }
+    else
+    {
+        context.Database.EnsureCreated();
+    }
+}
+
+// ================================
+// RSA KEY MANAGEMENT
+// Public key validation for JWT tokens from AuthService
+// ================================
+
+static RsaSecurityKey GetPublicKey()
+{
+    try
+    {
+        var publicKeyPath = "public.key";
+        if (File.Exists(publicKeyPath))
+        {
+            var publicKeyPem = File.ReadAllText(publicKeyPath);
+            var rsa = RSA.Create();
+            rsa.ImportFromPem(publicKeyPem);
+            return new RsaSecurityKey(rsa);
+        }
+        else
+        {
+            // For demo mode or when no key file exists, create a temporary key
+            // In production, this should always use the proper public key
+            var rsa = RSA.Create(2048);
+            return new RsaSecurityKey(rsa);
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading public key: {ex.Message}");
+        // Fallback to temporary key
+        var rsa = RSA.Create(2048);
+        return new RsaSecurityKey(rsa);
+    }
 }
 
 app.Run();

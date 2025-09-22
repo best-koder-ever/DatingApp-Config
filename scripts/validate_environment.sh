@@ -115,11 +115,11 @@ PORT_CHECKS=0
 PORT_FAILURES=0
 
 # Check port mappings (external→internal)
-if check_port_mapping "dating-auth-demo" "80" "5001"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
-if check_port_mapping "dating-user-demo" "80" "5002"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
-if check_port_mapping "dating-matchmaking-demo" "80" "5003"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
+if check_port_mapping "dating-auth-demo" "80" "8081"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
+if check_port_mapping "dating-user-demo" "80" "8082"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
+if check_port_mapping "dating-matchmaking-demo" "80" "8083"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
 if check_port_mapping "dating-mysql-demo" "3306" "3307"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
-if check_port_mapping "dating-yarp-demo" "80" "5000"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
+if check_port_mapping "dating-yarp-demo" "80" "8080"; then ((PORT_CHECKS++)); else ((PORT_FAILURES++)); fi
 
 echo ""
 echo -e "${BLUE}🏥 Checking Service Health...${NC}"
@@ -129,9 +129,9 @@ HEALTH_CHECKS=0
 HEALTH_FAILURES=0
 
 # Check service health endpoints
-if check_service_health "http://localhost:5001/health" "Auth Service"; then ((HEALTH_CHECKS++)); else ((HEALTH_FAILURES++)); fi
-if check_service_health "http://localhost:5002/health" "User Service"; then ((HEALTH_CHECKS++)); else ((HEALTH_FAILURES++)); fi
-if check_service_health "http://localhost:5003/health" "Matchmaking Service"; then ((HEALTH_CHECKS++)); else ((HEALTH_FAILURES++)); fi
+if check_service_health "http://localhost:8081/health" "Auth Service"; then ((HEALTH_CHECKS++)); else ((HEALTH_FAILURES++)); fi
+if check_service_health "http://localhost:8082/health" "User Service"; then ((HEALTH_CHECKS++)); else ((HEALTH_FAILURES++)); fi
+if check_service_health "http://localhost:8083/health" "Matchmaking Service"; then ((HEALTH_CHECKS++)); else ((HEALTH_FAILURES++)); fi
 
 echo ""
 echo -e "${BLUE}⚙️  Checking Configuration Files...${NC}"

@@ -1,0 +1,79 @@
+// =========================================
+// VS CODE GLOBAL SETTINGS - C# NOISE REDUCTION
+// Copy these settings to your global settings.json
+// Location: ~/.config/Code/User/settings.json
+// =========================================
+
+{
+  // =========================================
+  // C# EXTENSION SETTINGS - REDUCE NOISE
+  // =========================================
+  
+  "omnisharp.showOmnisharpLogOnError": false,
+  "omnisharp.loggingLevel": "warning",
+  "dotnetAcquisitionExtension.loggingLevel": "warning",
+  "csharp.showOmnisharpLogOnError": false,
+  "csharp.suppressDotnetInstallWarning": true,
+  "csharp.suppressDotnetRestoreNotification": true,
+  
+  // =========================================
+  // C# EXTENSION SETTINGS - KEEP FUNCTIONALITY
+  // =========================================
+  
+  "omnisharp.enableEditorConfigSupport": true,
+  "omnisharp.enableRoslynAnalyzers": true,
+  "omnisharp.enableImportCompletion": true,
+  "omnisharp.enableAsyncCompletion": true,
+  "omnisharp.enableDecompilationSupport": true,
+  "omnisharp.analyzeOpenDocumentsOnly": false,
+  
+  // =========================================
+  // GENERAL DEVELOPMENT IMPROVEMENTS
+  // =========================================
+  
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "editor.formatOnSave": true,
+  "terminal.integrated.scrollback": 10000,
+  
+  // LANGUAGE-SPECIFIC FORMATTING
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true
+  },
+  
+  // FILE EXCLUDES (reduce clutter)
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/.vs": true
+  },
+  
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/logs": true
+  }
+}
+
+// =========================================
+// HOW TO APPLY:
+// =========================================
+// 1. Open VS Code
+// 2. Press Ctrl+Shift+P
+// 3. Type "Preferences: Open User Settings (JSON)"
+// 4. Copy the relevant settings above into your existing settings.json
+// 5. Save the file
+// 6. Restart VS Code for all changes to take effect
+// =========================================

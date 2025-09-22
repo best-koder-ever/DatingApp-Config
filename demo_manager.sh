@@ -71,11 +71,11 @@ start_demo() {
     
     print_success "Demo environment started successfully!"
     print_status "Demo URLs:"
-    echo "  🌐 YARP Gateway: http://localhost:5000"
-    echo "  🔐 Auth Service: http://localhost:5001"  
-    echo "  👤 User Service: http://localhost:5002"
-    echo "  💕 Matchmaking: http://localhost:5003"
-    echo "  📱 Flutter App: Connect to http://localhost:5000"
+    echo "  🌐 YARP Gateway: http://localhost:8080"
+    echo "  🔐 Auth Service: http://localhost:8081"  
+    echo "  👤 User Service: http://localhost:8082"
+    echo "  💕 Matchmaking: http://localhost:8083"
+    echo "  📱 Flutter App: Connect to http://localhost:8080"
 }
 
 # Function to stop demo environment
@@ -154,11 +154,11 @@ open_demo() {
     
     # Open browser to demo gateway
     if command -v xdg-open > /dev/null; then
-        xdg-open "http://localhost:5000"
+        xdg-open "http://localhost:8080"
     elif command -v open > /dev/null; then
-        open "http://localhost:5000"
+        open "http://localhost:8080"
     else
-        print_status "Please open http://localhost:5000 in your browser"
+        print_status "Please open http://localhost:8080 in your browser"
     fi
 }
 

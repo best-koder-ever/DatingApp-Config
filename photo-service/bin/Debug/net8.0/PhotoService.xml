@@ -1211,7 +1211,7 @@
             Handles photo CRUD operations, validation, and integration with storage/processing
             </summary>
         </member>
-        <member name="M:PhotoService.Services.PhotoService.#ctor(PhotoService.Data.PhotoContext,PhotoService.Services.IImageProcessingService,PhotoService.Services.IStorageService,Microsoft.Extensions.Logging.ILogger{PhotoService.Services.PhotoService})">
+        <member name="M:PhotoService.Services.PhotoService.#ctor(PhotoService.Data.PhotoContext,PhotoService.Services.IImageProcessingService,PhotoService.Services.IStorageService,Microsoft.Extensions.Logging.ILogger{PhotoService.Services.PhotoService},Microsoft.AspNetCore.Http.IHttpContextAccessor)">
             <summary>
             Constructor with dependency injection
             Standard service layer pattern with EF Core and custom services
@@ -1292,6 +1292,11 @@
         <member name="M:PhotoService.Services.PhotoService.DetermineModerationStatus(System.Int32)">
             <summary>
             Determine moderation status based on quality score
+            </summary>
+        </member>
+        <member name="M:PhotoService.Services.PhotoService.GeneratePhotoUrls(System.Int32)">
+            <summary>
+            Generate complete URLs for photo access
             </summary>
         </member>
         <member name="M:PhotoService.Services.PhotoService.GetContentType(System.String)">

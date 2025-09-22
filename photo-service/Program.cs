@@ -3,6 +3,7 @@ using PhotoService.Data;
 using PhotoService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 using System.Text;
 using SixLabors.ImageSharp.Web.DependencyInjection;
 
@@ -66,23 +67,34 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Database Configuration - MySQL with Entity Framework
-builder.Services.AddDbContext<PhotoContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 32)),
-        mySqlOptions =>
-        {
-            mySqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(5),
-                errorNumbersToAdd: null);
-        }
-    ));
+// Database Configuration - MySQL or In-Memory based on demo mode
+var isDemoMode = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
 
-// JWT Authentication - Standard Bearer Token Configuration
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? throw new ArgumentNullException("JWT SecretKey is required");
+if (isDemoMode)
+{
+    // Use in-memory database for demo mode
+    builder.Services.AddDbContext<PhotoContext>(options =>
+        options.UseInMemoryDatabase("DemoPhotosDb"));
+}
+else
+{
+    // Use MySQL for production
+    builder.Services.AddDbContext<PhotoContext>(options =>
+        options.UseMySql(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            new MySqlServerVersion(new Version(8, 0, 32)),
+            mySqlOptions =>
+            {
+                mySqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(5),
+                    errorNumbersToAdd: null);
+            }
+        ));
+}
+
+// JWT Authentication - RSA Public Key Configuration to match AuthService
+var isDemoModeForAuth = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -91,28 +103,52 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
+    if (isDemoModeForAuth)
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
-    };
+        // For demo mode, use more permissive validation
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = "DatingApp-Issuer",
+            ValidAudience = "DatingApp-Audience",
+            IssuerSigningKey = GetPublicKey()
+        };
+    }
+    else
+    {
+        var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = GetPublicKey()
+        };
+    }
 });
 
 // Authorization
 builder.Services.AddAuthorization();
 
 // ImageSharp Configuration - Industry standard image processing
-builder.Services.AddImageSharp();
+if (!isDemoMode)
+{
+    builder.Services.AddImageSharp();
+}
 
 // Custom Services - Dependency Injection
 builder.Services.AddScoped<IPhotoService, PhotoService.Services.PhotoService>();
 builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();
 builder.Services.AddScoped<IStorageService, LocalStorageService>();
+
+// HTTP Context for URL generation
+builder.Services.AddHttpContextAccessor();
 
 // CORS Configuration - For cross-origin requests
 builder.Services.AddCors(options =>
@@ -176,7 +212,11 @@ app.UseAuthorization();
 app.UseStaticFiles();
 
 // ImageSharp middleware for image processing
-app.UseImageSharp();
+var isDemoModeApp = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
+if (!isDemoModeApp)
+{
+    app.UseImageSharp();
+}
 
 // API Controllers
 app.MapControllers();
@@ -190,8 +230,55 @@ if (app.Environment.IsDevelopment())
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<PhotoContext>();
-        context.Database.EnsureCreated();
+        // Only ensure created if not in demo mode (in-memory databases are auto-created)
+        var isDemoModeRuntime = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
+        if (!isDemoModeRuntime)
+        {
+            context.Database.EnsureCreated();
+        }
     }
 }
 
+// Force use environment URL if available
+var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+if (!string.IsNullOrEmpty(urls))
+{
+    app.Urls.Clear();
+    app.Urls.Add(urls);
+}
+
 app.Run();
+
+// ================================
+// RSA KEY MANAGEMENT
+// Public key validation for JWT tokens from AuthService
+// ================================
+
+static RsaSecurityKey GetPublicKey()
+{
+    try
+    {
+        var publicKeyPath = "public.key";
+        if (File.Exists(publicKeyPath))
+        {
+            var publicKeyPem = File.ReadAllText(publicKeyPath);
+            var rsa = RSA.Create();
+            rsa.ImportFromPem(publicKeyPem);
+            return new RsaSecurityKey(rsa);
+        }
+        else
+        {
+            // For demo mode or when no key file exists, create a temporary key
+            // In production, this should always use the proper public key
+            var rsa = RSA.Create(2048);
+            return new RsaSecurityKey(rsa);
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading public key: {ex.Message}");
+        // Fallback to temporary key
+        var rsa = RSA.Create(2048);
+        return new RsaSecurityKey(rsa);
+    }
+}

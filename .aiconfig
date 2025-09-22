@@ -1,0 +1,26 @@
+# AI Assistant Rules for Dating App Development
+
+## Code Creation Rules
+- **DO NOT create scripts** unless explicitly asked by the user
+- **DO NOT write automation scripts** without permission
+- Only create files when specifically requested
+- Always ask before creating helper scripts or utilities
+
+## Development Guidelines
+- Focus on direct problem solving over automation
+- Provide manual instructions when appropriate
+- Use existing tools and commands rather than creating new ones
+- Keep responses focused and concise
+
+## Photo Service Development Notes
+- PhotoService runs on port 8085 (demo mode)
+- AuthService runs on port 8081 (demo mode)
+- Use DEMO_MODE=true for in-memory databases
+- Photo URLs must be complete (http://localhost:8085/api/photos/{id}/image) not relative
+- Flutter environment.dart already configured for correct ports
+
+## Service Restart Process (Manual)
+1. Kill processes: `pkill -f "dotnet" && pkill -f "flutter"`
+2. Start AuthService: `cd AuthService && DEMO_MODE=true ASPNETCORE_URLS=http://localhost:8081 dotnet run &`
+3. Start PhotoService: `cd photo-service && DEMO_MODE=true ASPNETCORE_URLS=http://localhost:8085 dotnet run &`
+4. Start Flutter: `cd dejtingapp && flutter run -d linux --hot &`

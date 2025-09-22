@@ -1,13 +1,6 @@
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.csproj.AssemblyReference.cache
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.GeneratedMSBuildEditorConfig.editorconfig
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.AssemblyInfoInputs.cache
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.AssemblyInfo.cs
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.csproj.CoreCompileInputs.cache
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.MvcApplicationPartsAssemblyInfo.cs
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.MvcApplicationPartsAssemblyInfo.cache
-/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.sourcelink.json
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/appsettings.Development.json
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/appsettings.json
+/home/m/development/DatingApp/photo-service/bin/Debug/net8.0/PhotoService.staticwebassets.runtime.json
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/PhotoService
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/PhotoService.deps.json
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/PhotoService.runtimeconfig.json
@@ -25,6 +18,7 @@
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/Microsoft.EntityFrameworkCore.dll
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/Microsoft.EntityFrameworkCore.Abstractions.dll
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/Microsoft.EntityFrameworkCore.Design.dll
+/home/m/development/DatingApp/photo-service/bin/Debug/net8.0/Microsoft.EntityFrameworkCore.InMemory.dll
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/Microsoft.EntityFrameworkCore.Relational.dll
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/Microsoft.Extensions.DependencyModel.dll
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/Microsoft.IdentityModel.Abstractions.dll
@@ -102,6 +96,14 @@
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/tr/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/zh-Hans/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /home/m/development/DatingApp/photo-service/bin/Debug/net8.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.csproj.AssemblyReference.cache
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.GeneratedMSBuildEditorConfig.editorconfig
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.AssemblyInfoInputs.cache
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.AssemblyInfo.cs
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.csproj.CoreCompileInputs.cache
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.MvcApplicationPartsAssemblyInfo.cs
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.MvcApplicationPartsAssemblyInfo.cache
+/home/m/development/DatingApp/photo-service/obj/Debug/net8.0/PhotoService.sourcelink.json
 /home/m/development/DatingApp/photo-service/obj/Debug/net8.0/staticwebassets.build.json
 /home/m/development/DatingApp/photo-service/obj/Debug/net8.0/staticwebassets.development.json
 /home/m/development/DatingApp/photo-service/obj/Debug/net8.0/staticwebassets/msbuild.PhotoService.Microsoft.AspNetCore.StaticWebAssets.props

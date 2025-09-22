@@ -133,6 +133,37 @@
 ./github_helpers.sh pro   # Professional CI/CD deployment
 ```
 
+### **AI Assistant Rules**
+- **DO NOT create scripts** unless explicitly asked by the user
+- **DO NOT write automation scripts** without permission
+- Only create files when specifically requested
+- Always ask before creating helper scripts or utilities
+- Focus on direct problem solving over automation
+- Provide manual instructions when appropriate
+- Use existing tools and commands rather than creating new ones
+
+### **Demo Environment Configuration**
+- PhotoService runs on port 8085 (demo mode)
+- AuthService runs on port 8081 (demo mode) 
+- Use DEMO_MODE=true for in-memory databases
+- Photo URLs must be complete (http://localhost:8085/api/photos/{id}/image) not relative
+- Flutter environment.dart already configured for correct ports
+
+### **Service Restart Process (Manual)**
+```bash
+# Kill processes
+pkill -f "dotnet" && pkill -f "flutter"
+
+# Start AuthService
+cd AuthService && DEMO_MODE=true ASPNETCORE_URLS=http://localhost:8081 dotnet run &
+
+# Start PhotoService  
+cd photo-service && DEMO_MODE=true ASPNETCORE_URLS=http://localhost:8085 dotnet run &
+
+# Start Flutter
+cd dejtingapp && flutter run -d linux --hot &
+```
+
 ## 📈 Technical Debt & Issues Tracker
 
 ### **Current Known Issues**

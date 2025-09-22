@@ -1,0 +1,30 @@
+{
+  "recommendations": [
+    // C# Development
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    
+    // Flutter/Dart Development  
+    "dart-code.dart-code",
+    "dart-code.flutter",
+    
+    // General Development
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "ms-python.python",
+    
+    // Git & Version Control
+    "eamodio.gitlens",
+    
+    // REST API Testing
+    "humao.rest-client",
+    
+    // Database
+    "ms-mssql.mssql",
+    
+    // Docker (if you use containers)
+    "ms-azuretools.vscode-docker"
+  ],
+  "unwantedRecommendations": []
+}

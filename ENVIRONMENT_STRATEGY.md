@@ -24,7 +24,7 @@
 #### **External Port Ranges (Host Machine):**
 ```
 Development:   8000-8099  (Direct service access)
-Demo:          5000-5099  (Presentation/client access)  
+Demo:          8080-8099  (Presentation/client access)  
 Staging:       6000-6099  (Pre-production testing)
 Production:    443/80     (Load balancer only)
 ```
@@ -52,7 +52,7 @@ Logging: Verbose
 #### **Demo Environment** 
 ```yaml
 # For presentations and client demos
-External Ports: 5001-5010  
+External Ports: 8081-8090  
 Purpose: Stable demos, client presentations
 Database: Demo MySQL with curated data on 3320
 Gateway: Required (professional URLs)
@@ -146,10 +146,10 @@ environments/
 ```bash
 # .env.demo
 ENV_NAME=Demo
-AUTH_PORT=5001
-USER_PORT=5002
-MATCHMAKING_PORT=5003
-GATEWAY_PORT=5000
+AUTH_PORT=8081
+USER_PORT=8082
+MATCHMAKING_PORT=8083
+GATEWAY_PORT=8080
 DB_PORT=3320
 DB_CONNECTION=Server=mysql-demo;Database=dating_app_demo;Uid=root;Pwd=demo_root_password;
 
@@ -257,7 +257,7 @@ netstat -tuln | grep :$MATCHMAKING_PORT && echo "⚠️ Port $MATCHMAKING_PORT i
 ### **Environment Quick Reference:**
 ```
 🔧 Development (8001-8010): Active coding, debugging
-🎬 Demo (5001-5010): Client presentations, stable demos  
+🎬 Demo (8081-8090): Client presentations, stable demos  
 🧪 Staging (6001-6010): Pre-production testing
 🚀 Production (80/443): Live user traffic
 ```
@@ -266,10 +266,10 @@ netstat -tuln | grep :$MATCHMAKING_PORT && echo "⚠️ Port $MATCHMAKING_PORT i
 ```
 Service          | Dev  | Demo | Staging | Production
 -----------------|------|------|---------|------------
-Auth Service     | 8001 | 5001 | 6001    | LB:443
-User Service     | 8002 | 5002 | 6002    | LB:443  
-Matchmaking      | 8003 | 5003 | 6003    | LB:443
-Gateway (YARP)   | 8000 | 5000 | 6000    | 443/80
+Auth Service     | 8001 | 8081 | 6001    | LB:443
+User Service     | 8002 | 8082 | 6002    | LB:443  
+Matchmaking      | 8003 | 8083 | 6003    | LB:443
+Gateway (YARP)   | 8000 | 8080 | 6000    | 443/80
 MySQL DB         | 3308 | 3320 | 3330    | Internal
 ```
 
@@ -284,7 +284,7 @@ MySQL DB         | 3308 | 3320 | 3330    | Internal
 - ✅ Consistent configuration management
 
 ### **For Demo/Presentation:**
-- ✅ Stable, predictable ports (5000 series)
+- ✅ Stable, predictable ports (8000 series)
 - ✅ Professional URLs via gateway
 - ✅ Isolated from development changes
 - ✅ Curated demo data
