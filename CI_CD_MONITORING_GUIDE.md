@@ -21,8 +21,8 @@
   - ⏰ **Uptime Kuma** - Service monitoring (port 3001)
   - 🎯 **Custom Health Dashboard** - Real-time status (port 8090)
 
-### **3. Enhanced Development Status Script**
-- **File**: `enhanced_dev_status.sh`
+### **3. Development Status Monitoring**
+- **File**: `dev-status.sh`
 - **Shows**:
   - 🔍 All service health in real-time
   - 📝 Git status across all repositories
@@ -87,10 +87,10 @@ echo "📈 Prometheus: http://localhost:9090"
 echo "⏰ Uptime Kuma: http://localhost:3001"
 ```
 
-### **Step 3: Run Enhanced Status Check**
+### **Step 3: Run Status Check**
 ```bash
 # Get comprehensive system overview
-./enhanced_dev_status.sh
+./dev-status.sh
 ```
 
 ---
@@ -172,7 +172,7 @@ echo "⏰ Uptime Kuma: http://localhost:3001"
 
 1. **Enable the CI/CD pipeline** (push to GitHub)
 2. **Start the monitoring stack** (`docker-compose -f docker-compose.monitoring.yml up -d`)
-3. **Run the status script** (`./enhanced_dev_status.sh`)
+3. **Run the status script** (`./dev-status.sh`)
 4. **Configure alerts** (add your email/Slack webhook)
 5. **Set up production deployment** (when ready)
 

@@ -35,7 +35,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         var isDemoModeForAuth = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
-
+        
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -128,13 +128,13 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new()
-    {
-        Title = "Dating App Messaging Service API",
+    c.SwaggerDoc("v1", new() 
+    { 
+        Title = "Dating App Messaging Service API", 
         Version = "v1",
         Description = "Real-time messaging service with proactive safety features including content moderation, spam detection, and personal information protection."
     });
-
+    
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);

@@ -1,0 +1,59 @@
+{
+    "// AI Context Preservation Settings": "Configure VS Code to auto-backup context",
+    
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 300000,
+    
+    "// Custom tasks for AI context management": "Tasks triggered by events",
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "AI Context Backup",
+                "type": "shell",
+                "command": "/home/m/development/DatingApp/ai_context_monitor.sh",
+                "args": ["backup"],
+                "group": "build",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "silent",
+                    "focus": false,
+                    "panel": "shared"
+                },
+                "runOptions": {
+                    "runOn": "folderOpen"
+                }
+            },
+            {
+                "label": "Start AI Context Monitor",
+                "type": "shell", 
+                "command": "/home/m/development/DatingApp/ai_context_monitor.sh",
+                "args": ["start"],
+                "group": "build",
+                "isBackground": true,
+                "presentation": {
+                    "echo": true,
+                    "reveal": "never"
+                }
+            }
+        ]
+    },
+    
+    "// Keybindings for quick context operations": "Custom shortcuts",
+    "keybindings": [
+        {
+            "key": "ctrl+shift+alt+b",
+            "command": "workbench.action.tasks.runTask",
+            "args": "AI Context Backup"
+        }
+    ],
+    
+    "// File watcher for automatic backups": "Monitor file changes",
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/bin/**": true,
+        "**/obj/**": true,
+        "**/.git/**": true,
+        "**/ai_context_backups/**": true
+    }
+}

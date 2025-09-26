@@ -49,7 +49,7 @@ public class PhotosController : ControllerBase
         try
         {
             var userId = GetCurrentUserId();
-
+            
             _logger.LogInformation("Photo upload request from user {UserId}", userId);
 
             // ================================
@@ -62,7 +62,7 @@ public class PhotosController : ControllerBase
                 var errors = ModelState
                     .SelectMany(x => x.Value?.Errors?.Select(e => e.ErrorMessage) ?? [])
                     .ToList();
-
+                
                 return BadRequest($"Validation failed: {string.Join(", ", errors)}");
             }
 
@@ -74,7 +74,7 @@ public class PhotosController : ControllerBase
             // Check file size at request level
             if (uploadDto.Photo.Length > Models.PhotoConstants.MaxFileSizeBytes)
             {
-                return StatusCode(StatusCodes.Status413RequestEntityTooLarge,
+                return StatusCode(StatusCodes.Status413RequestEntityTooLarge, 
                     $"File size exceeds maximum limit of {Models.PhotoConstants.MaxFileSizeBytes / (1024 * 1024)} MB");
             }
 
@@ -91,7 +91,7 @@ public class PhotosController : ControllerBase
                 return BadRequest(result.ErrorMessage);
             }
 
-            _logger.LogInformation("Photo uploaded successfully for user {UserId}, photo ID {PhotoId}",
+            _logger.LogInformation("Photo uploaded successfully for user {UserId}, photo ID {PhotoId}", 
                 userId, result.Photo?.Id);
 
             // ================================
@@ -100,14 +100,14 @@ public class PhotosController : ControllerBase
             // ================================
 
             return CreatedAtAction(
-                nameof(GetPhoto),
-                new { id = result.Photo!.Id },
+                nameof(GetPhoto), 
+                new { id = result.Photo!.Id }, 
                 result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during photo upload");
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while uploading the photo");
         }
     }
@@ -129,7 +129,7 @@ public class PhotosController : ControllerBase
             var userId = GetCurrentUserId();
             var photos = await _photoService.GetUserPhotosAsync(userId);
 
-            _logger.LogDebug("Retrieved {PhotoCount} photos for user {UserId}",
+            _logger.LogDebug("Retrieved {PhotoCount} photos for user {UserId}", 
                 photos.TotalPhotos, userId);
 
             return Ok(photos);
@@ -137,7 +137,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving user photos");
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while retrieving photos");
         }
     }
@@ -172,7 +172,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving photo {PhotoId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while retrieving the photo");
         }
     }
@@ -205,7 +205,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving primary photo for user");
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while retrieving the primary photo");
         }
     }
@@ -241,7 +241,7 @@ public class PhotosController : ControllerBase
 
             Response.Headers.CacheControl = "public, max-age=3600"; // Cache for 1 hour
             Response.Headers.ETag = $"\"{id}_{size}\"";
-
+            
             // Check if client has cached version
             var etag = Request.Headers.IfNoneMatch.FirstOrDefault();
             if (etag == $"\"{id}_{size}\"")
@@ -257,7 +257,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error serving photo image {PhotoId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while retrieving the image");
         }
     }
@@ -317,7 +317,7 @@ public class PhotosController : ControllerBase
                 var errors = ModelState
                     .SelectMany(x => x.Value?.Errors?.Select(e => e.ErrorMessage) ?? [])
                     .ToList();
-
+                
                 return BadRequest($"Validation failed: {string.Join(", ", errors)}");
             }
 
@@ -336,7 +336,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating photo {PhotoId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while updating the photo");
         }
     }
@@ -362,14 +362,14 @@ public class PhotosController : ControllerBase
                 var errors = ModelState
                     .SelectMany(x => x.Value?.Errors?.Select(e => e.ErrorMessage) ?? [])
                     .ToList();
-
+                
                 return BadRequest($"Validation failed: {string.Join(", ", errors)}");
             }
 
             var userId = GetCurrentUserId();
             var photos = await _photoService.ReorderPhotosAsync(userId, reorderDto);
 
-            _logger.LogInformation("Photos reordered for user {UserId}: {PhotoCount} photos",
+            _logger.LogInformation("Photos reordered for user {UserId}: {PhotoCount} photos", 
                 userId, reorderDto.Photos.Count);
 
             return Ok(photos);
@@ -377,7 +377,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reordering photos for user");
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while reordering photos");
         }
     }
@@ -413,7 +413,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error setting primary photo {PhotoId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while setting the primary photo");
         }
     }
@@ -449,7 +449,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting photo {PhotoId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while deleting the photo");
         }
     }
@@ -471,9 +471,8 @@ public class PhotosController : ControllerBase
             var userId = GetCurrentUserId();
             var canUpload = await _photoService.CanUserUploadMorePhotosAsync(userId);
 
-            return Ok(new
-            {
-                canUpload,
+            return Ok(new { 
+                canUpload, 
                 maxPhotos = Models.PhotoConstants.MaxPhotosPerUser,
                 message = canUpload ? "User can upload more photos" : "User has reached photo limit"
             });
@@ -481,7 +480,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking upload availability");
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while checking upload availability");
         }
     }
@@ -532,7 +531,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving photos for moderation");
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while retrieving photos for moderation");
         }
     }
@@ -569,7 +568,7 @@ public class PhotosController : ControllerBase
                 return NotFound($"Photo with ID {id} not found");
             }
 
-            _logger.LogInformation("Photo {PhotoId} moderation status updated to {Status} by moderator",
+            _logger.LogInformation("Photo {PhotoId} moderation status updated to {Status} by moderator", 
                 id, request.Status);
 
             return Ok(new { message = "Moderation status updated successfully" });
@@ -577,7 +576,7 @@ public class PhotosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating moderation status for photo {PhotoId}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
+            return StatusCode(StatusCodes.Status500InternalServerError, 
                 "An error occurred while updating moderation status");
         }
     }
@@ -616,7 +615,7 @@ public class PhotosController : ControllerBase
         var hashCode = userIdClaim.GetHashCode();
         // Ensure positive number
         var mappedUserId = Math.Abs(hashCode);
-
+        
         _logger.LogInformation($"Mapped string user ID '{userIdClaim}' to integer {mappedUserId}");
         return mappedUserId;
     }
