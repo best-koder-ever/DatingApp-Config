@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PhotoService.DTOs;
 using PhotoService.Services;
+using PhotoService.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
@@ -618,6 +619,256 @@ public class PhotosController : ControllerBase
         
         _logger.LogInformation($"Mapped string user ID '{userIdClaim}' to integer {mappedUserId}");
         return mappedUserId;
+    }
+
+    // ================================
+    // ADVANCED PRIVACY FEATURES
+    // ================================
+
+    /// <summary>
+    /// Upload a photo with advanced privacy settings
+    /// POST /api/photos/privacy
+    /// Enhanced upload with privacy level, blur settings, and content moderation
+    /// </summary>
+    /// <param name="uploadDto">Privacy-enabled upload request</param>
+    /// <returns>Upload result with privacy processing details</returns>
+    [HttpPost("privacy")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(PrivacyPhotoUploadResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UploadPhotoWithPrivacy([FromForm] PrivacyPhotoUploadDto uploadDto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("Privacy photo upload requested by user {UserId} with privacy level {PrivacyLevel}", 
+                userId, uploadDto.PrivacyLevel);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Validate privacy level
+            var validPrivacyLevels = new[] { 
+                "PUBLIC", 
+                "PRIVATE", 
+                "MATCH_ONLY", 
+                "VIP" 
+            };
+            
+            if (!validPrivacyLevels.Contains(uploadDto.PrivacyLevel))
+            {
+                return BadRequest($"Invalid privacy level. Valid values: {string.Join(", ", validPrivacyLevels)}");
+            }
+
+            var result = await _photoService.UploadPhotoWithPrivacyAsync(userId, uploadDto);
+
+            if (result.Success)
+            {
+                _logger.LogInformation("Privacy photo uploaded successfully: {PhotoId} for user {UserId}", 
+                    result.PhotoId, userId);
+                return CreatedAtAction(nameof(GetPhoto), new { id = result.PhotoId }, result);
+            }
+            else
+            {
+                _logger.LogWarning("Privacy photo upload failed for user {UserId}: {Error}", userId, result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading privacy photo for user {UserId}", GetCurrentUserId());
+            return StatusCode(500, "An error occurred while uploading the photo");
+        }
+    }
+
+    /// <summary>
+    /// Update photo privacy settings
+    /// PUT /api/photos/{id}/privacy
+    /// Change privacy level, blur intensity, and match requirements
+    /// </summary>
+    /// <param name="id">Photo identifier</param>
+    /// <param name="privacyDto">Privacy settings update</param>
+    /// <returns>Updated photo with new privacy settings</returns>
+    [HttpPut("{id:int}/privacy")]
+    [ProducesResponseType(typeof(PhotoResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdatePhotoPrivacy(int id, [FromBody] PhotoPrivacyUpdateDto privacyDto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("Privacy update requested for photo {PhotoId} by user {UserId}", id, userId);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _photoService.UpdatePhotoPrivacyAsync(id, userId, privacyDto);
+
+            if (result == null)
+            {
+                _logger.LogWarning("Photo {PhotoId} not found or access denied for user {UserId}", id, userId);
+                return NotFound($"Photo {id} not found or access denied");
+            }
+
+            _logger.LogInformation("Privacy settings updated for photo {PhotoId}", id);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating privacy for photo {PhotoId} by user {UserId}", id, GetCurrentUserId());
+            return StatusCode(500, "An error occurred while updating photo privacy");
+        }
+    }
+
+    /// <summary>
+    /// Get photo with privacy controls applied
+    /// GET /api/photos/{id}/image/privacy
+    /// Returns appropriate version (original or blurred) based on privacy settings and user permissions
+    /// </summary>
+    /// <param name="id">Photo identifier</param>
+    /// <param name="requestingUserId">ID of user requesting access (optional for cross-user access)</param>
+    /// <returns>Image data respecting privacy settings</returns>
+    [HttpGet("{id:int}/image/privacy")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetPhotoWithPrivacyControl(int id, [FromQuery] string? requestingUserId = null)
+    {
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var targetUserId = requestingUserId ?? currentUserId.ToString();
+            
+            _logger.LogInformation("Privacy-controlled image request for photo {PhotoId} by user {UserId}", id, currentUserId);
+
+            // TODO: In a real implementation, you'd check match status from a matches service
+            // For now, we'll assume no match unless it's the owner
+            var hasMatch = targetUserId == currentUserId.ToString();
+
+            var result = await _photoService.GetPhotoWithPrivacyControlAsync(id, targetUserId, hasMatch);
+
+            if (result.ImageData == null)
+            {
+                if (result.AccessDenied)
+                {
+                    _logger.LogWarning("Access denied to photo {PhotoId} for user {UserId}", id, currentUserId);
+                    return Forbid("Access denied - photo is private and requires a match");
+                }
+                else
+                {
+                    _logger.LogWarning("Photo {PhotoId} not found", id);
+                    return NotFound($"Photo {id} not found");
+                }
+            }
+
+            _logger.LogInformation("Serving {ImageType} version of photo {PhotoId} to user {UserId}", 
+                result.IsBlurred ? "blurred" : "original", id, currentUserId);
+
+            return File(result.ImageData, result.ContentType, result.FileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error serving privacy-controlled image for photo {PhotoId}", id);
+            return StatusCode(500, "An error occurred while retrieving the image");
+        }
+    }
+
+    /// <summary>
+    /// Get blurred version of a photo
+    /// GET /api/photos/{id}/blurred
+    /// Always returns the blurred version regardless of privacy settings
+    /// </summary>
+    /// <param name="id">Photo identifier</param>
+    /// <returns>Blurred image data</returns>
+    [HttpGet("{id:int}/blurred")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetBlurredPhoto(int id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("Blurred image request for photo {PhotoId} by user {UserId}", id, userId);
+
+            var result = await _photoService.GetBlurredPhotoAsync(id);
+
+            if (result.ImageData == null)
+            {
+                _logger.LogWarning("Blurred photo {PhotoId} not found", id);
+                return NotFound($"Blurred version of photo {id} not found");
+            }
+
+            return File(result.ImageData, result.ContentType, result.FileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error serving blurred image for photo {PhotoId}", id);
+            return StatusCode(500, "An error occurred while retrieving the blurred image");
+        }
+    }
+
+    /// <summary>
+    /// Regenerate blurred version of a photo
+    /// POST /api/photos/{id}/regenerate-blur
+    /// Useful when changing blur intensity or fixing processing issues
+    /// </summary>
+    /// <param name="id">Photo identifier</param>
+    /// <param name="blurIntensity">New blur intensity (0.0 to 1.0)</param>
+    /// <returns>Processing result</returns>
+    [HttpPost("{id:int}/regenerate-blur")]
+    [ProducesResponseType(typeof(BlurRegenerationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RegenerateBlurredPhoto(int id, [FromQuery] double blurIntensity = 0.8)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("Blur regeneration requested for photo {PhotoId} by user {UserId} with intensity {BlurIntensity}", 
+                id, userId, blurIntensity);
+
+            if (blurIntensity < 0.0 || blurIntensity > 1.0)
+            {
+                return BadRequest("Blur intensity must be between 0.0 and 1.0");
+            }
+
+            var result = await _photoService.RegenerateBlurredPhotoAsync(id, userId, blurIntensity);
+
+            if (result == null)
+            {
+                _logger.LogWarning("Photo {PhotoId} not found or access denied for user {UserId}", id, userId);
+                return NotFound($"Photo {id} not found or access denied");
+            }
+
+            if (!result.Success)
+            {
+                _logger.LogWarning("Blur regeneration failed for photo {PhotoId}: {Error}", id, result.ErrorMessage);
+                return BadRequest(result.ErrorMessage);
+            }
+
+            _logger.LogInformation("Blur regenerated successfully for photo {PhotoId}", id);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error regenerating blur for photo {PhotoId} by user {UserId}", id, GetCurrentUserId());
+            return StatusCode(500, "An error occurred while regenerating the blurred image");
+        }
     }
 }
 

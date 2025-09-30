@@ -79,13 +79,11 @@ mkdir -p /home/m/development/DatingApp/logs
 echo "⏳ Waiting for services to initialize..."
 sleep 8
 
-# Run demo seeder if DEMO_MODE is true
-if [ "$DEMO_MODE" = "true" ] || grep -q 'DEMO_MODE=true' <<< "$(ps aux | grep dotnet)"; then
-    echo "🌱 Seeding demo data..."
-    cd /home/m/development/mobile-apps/flutter/dejtingapp
-    python3 smart_demo_seeder_fixed.py
-    cd /home/m/development/DatingApp
-fi
+# Always run demo seeder for development
+echo "🌱 Seeding demo data..."
+cd /home/m/development/mobile-apps/flutter/dejtingapp
+python3 smart_demo_seeder_fixed.py
+cd /home/m/development/DatingApp
 
 # Health checks
 echo "🏥 Performing health checks..."

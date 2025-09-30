@@ -54,13 +54,25 @@
               "target": "Package",
               "version": "[8.0.6, )"
             },
-            "Microsoft.EntityFrameworkCore.InMemory": {
+            "Microsoft.ML": {
               "target": "Package",
-              "version": "[8.0.6, )"
+              "version": "[3.0.1, )"
             },
-            "Pomelo.EntityFrameworkCore.MySql": {
+            "Microsoft.ML.Vision": {
               "target": "Package",
-              "version": "[8.0.2, )"
+              "version": "[3.0.1, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[8.0.4, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite": {
+              "target": "Package",
+              "version": "[8.0.4, )"
+            },
+            "OpenCvSharp4": {
+              "target": "Package",
+              "version": "[4.10.0.20241020, )"
             },
             "SixLabors.ImageSharp": {
               "target": "Package",

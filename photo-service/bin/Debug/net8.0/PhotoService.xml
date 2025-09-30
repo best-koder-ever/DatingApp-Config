@@ -153,6 +153,54 @@
             <returns>Current user's ID</returns>
             <exception cref="T:System.UnauthorizedAccessException">If user ID cannot be determined</exception>
         </member>
+        <member name="M:PhotoService.Controllers.PhotosController.UploadPhotoWithPrivacy(PhotoService.DTOs.PrivacyPhotoUploadDto)">
+            <summary>
+            Upload a photo with advanced privacy settings
+            POST /api/photos/privacy
+            Enhanced upload with privacy level, blur settings, and content moderation
+            </summary>
+            <param name="uploadDto">Privacy-enabled upload request</param>
+            <returns>Upload result with privacy processing details</returns>
+        </member>
+        <member name="M:PhotoService.Controllers.PhotosController.UpdatePhotoPrivacy(System.Int32,PhotoService.DTOs.PhotoPrivacyUpdateDto)">
+            <summary>
+            Update photo privacy settings
+            PUT /api/photos/{id}/privacy
+            Change privacy level, blur intensity, and match requirements
+            </summary>
+            <param name="id">Photo identifier</param>
+            <param name="privacyDto">Privacy settings update</param>
+            <returns>Updated photo with new privacy settings</returns>
+        </member>
+        <member name="M:PhotoService.Controllers.PhotosController.GetPhotoWithPrivacyControl(System.Int32,System.String)">
+            <summary>
+            Get photo with privacy controls applied
+            GET /api/photos/{id}/image/privacy
+            Returns appropriate version (original or blurred) based on privacy settings and user permissions
+            </summary>
+            <param name="id">Photo identifier</param>
+            <param name="requestingUserId">ID of user requesting access (optional for cross-user access)</param>
+            <returns>Image data respecting privacy settings</returns>
+        </member>
+        <member name="M:PhotoService.Controllers.PhotosController.GetBlurredPhoto(System.Int32)">
+            <summary>
+            Get blurred version of a photo
+            GET /api/photos/{id}/blurred
+            Always returns the blurred version regardless of privacy settings
+            </summary>
+            <param name="id">Photo identifier</param>
+            <returns>Blurred image data</returns>
+        </member>
+        <member name="M:PhotoService.Controllers.PhotosController.RegenerateBlurredPhoto(System.Int32,System.Double)">
+            <summary>
+            Regenerate blurred version of a photo
+            POST /api/photos/{id}/regenerate-blur
+            Useful when changing blur intensity or fixing processing issues
+            </summary>
+            <param name="id">Photo identifier</param>
+            <param name="blurIntensity">New blur intensity (0.0 to 1.0)</param>
+            <returns>Processing result</returns>
+        </member>
         <member name="T:PhotoService.Controllers.ModerationUpdateRequest">
             <summary>
             Request model for moderation status updates
@@ -171,48 +219,23 @@
         </member>
         <member name="T:PhotoService.Data.PhotoContext">
             <summary>
-            Entity Framework Database Context for Photo Service
-            Standard EF Core setup with MySQL configuration and photo management
+            PostgreSQL-optimized Entity Framework context for photo management
+            Designed specifically for PostgreSQL with PostGIS support and modern .NET 8 patterns
             </summary>
-        </member>
-        <member name="M:PhotoService.Data.PhotoContext.#ctor(Microsoft.EntityFrameworkCore.DbContextOptions{PhotoService.Data.PhotoContext})">
-            <summary>
-            Constructor accepting DbContext options
-            Standard dependency injection pattern for EF Core
-            </summary>
-            <param name="options">Database context configuration options</param>
-        </member>
-        <member name="P:PhotoService.Data.PhotoContext.Photos">
-            <summary>
-            Photos table - Main entity for photo storage and metadata
-            </summary>
-        </member>
-        <member name="M:PhotoService.Data.PhotoContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <summary>
-            Model configuration and database schema setup
-            Configures indexes, constraints, and relationships
-            </summary>
-            <param name="modelBuilder">EF Core model builder for schema configuration</param>
         </member>
         <member name="M:PhotoService.Data.PhotoContext.SaveChanges">
             <summary>
             Override SaveChanges to handle automatic timestamp updates
-            Standard pattern for audit trail maintenance
             </summary>
-            <returns>Number of affected records</returns>
         </member>
         <member name="M:PhotoService.Data.PhotoContext.SaveChangesAsync(System.Threading.CancellationToken)">
             <summary>
             Override SaveChangesAsync to handle automatic timestamp updates
-            Async version of SaveChanges with timestamp handling
             </summary>
-            <param name="cancellationToken">Cancellation token for async operations</param>
-            <returns>Number of affected records</returns>
         </member>
         <member name="M:PhotoService.Data.PhotoContext.UpdateTimestamps">
             <summary>
             Automatically update timestamps on entity changes
-            Handles UpdatedAt and DeletedAt timestamp management
             </summary>
         </member>
         <member name="T:PhotoService.DTOs.PhotoUploadDto">
@@ -502,187 +525,556 @@
             Whether user has reached photo limit
             </summary>
         </member>
+        <member name="T:PhotoService.DTOs.PrivacyPhotoUploadDto">
+            <summary>
+            Data Transfer Object for privacy-enabled photo upload requests
+            Extends standard upload with privacy settings and blur configuration
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadDto.Photo">
+            <summary>
+            Uploaded photo file
+            Required for photo upload operations
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadDto.PrivacyLevel">
+            <summary>
+            Privacy level for the photo
+            Controls visibility and blur requirements
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadDto.BlurIntensity">
+            <summary>
+            Blur intensity for private photos (0.0 to 1.0)
+            Higher values create more intense blur effects
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadDto.DisplayOrder">
+            <summary>
+            Display order for the photo in user's gallery
+            If not provided, will be set to next available order
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadDto.IsPrimary">
+            <summary>
+            Whether this should be set as the primary profile photo
+            Only one photo per user can be primary
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadDto.Description">
+            <summary>
+            Optional description/caption for the photo
+            Currently not stored but available for future use
+            </summary>
+        </member>
+        <member name="T:PhotoService.DTOs.PhotoPrivacyUpdateDto">
+            <summary>
+            Data Transfer Object for updating photo privacy settings
+            Allows changing privacy level and blur configuration
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PhotoPrivacyUpdateDto.PrivacyLevel">
+            <summary>
+            New privacy level for the photo
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PhotoPrivacyUpdateDto.BlurIntensity">
+            <summary>
+            New blur intensity (0.0 to 1.0)
+            Only applied if privacy level requires blurring
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PhotoPrivacyUpdateDto.RequiresMatch">
+            <summary>
+            Whether photo requires a match to view in full resolution
+            Automatically set based on privacy level, but can be overridden
+            </summary>
+        </member>
+        <member name="T:PhotoService.DTOs.PrivacyPhotoUploadResultDto">
+            <summary>
+            Data Transfer Object for privacy-enabled photo upload results
+            Extends standard upload result with privacy processing information
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadResultDto.Success">
+            <summary>
+            Whether upload operation was successful
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadResultDto.PhotoId">
+            <summary>
+            Unique identifier of uploaded photo
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadResultDto.Photo">
+            <summary>
+            Standard photo response data
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadResultDto.PrivacyProcessing">
+            <summary>
+            Privacy processing details
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadResultDto.ModerationAnalysis">
+            <summary>
+            Content moderation analysis results
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadResultDto.ErrorMessage">
+            <summary>
+            Error message if upload failed
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyPhotoUploadResultDto.ProcessingTimeMs">
+            <summary>
+            Total processing time in milliseconds
+            </summary>
+        </member>
+        <member name="T:PhotoService.DTOs.PrivacyProcessingDetailsDto">
+            <summary>
+            Data Transfer Object for privacy processing details
+            Contains information about blur generation and privacy features
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyProcessingDetailsDto.BlurredVersionGenerated">
+            <summary>
+            Whether a blurred version was generated
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyProcessingDetailsDto.BlurIntensity">
+            <summary>
+            Blur intensity applied
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyProcessingDetailsDto.RequiresMatch">
+            <summary>
+            Whether photo requires match for full visibility
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyProcessingDetailsDto.PrivacyLevel">
+            <summary>
+            Privacy level applied
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyProcessingDetailsDto.VIPFeatures">
+            <summary>
+            VIP features applied (if applicable)
+            </summary>
+        </member>
+        <member name="T:PhotoService.DTOs.VIPPrivacyFeaturesDto">
+            <summary>
+            Data Transfer Object for VIP privacy features
+            Premium privacy controls and enhancements
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.VIPPrivacyFeaturesDto.HasAdvancedBlur">
+            <summary>
+            Whether advanced blur patterns were applied
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.VIPPrivacyFeaturesDto.HasWatermark">
+            <summary>
+            Whether watermarking was applied
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.VIPPrivacyFeaturesDto.ProcessingLevel">
+            <summary>
+            Processing level applied
+            </summary>
+        </member>
+        <member name="T:PhotoService.DTOs.ModerationAnalysisDto">
+            <summary>
+            Data Transfer Object for content moderation analysis results
+            Provides transparency about AI content analysis
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.ModerationAnalysisDto.IsAppropriate">
+            <summary>
+            Whether content is considered appropriate
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.ModerationAnalysisDto.SafetyScore">
+            <summary>
+            Overall safety score (0.0 to 1.0)
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.ModerationAnalysisDto.DetectedIssues">
+            <summary>
+            Detected content issues (if any)
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.ModerationAnalysisDto.Classifications">
+            <summary>
+            Detailed classification scores
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.ModerationAnalysisDto.AnalyzedAt">
+            <summary>
+            When analysis was performed
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.ModerationAnalysisDto.AnalysisVersion">
+            <summary>
+            Analysis version/algorithm used
+            </summary>
+        </member>
+        <member name="T:PhotoService.DTOs.PrivacyImageResponseDto">
+            <summary>
+            Data Transfer Object for privacy-controlled image responses
+            Indicates what type of image is being served
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyImageResponseDto.ImageData">
+            <summary>
+            Image data
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyImageResponseDto.ContentType">
+            <summary>
+            Content type for HTTP response
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyImageResponseDto.FileName">
+            <summary>
+            Filename for HTTP response
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyImageResponseDto.IsBlurred">
+            <summary>
+            Whether this is a blurred version
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyImageResponseDto.AccessDenied">
+            <summary>
+            Whether access was denied due to privacy settings
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.PrivacyImageResponseDto.PrivacyLevel">
+            <summary>
+            Privacy level of the original photo
+            </summary>
+        </member>
+        <member name="T:PhotoService.DTOs.BlurRegenerationResultDto">
+            <summary>
+            Data Transfer Object for blur regeneration results
+            Provides feedback on blur processing operations
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.BlurRegenerationResultDto.Success">
+            <summary>
+            Whether regeneration was successful
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.BlurRegenerationResultDto.BlurredFileName">
+            <summary>
+            New blur filename
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.BlurRegenerationResultDto.BlurIntensity">
+            <summary>
+            Blur intensity applied
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.BlurRegenerationResultDto.ProcessingTimeMs">
+            <summary>
+            Processing time in milliseconds
+            </summary>
+        </member>
+        <member name="P:PhotoService.DTOs.BlurRegenerationResultDto.ErrorMessage">
+            <summary>
+            Error message if regeneration failed
+            </summary>
+        </member>
+        <member name="T:PhotoService.Migrations.InitialPostgreSQLSchema">
+            <inheritdoc />
+        </member>
+        <member name="M:PhotoService.Migrations.InitialPostgreSQLSchema.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:PhotoService.Migrations.InitialPostgreSQLSchema.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:PhotoService.Migrations.InitialPostgreSQLSchema.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:PhotoService.Migrations.AddPrivacyFeatures">
+            <inheritdoc />
+        </member>
+        <member name="M:PhotoService.Migrations.AddPrivacyFeatures.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:PhotoService.Migrations.AddPrivacyFeatures.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:PhotoService.Migrations.AddPrivacyFeatures.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="T:PhotoService.Models.Photo">
             <summary>
-            Photo entity representing user uploaded photos in the dating app
-            Standard entity model with comprehensive metadata for photo management
+            Photo entity designed specifically for PostgreSQL with modern dating app features
+            Includes JSONB metadata, tag arrays, and comprehensive audit trail
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.Id">
             <summary>
-            Primary key - Auto-incrementing photo identifier
+            Primary key - PostgreSQL IDENTITY column
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.UserId">
             <summary>
             User identifier from auth service - Foreign key relationship
-            Links photo to specific user account
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.OriginalFileName">
             <summary>
             Original filename as uploaded by user
-            Preserved for reference and download purposes
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.StoredFileName">
             <summary>
             Unique filename generated by system for storage
-            Prevents naming conflicts and ensures uniqueness
             Format: {userId}_{timestamp}_{guid}.{extension}
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.FileExtension">
             <summary>
             File extension (e.g., .jpg, .png, .webp)
-            Used for MIME type determination and validation
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.FileSizeBytes">
             <summary>
             File size in bytes
-            Used for storage management and validation
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.MimeType">
+            <summary>
+            MIME type for proper content serving
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.Width">
             <summary>
             Image width in pixels
-            Stored after image processing for UI optimization
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.Height">
             <summary>
             Image height in pixels
-            Stored after image processing for UI optimization
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.DisplayOrder">
             <summary>
             Display order for user's photo gallery
-            Lower numbers appear first (1 = primary profile photo)
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.IsPrimary">
             <summary>
             Indicates if this is the user's primary profile photo
-            Only one photo per user should have this set to true
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.PrivacyLevel">
+            <summary>
+            Privacy level for the photo with advanced privacy controls
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.BlurredFileName">
+            <summary>
+            Stored filename for the blurred version of this photo
+            Generated automatically when privacy level requires blurring
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.BlurIntensity">
+            <summary>
+            Blur intensity level (0.0 = no blur, 1.0 = maximum blur)
+            User-configurable for custom privacy preferences
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.RequiresMatch">
+            <summary>
+            Indicates if photo requires a match to be visible in full resolution
+            True for Private and MatchOnly privacy levels
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.CreatedAt">
             <summary>
-            Photo upload timestamp
-            UTC time for consistency across timezones
+            Photo upload timestamp (UTC with timezone info)
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.UpdatedAt">
             <summary>
             Last update timestamp
-            Updated when photo metadata changes (order, primary status, etc.)
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.IsDeleted">
             <summary>
-            Soft delete flag - photos are not physically deleted immediately
-            Allows for recovery and maintains referential integrity
+            Soft delete flag
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.DeletedAt">
             <summary>
             Deletion timestamp for audit purposes
-            Set when IsDeleted becomes true
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.ModerationStatus">
             <summary>
             Content moderation status
-            AUTO_APPROVED, PENDING_REVIEW, APPROVED, REJECTED
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.SafetyScore">
+            <summary>
+            AI-generated safety score for content moderation (0.0 - 1.0)
+            Higher scores indicate safer content
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.ModerationResults">
+            <summary>
+            Detailed content moderation analysis results stored as JSONB
+            Includes ML.NET classification results, inappropriate content detection, etc.
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.ModeratedAt">
+            <summary>
+            Timestamp when content moderation was completed
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.ModerationNotes">
             <summary>
             Moderation notes from content review team
-            Populated when manual review occurs
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.QualityScore">
             <summary>
-            Image quality score from processing (1-100)
-            Used for automatic quality filtering
+            Image quality score from processing (0-100)
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.Metadata">
+            <summary>
+            PostgreSQL JSONB column for flexible metadata storage
+            Can store EXIF data, processing information, AI analysis results, etc.
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.Tags">
+            <summary>
+            PostgreSQL text array for photo tags
+            Enables efficient tag-based searches using GIN indexes
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.ContentHash">
+            <summary>
+            Content hash for duplicate detection
+            SHA-256 hash of image content
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.FilePath">
             <summary>
             Calculated property: Full file path for storage
-            Combines storage directory with stored filename
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.Url">
             <summary>
             Calculated property: Public URL for photo access
-            Used by frontend to display images
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.ThumbnailUrl">
             <summary>
-            Calculated property: Thumbnail URL for optimized loading
-            Thumbnail version for list views and previews
+            Calculated property: Thumbnail URL
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.BlurredUrl">
+            <summary>
+            Calculated property: Blurred image URL for privacy protection
+            Returns original URL if no blurring is required
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.Photo.SafeUrl">
+            <summary>
+            Calculated property: Safe URL that respects privacy settings
+            Returns blurred version for private photos, original for public
             </summary>
         </member>
         <member name="P:PhotoService.Models.Photo.MediumUrl">
             <summary>
             Calculated property: Medium-sized image URL
-            Balanced quality/size for profile views
+            </summary>
+        </member>
+        <member name="M:PhotoService.Models.Photo.SetMetadata``1(``0)">
+            <summary>
+            Helper method to set metadata from object
+            </summary>
+        </member>
+        <member name="M:PhotoService.Models.Photo.GetMetadata``1">
+            <summary>
+            Helper method to get metadata as typed object
+            </summary>
+        </member>
+        <member name="M:PhotoService.Models.Photo.SetModerationResults(PhotoService.Models.ModerationAnalysis)">
+            <summary>
+            Helper method to set moderation results from analysis
+            </summary>
+        </member>
+        <member name="M:PhotoService.Models.Photo.GetModerationResults">
+            <summary>
+            Helper method to get moderation results as typed object
+            </summary>
+        </member>
+        <member name="M:PhotoService.Models.Photo.GetModerationResults``1">
+            <summary>
+            Helper method to get moderation results as typed object
+            </summary>
+        </member>
+        <member name="T:PhotoService.Models.PhotoProcessingJob">
+            <summary>
+            Photo processing job entity for background processing tasks
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.PhotoProcessingJob.Parameters">
+            <summary>
+            Job parameters stored as JSONB
+            </summary>
+        </member>
+        <member name="P:PhotoService.Models.PhotoProcessingJob.Result">
+            <summary>
+            Job result stored as JSONB
+            </summary>
+        </member>
+        <member name="T:PhotoService.Models.PhotoModerationLog">
+            <summary>
+            Photo moderation log entity for audit trail
+            </summary>
+        </member>
+        <member name="T:PhotoService.Models.PhotoMetadata">
+            <summary>
+            Photo metadata class for JSONB storage
             </summary>
         </member>
         <member name="T:PhotoService.Models.ModerationStatus">
             <summary>
             Photo moderation status enumeration
-            Standardized values for content moderation workflow
+            </summary>
+        </member>
+        <member name="T:PhotoService.Models.PhotoPrivacyLevel">
+            <summary>
+            Photo privacy level enumeration with advanced privacy system
+            </summary>
+        </member>
+        <member name="T:PhotoService.Models.ModerationAnalysis">
+            <summary>
+            Content moderation analysis results for JSONB storage
             </summary>
         </member>
         <member name="T:PhotoService.Models.PhotoConstants">
             <summary>
-            Photo display constants
-            Standard configuration values for photo management
-            </summary>
-        </member>
-        <member name="F:PhotoService.Models.PhotoConstants.MaxFileSizeBytes">
-            <summary>
-            Maximum allowed file size: 10MB
-            Prevents storage abuse and ensures reasonable upload times
-            </summary>
-        </member>
-        <member name="F:PhotoService.Models.PhotoConstants.MaxPhotosPerUser">
-            <summary>
-            Maximum photos per user
-            Standard limit for dating app profiles
-            </summary>
-        </member>
-        <member name="F:PhotoService.Models.PhotoConstants.AllowedExtensions">
-            <summary>
-            Allowed file extensions for photo uploads
-            Common image formats with good browser support
-            </summary>
-        </member>
-        <member name="F:PhotoService.Models.PhotoConstants.AllowedMimeTypes">
-            <summary>
-            Supported MIME types for validation
-            Corresponds to allowed extensions
-            </summary>
-        </member>
-        <member name="T:PhotoService.Models.PhotoConstants.ImageSizes">
-            <summary>
-            Standard image sizes for responsive display
-            Optimized for common device breakpoints
+            Photo constants and configuration
             </summary>
         </member>
         <member name="T:PhotoService.Services.ImageProcessingService">
             <summary>
             Image Processing Service implementation using ImageSharp
-            Handles image validation, resizing, format conversion, and quality analysis
+            Handles image validation, resizing, format conversion, quality analysis, and privacy features
+            Enhanced with ML.NET content moderation and blur generation for dating app privacy
             </summary>
         </member>
-        <member name="M:PhotoService.Services.ImageProcessingService.#ctor(Microsoft.Extensions.Logging.ILogger{PhotoService.Services.ImageProcessingService})">
+        <member name="M:PhotoService.Services.ImageProcessingService.#ctor(Microsoft.Extensions.Logging.ILogger{PhotoService.Services.ImageProcessingService},Microsoft.Extensions.Configuration.IConfiguration)">
             <summary>
             Constructor with dependency injection
             </summary>
@@ -715,6 +1107,30 @@
             <summary>
             Calculate image quality score based on various factors
             Returns score from 1-100 for moderation purposes
+            </summary>
+        </member>
+        <member name="M:PhotoService.Services.ImageProcessingService.GenerateBlurredImageAsync(System.Byte[],System.String,System.Double)">
+            <summary>
+            Generate a blurred version of the image for privacy protection
+            Creates professional-quality blur effect with configurable intensity
+            </summary>
+        </member>
+        <member name="M:PhotoService.Services.ImageProcessingService.AnalyzeContentSafetyAsync(System.Byte[],System.String)">
+            <summary>
+            Analyze image content for safety and appropriateness using ML.NET
+            Provides comprehensive content moderation for dating app photos
+            </summary>
+        </member>
+        <member name="M:PhotoService.Services.ImageProcessingService.ProcessPhotoWithPrivacyAsync(System.Byte[],System.String,System.String,System.Double)">
+            <summary>
+            Process photo with privacy features: generate blurred version and perform content analysis
+            Complete processing pipeline for dating app privacy requirements
+            </summary>
+        </member>
+        <member name="M:PhotoService.Services.ImageProcessingService.GetImageWithPrivacyControlAsync(PhotoService.Models.Photo,System.String,System.Boolean)">
+            <summary>
+            Get the appropriate image data based on privacy settings and user permissions
+            Controls what version of the image should be served to different users
             </summary>
         </member>
         <member name="M:PhotoService.Services.ImageProcessingService.CalculateOptimalDimensions(System.Int32,System.Int32)">
@@ -750,6 +1166,31 @@
             <summary>
             Analyze image sharpness using simplified approach
             Returns score from 0-20 based on image characteristics
+            </summary>
+        </member>
+        <member name="T:PhotoService.Services.PrivacyPhotoProcessingResult">
+            <summary>
+            Result of privacy-enabled photo processing
+            </summary>
+        </member>
+        <member name="T:PhotoService.Services.ImageQualityAnalysis">
+            <summary>
+            Image quality analysis results
+            </summary>
+        </member>
+        <member name="T:PhotoService.Services.ContentAnalysis">
+            <summary>
+            Content analysis results for moderation
+            </summary>
+        </member>
+        <member name="T:PhotoService.Services.TechnicalAnalysis">
+            <summary>
+            Technical analysis results
+            </summary>
+        </member>
+        <member name="T:PhotoService.Services.VIPPrivacyFeatures">
+            <summary>
+            VIP privacy features
             </summary>
         </member>
         <member name="T:PhotoService.Services.IPhotoService">
@@ -866,6 +1307,53 @@
             <param name="notes">Moderation notes</param>
             <returns>Success status</returns>
         </member>
+        <member name="M:PhotoService.Services.IPhotoService.UploadPhotoWithPrivacyAsync(System.Int32,PhotoService.DTOs.PrivacyPhotoUploadDto)">
+            <summary>
+            Upload photo with advanced privacy settings
+            Enhanced upload with privacy level, blur settings, and content moderation
+            </summary>
+            <param name="userId">User identifier</param>
+            <param name="uploadDto">Privacy-enabled upload request</param>
+            <returns>Upload result with privacy processing details</returns>
+        </member>
+        <member name="M:PhotoService.Services.IPhotoService.UpdatePhotoPrivacyAsync(System.Int32,System.Int32,PhotoService.DTOs.PhotoPrivacyUpdateDto)">
+            <summary>
+            Update photo privacy settings
+            Change privacy level, blur intensity, and match requirements
+            </summary>
+            <param name="photoId">Photo identifier</param>
+            <param name="userId">User identifier for authorization</param>
+            <param name="privacyDto">Privacy settings update</param>
+            <returns>Updated photo with new privacy settings</returns>
+        </member>
+        <member name="M:PhotoService.Services.IPhotoService.GetPhotoWithPrivacyControlAsync(System.Int32,System.String,System.Boolean)">
+            <summary>
+            Get photo with privacy controls applied
+            Returns appropriate version (original or blurred) based on privacy settings and user permissions
+            </summary>
+            <param name="photoId">Photo identifier</param>
+            <param name="requestingUserId">ID of user requesting access</param>
+            <param name="hasMatch">Whether requesting user has matched with photo owner</param>
+            <returns>Image data respecting privacy settings</returns>
+        </member>
+        <member name="M:PhotoService.Services.IPhotoService.GetBlurredPhotoAsync(System.Int32)">
+            <summary>
+            Get blurred version of a photo
+            Always returns the blurred version regardless of privacy settings
+            </summary>
+            <param name="photoId">Photo identifier</param>
+            <returns>Blurred image data</returns>
+        </member>
+        <member name="M:PhotoService.Services.IPhotoService.RegenerateBlurredPhotoAsync(System.Int32,System.Int32,System.Double)">
+            <summary>
+            Regenerate blurred version of a photo
+            Useful when changing blur intensity or fixing processing issues
+            </summary>
+            <param name="photoId">Photo identifier</param>
+            <param name="userId">User identifier for authorization</param>
+            <param name="blurIntensity">New blur intensity (0.0 to 1.0)</param>
+            <returns>Processing result</returns>
+        </member>
         <member name="T:PhotoService.Services.IImageProcessingService">
             <summary>
             Interface for image processing operations
@@ -917,6 +1405,46 @@
             </summary>
             <param name="stream">Image stream to analyze</param>
             <returns>Quality score from 1-100</returns>
+        </member>
+        <member name="M:PhotoService.Services.IImageProcessingService.GenerateBlurredImageAsync(System.Byte[],System.String,System.Double)">
+            <summary>
+            Generate a blurred version of the image for privacy protection
+            Creates professional-quality blur effect with configurable intensity
+            </summary>
+            <param name="originalImageData">Original image data</param>
+            <param name="originalFileName">Original file name</param>
+            <param name="blurIntensity">Blur intensity (0.0 to 1.0)</param>
+            <returns>Blurred filename or null if failed</returns>
+        </member>
+        <member name="M:PhotoService.Services.IImageProcessingService.AnalyzeContentSafetyAsync(System.Byte[],System.String)">
+            <summary>
+            Analyze image content for safety and appropriateness using ML.NET
+            Provides comprehensive content moderation for dating app photos
+            </summary>
+            <param name="imageData">Image data to analyze</param>
+            <param name="fileName">Original file name</param>
+            <returns>Content moderation analysis results</returns>
+        </member>
+        <member name="M:PhotoService.Services.IImageProcessingService.ProcessPhotoWithPrivacyAsync(System.Byte[],System.String,System.String,System.Double)">
+            <summary>
+            Process photo with privacy features: generate blurred version and perform content analysis
+            Complete processing pipeline for dating app privacy requirements
+            </summary>
+            <param name="originalImageData">Original image data</param>
+            <param name="originalFileName">Original file name</param>
+            <param name="privacyLevel">Privacy level (Public, Private, MatchOnly, VIP)</param>
+            <param name="blurIntensity">Blur intensity for private photos</param>
+            <returns>Privacy processing results</returns>
+        </member>
+        <member name="M:PhotoService.Services.IImageProcessingService.GetImageWithPrivacyControlAsync(PhotoService.Models.Photo,System.String,System.Boolean)">
+            <summary>
+            Get the appropriate image data based on privacy settings and user permissions
+            Controls what version of the image should be served to different users
+            </summary>
+            <param name="photo">Photo entity with privacy settings</param>
+            <param name="requestingUserId">ID of user requesting the image</param>
+            <param name="hasMatch">Whether requesting user has matched with photo owner</param>
+            <returns>Image data (original or blurred) or null if access denied</returns>
         </member>
         <member name="T:PhotoService.Services.IStorageService">
             <summary>
@@ -1302,6 +1830,12 @@
         <member name="M:PhotoService.Services.PhotoService.GetContentType(System.String)">
             <summary>
             Get MIME content type from file extension
+            </summary>
+        </member>
+        <member name="M:PhotoService.Services.PhotoService.UploadPhotoWithPrivacyAsync(System.Int32,PhotoService.DTOs.PrivacyPhotoUploadDto)">
+            <summary>
+            Upload photo with advanced privacy settings
+            Enhanced upload with privacy level, blur settings, and content moderation
             </summary>
         </member>
     </members>
