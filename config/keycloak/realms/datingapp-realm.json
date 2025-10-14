@@ -1,0 +1,150 @@
+{
+  "realm": "DatingApp",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "internationalizationEnabled": false,
+  "clients": [
+    {
+      "clientId": "auth-service",
+      "name": "Auth Service",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8081/*"
+      ],
+      "baseUrl": "http://localhost:8081",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "CHANGE_ME_AUTH_SERVICE"
+    },
+    {
+      "clientId": "matchmaking-service",
+      "name": "Matchmaking Service",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8082/*"
+      ],
+      "baseUrl": "http://localhost:8082",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "CHANGE_ME_MATCHMAKING"
+    },
+    {
+      "clientId": "photo-service",
+      "name": "Photo Service",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8083/*"
+      ],
+      "baseUrl": "http://localhost:8083",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "CHANGE_ME_PHOTO"
+    },
+    {
+      "clientId": "messaging-service",
+      "name": "Messaging Service",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8084/*"
+      ],
+      "baseUrl": "http://localhost:8084",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "CHANGE_ME_MESSAGING"
+    },
+    {
+      "clientId": "swipe-service",
+      "name": "Swipe Service",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8085/*"
+      ],
+      "baseUrl": "http://localhost:8085",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "CHANGE_ME_SWIPE"
+    },
+    {
+      "clientId": "dejtingapp-flutter",
+      "name": "Flutter Mobile App",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "dejtingapp://callback",
+        "com.dejtingapp://oauth2redirect"
+      ],
+      "webOrigins": ["*"] ,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "yarp-gateway",
+      "name": "API Gateway",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:9000/*"
+      ],
+      "baseUrl": "http://localhost:9000",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "CHANGE_ME_YARP"
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Default application user"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator"
+      }
+    ]
+  },
+  "groups": [],
+  "users": [
+    {
+      "username": "demo-user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "User",
+      "email": "demo@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Password123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    }
+  ]
+}

@@ -1,13 +1,13 @@
+using MessagingService.Data;
+using MessagingService.Extensions;
+using MessagingService.Hubs;
+using MessagingService.Middleware;
+using MessagingService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using MessagingService.Data;
-using MessagingService.Hubs;
-using MessagingService.Services;
-using MessagingService.Middleware;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
-using System.Security.Cryptography;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,67 +31,33 @@ else
 }
 
 // Add Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddKeycloakAuthentication(builder.Configuration, options =>
+{
+    options.Events = new JwtBearerEvents
     {
-        var isDemoModeForAuth = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
-        
-        options.TokenValidationParameters = new TokenValidationParameters
+        OnMessageReceived = context =>
         {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = GetPublicKey(),
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-
-        // Add SignalR specific events for JWT validation
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/messagingHub"))
             {
-                var accessToken = context.Request.Query["access_token"];
-                var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/messagingHub"))
-                {
-                    context.Token = accessToken;
-                }
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                if (isDemoMode && context.SecurityToken is JwtSecurityToken jwtToken)
-                {
-                    // Accept DEMO_TOKEN as valid in demo mode
-                    if (jwtToken.RawData == "DEMO_TOKEN")
-                    {
-                        // Bypass validation for demo
-                        context.Success();
-                    }
-                }
-                return Task.CompletedTask;
-            },
-            OnAuthenticationFailed = context =>
-            {
-                if (isDemoMode && context.Request.Headers["Authorization"].ToString().Contains("DEMO_TOKEN"))
-                {
-                    // Bypass failure for demo token
-                    context.NoResult();
-                    context.Success();
-                }
-                return Task.CompletedTask;
+                context.Token = accessToken;
             }
-        };
-    });
+            return Task.CompletedTask;
+        }
+    };
+
+    options.TokenValidationParameters.ClockSkew = TimeSpan.Zero;
+});
 
 // Add Authorization
 builder.Services.AddAuthorization();
 
 // Add Controllers
 builder.Services.AddControllers();
+
+// Add Health Checks
+builder.Services.AddHealthChecks();
 
 // Add SignalR
 builder.Services.AddSignalR(options =>
@@ -161,6 +127,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapHealthChecks("/health");
+
 // Map SignalR hub
 app.MapHub<MessagingHub>("/messagingHub");
 
@@ -176,40 +144,6 @@ using (var scope = app.Services.CreateScope())
     else
     {
         context.Database.EnsureCreated();
-    }
-}
-
-// ================================
-// RSA KEY MANAGEMENT
-// Public key validation for JWT tokens from AuthService
-// ================================
-
-static RsaSecurityKey GetPublicKey()
-{
-    try
-    {
-        var publicKeyPath = "public.key";
-        if (File.Exists(publicKeyPath))
-        {
-            var publicKeyPem = File.ReadAllText(publicKeyPath);
-            var rsa = RSA.Create();
-            rsa.ImportFromPem(publicKeyPem);
-            return new RsaSecurityKey(rsa);
-        }
-        else
-        {
-            // For demo mode or when no key file exists, create a temporary key
-            // In production, this should always use the proper public key
-            var rsa = RSA.Create(2048);
-            return new RsaSecurityKey(rsa);
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error loading public key: {ex.Message}");
-        // Fallback to temporary key
-        var rsa = RSA.Create(2048);
-        return new RsaSecurityKey(rsa);
     }
 }
 

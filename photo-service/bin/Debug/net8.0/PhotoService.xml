@@ -1452,7 +1452,7 @@
             Abstracts storage implementation (local, cloud, etc.)
             </summary>
         </member>
-        <member name="M:PhotoService.Services.IStorageService.StoreImageAsync(System.IO.Stream,System.Int32,System.String,System.String)">
+        <member name="M:PhotoService.Services.IStorageService.StoreImageAsync(System.IO.Stream,System.Int32,System.String,System.String,System.Boolean)">
             <summary>
             Store image file and generate unique filename
             Creates directory structure and handles naming conflicts
@@ -1461,6 +1461,7 @@
             <param name="userId">User identifier for directory organization</param>
             <param name="originalFileName">Original file name</param>
             <param name="suffix">Optional suffix for different sizes (thumbnail, medium)</param>
+            <param name="useProvidedFileName">When true, preserves the provided filename (after sanitization)</param>
             <returns>Storage result with file path and metadata</returns>
         </member>
         <member name="M:PhotoService.Services.IStorageService.GetImageStreamAsync(System.String)">
@@ -1637,7 +1638,7 @@
             Initializes storage configuration and base path
             </summary>
         </member>
-        <member name="M:PhotoService.Services.LocalStorageService.StoreImageAsync(System.IO.Stream,System.Int32,System.String,System.String)">
+        <member name="M:PhotoService.Services.LocalStorageService.StoreImageAsync(System.IO.Stream,System.Int32,System.String,System.String,System.Boolean)">
             <summary>
             Store image file with unique naming and directory organization
             Creates user-specific directories and handles naming conflicts

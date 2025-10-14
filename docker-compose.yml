@@ -1,6 +1,41 @@
 version: '3.8'
 
 services:
+  keycloak-db:
+    image: postgres:16
+    container_name: keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.0
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8090:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - app-network
+
   yarp:
     image: yarp:latest
     build:
@@ -186,10 +221,10 @@ services:
       context: ./photo-service
       dockerfile: Dockerfile
     ports:
-      - "8084:8084"
+      - "8085:8085"  # FIXED: Match dev-start port
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://*:8084
+      - ASPNETCORE_URLS=http://*:8085  # FIXED: Match dev-start port
       - ConnectionStrings__DefaultConnection=Server=photo-service-db;Port=3306;Database=PhotoServiceDb;User=photoservice_user;Password=photoservice_user_password;
       - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long-for-security
       - JwtSettings__Issuer=DatingApp
@@ -230,10 +265,10 @@ services:
       context: ./messaging-service
       dockerfile: Dockerfile
     ports:
-      - "8085:8085"
+      - "8086:8086"  # FIXED: Match dev-start port and avoid conflict
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://*:8085
+      - ASPNETCORE_URLS=http://*:8086  # FIXED: Match dev-start port
       - ConnectionStrings__DefaultConnection=Server=messaging-service-db;Port=3306;Database=MessagingServiceDb;User=messagingservice_user;Password=messagingservice_user_password;
       - Jwt__Key=your-super-secret-key-that-is-at-least-32-characters-long-for-security
     depends_on:
@@ -326,6 +361,7 @@ services:
     stdin_open: true
 
 volumes:
+  keycloak-db-data:
   loki-data:
   AuthService-data:
   UserService-data:

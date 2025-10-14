@@ -15,7 +15,7 @@
 
 ### Technology Stack
 - **Backend**: .NET 8, Entity Framework Core, PostgreSQL (migrated from MySQL/In-Memory)
-- **Authentication**: JWT with RSA keys (DatingApp-Issuer/DatingApp-Audience)
+- **Authentication**: Keycloak (OIDC/JWT) for all backend services (no more RSA key files)
 - **Frontend**: Flutter 3.32.1 (Web + Mobile) with comprehensive testing
 - **Testing**: Python scripts, Flutter integration tests, visual testing system
 - **Logging**: Serilog with Loki/Grafana integration
@@ -32,7 +32,7 @@
 - **Entity Framework Core**: 8.0.6 (Latest stable)
 - **PostgreSQL Driver**: Npgsql.EntityFrameworkCore.PostgreSQL 8.0.4
 - **PostGIS Extension**: Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite 8.0.4
-- **JWT Authentication**: Microsoft.AspNetCore.Authentication.JwtBearer 8.0.6
+- **Authentication**: Keycloak (OIDC/JWT) via Microsoft.AspNetCore.Authentication.JwtBearer 8.0.6
 - **Image Processing**: SixLabors.ImageSharp 3.1.6 + SixLabors.ImageSharp.Web 3.1.0
 - **ML Content Moderation**: ML.NET 3.0.1 + ML.NET Vision 3.0.1 (AI safety analysis)
 - **Computer Vision**: OpenCvSharp4 4.10.0.20241107 (advanced blur effects)
@@ -96,21 +96,20 @@
 
 ---
 
-**Standard Configuration (ALL services must use):**
+**Authentication Configuration (ALL services):**
 ```json
 {
-  "Jwt": {
-    "Issuer": "DatingApp-Issuer",
-    "Audience": "DatingApp-Audience"
+  "Keycloak": {
+    "Authority": "https://<keycloak-server>/realms/DatingApp",
+    "ClientId": "datingapp-backend",
+    "Audience": "datingapp-api"
   }
 }
 ```
 
 **Key Management:**
-- AuthService: Uses `private.key` for token signing (RSA-2048)
-- All other services: Use `public.key` for token validation
-- Key files are RSA 2048-bit format in PEM encoding
-- **CRITICAL**: All services must have identical public key copies
+- All legacy RSA key files (`public.key`, `private.key`) have been removed.
+- All services now validate JWT tokens using Keycloak public endpoints.
 
 **User ID Handling:**
 - AuthService generates tokens with string user IDs (IdentityUser.Id)
@@ -580,11 +579,53 @@ top -p $(pgrep -f "dotnet.*Service" | tr '\n' ',' | sed 's/,$//')
 lsof -p $(pgrep -f photo-service) | wc -l
 ```
 
-## 🎯 Current Development Status & Recent Changes
+### 🎯 Current Development Status & Recent Changes
+
+#### Photo Grid Persistence Push (October 7, 2025)
+- ✅ Persisted demo login state and JWT/session data via `AppState` + secure storage so the Flutter app keeps tokens across restarts.
+- ✅ Added startup initialization (`AppState().initialize()`) before `runApp` and ensured all auth flows await the async login helpers.
+- ✅ Updated photo grid to request the full-size image first (fallback to medium/thumbnail) to bypass current `/medium` 404 responses.
+- 🪪 DemoService remains in use for seeding demo credentials and profile data in demo mode; worth revisiting if duplicate responsibilities surface.
+- ⚠️ Uploading `profilepic.jpg` returns **400 – "File is not a valid image or format is not supported"** from PhotoService.
+- ⚠️ Fetching `/api/photos/{id}/medium` still responds **404**, causing `Image.network` failures even with valid JWT headers.
+- 📋 Console logs now capture auth headers, grid state transitions, and failing endpoints to speed up the next round of debugging.
+
+#### Immediate Follow-Up Checklist (Next Session)
+1. Inspect PhotoService processing pipeline/logs to learn why medium variants are missing or not being generated.
+2. Confirm whether the uploaded file is rejected by backend validation (content-type, dimensions, ML moderation) and adjust client/server accordingly.
+3. Decide whether DemoService should continue handling demo logins or consolidate into `ApiService`/`AppState` to avoid double auth logic.
+4. Retest the photo grid after backend fixes, ensuring full/medium URLs load and uploaded images persist without flashing.
+5. Document any additional errors spotted in Flutter console or service logs during the investigation.
 
 ### ✅ Completed Features & Fixes
 
-#### Advanced Privacy System Implementation (Latest - Sept 30, 2025)
+#### Photo Upload Grid Integration Fix (Latest - October 4, 2025)
+- **Status**: 🔧 IN PROGRESS - CRITICAL FIX APPLIED
+- **Problem Solved**: Photo grid upload worked but uploaded photos didn't appear in profile grid
+- **Root Cause**: Two separate photo systems - Profile used UserService, Grid used PhotoService  
+- **Solution Implemented**:
+  - ✅ Removed unnecessary refresh button from profile screen
+  - ✅ Modified profile loading to prioritize PhotoService photos over UserService
+  - ✅ Added automatic photo refresh when returning from photo upload screen
+  - ✅ Enhanced photo loading method with proper fallback to UserService
+  - ✅ Added widget lifecycle hooks to refresh photos when screen becomes visible
+  - ✅ Updated navigation to await photo upload completion and auto-refresh
+- **Key Changes Made**:
+  - `tinder_like_profile_screen.dart`: Modified `_loadProfile()` to use PhotoService first
+  - Enhanced `_loadPhotosFromPhotoService()` with proper error handling and fallbacks
+  - Added `didUpdateWidget()` to refresh photos when returning to profile
+  - Navigation now awaits photo upload completion for immediate refresh
+- **Current Status**: 
+  - Profile screen now loads photos from PhotoService automatically
+  - No manual refresh button required - photos appear immediately after upload
+  - Proper fallback to UserService photos if PhotoService unavailable
+  - Ready for multi-photo upload implementation
+- **Next Steps**: 
+  - Test the fix with actual photo uploads
+  - Verify photos appear immediately in profile grid after upload
+  - Implement multi-photo selection capability for future enhancement
+
+#### Advanced Privacy System Implementation (Completed - Sept 30, 2025)
 - **Status**: ✅ SUCCESSFULLY COMPLETED WITH FULL INTEGRATION
 - **Major Features Added**:
   - ✅ Four-tier privacy levels: Public, Private, MatchOnly, VIP with granular controls
@@ -697,14 +738,14 @@ lsof -p $(pgrep -f photo-service) | wc -l
 
 ### 🔧 Service Authentication Status
 
-| Service | Port | JWT Auth | Database | Status | Notes |
-|---------|------|----------|----------|--------|-------|
-| AuthService | 8081 | Token Generation | In-Memory | ✅ Working | Uses private.key for signing |
-| UserService | 8082 | Token Validation | In-Memory | ✅ Working | RSA public key validation |
-| MatchmakingService | 8083 | Token Validation | In-Memory | ✅ Working | Recently added JWT support |
-| PhotoService | 8085 | Token Validation | PostgreSQL | ✅ Working | **NEW: Fully PostgreSQL optimized** |
-| MessagingService | 8086 | Token Validation | In-Memory | ✅ Working | Migrated from symmetric to RSA |
-| SwipeService | 8087 | Token Validation | In-Memory | ✅ Working | Recently added JWT support |
+| Service | Port | Auth Method | Database | Status | Notes |
+|---------|------|-------------|----------|--------|-------|
+| AuthService | 8081 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak token generation |
+| UserService | 8082 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak JWT validation |
+| MatchmakingService | 8083 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak JWT validation |
+| PhotoService | 8085 | Keycloak (OIDC/JWT) | PostgreSQL | ✅ Working | **NEW: Fully PostgreSQL optimized** |
+| MessagingService | 8086 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak JWT validation |
+| SwipeService | 8087 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak JWT validation |
 | YARP Gateway | 8080 | Proxy Only | None | ⚠️ No Auth | Acts as reverse proxy |
 
 ### 🧪 Testing Status
@@ -736,50 +777,35 @@ lsof -p $(pgrep -f photo-service) | wc -l
 
 ### 🔄 Known Limitations & Future Work
 
-#### Current Limitations (Updated Sept 30, 2025)
-1. **PostgreSQL Connection Configuration**: PhotoService Program.cs configured for PostgreSQL but appsettings.json still has MySQL connection string
-2. **Database Migration Incomplete**: Other services still using in-memory databases (need PostgreSQL migration)
-3. **Image Serving Verification**: Need to verify image serving endpoints work after PostgreSQL connection fix
-4. **File Picker Web Warnings**: Works perfectly but shows Linux compatibility warnings (normal behavior)
+#### Current Limitations (October 2025)
+1. **Photo Grid Integration Testing**: Need to verify the fix works with actual photo uploads in practice
+2. **PostgreSQL Connection Configuration**: PhotoService Program.cs configured for PostgreSQL but appsettings.json still has MySQL connection string
+3. **Database Migration Incomplete**: Other services still using in-memory databases (need PostgreSQL migration)
+4. **Multi-Photo Upload**: Single photo upload works, need to implement multi-selection for grid uploads
 5. **Real-time Messaging Frontend**: SignalR configured in backend but needs Flutter integration
 6. **Cloud Storage Migration**: Currently using local filesystem (AWS S3/Azure Blob planned)
-7. **Advanced Matching Algorithms**: Basic matching implemented, ML.NET algorithms planned
 
-#### Planned Improvements (Priority Order)
-1. **Complete PostgreSQL Migration**: 
-   - Fix PhotoService connection string mismatch (appsettings.json MySQL → PostgreSQL)
-   - Test photo upload/retrieval with persistent database
-   - Migrate all services from in-memory to PostgreSQL with proper schemas
-2. **Database-Driven Image Serving**: 
-   - Verify GetPhotoImage/GetPhotoThumbnail endpoints work with PostgreSQL
-   - Remove Image.memory() workaround once proper URL-based serving confirmed
-   - Implement database-backed photo metadata and serving
-3. **Advanced Photo Management**: 
-   - Complete photo reordering and bulk operations
-   - Implement photo moderation workflow and admin interface
-   - Add batch photo processing and optimization
-4. **Video Upload System**: 
-   - Research Hinge-style short video features and requirements
-   - Implement FFMpegCore for professional video processing
-   - Add video storage, streaming, and thumbnail generation endpoints
-5. **Advanced Database Features**: 
-   - Implement PostGIS for location-based matching and distance calculations
-   - Add JSON columns for flexible user preferences and advanced filtering
-   - Setup full-text search for user discovery and content search
-6. **Professional Libraries Integration**: 
-   - ML.NET for sophisticated recommendation algorithms and compatibility scoring
-   - SignalR real-time messaging integration in Flutter frontend
-   - Redis for high-performance matching cache and session management
-7. **Production Infrastructure**: 
-   - AWS S3 or Azure Blob Storage for scalable photo/video storage
-   - CDN integration for global image delivery
-   - Professional monitoring and logging with Grafana/Loki integration
+#### Next Session Priorities
+1. **Complete PostgreSQL Migration for All Services**
+  - Migrate AuthService, UserService, MatchmakingService, MessagingService, and SwipeService to PostgreSQL
+  - Create unified PostgreSQL database strategy for all services
+2. **Advanced Photo Grid Testing**
+  - Test photo upload workflow in Flutter app
+  - Implement multi-photo selection and batch upload
+  - Add progress indicators and drag-and-drop reordering
+3. **Message Queue Implementation**
+  - Add Hangfire or RabbitMQ for background photo processing and matchmaking events
+  - Implement notification delivery system and analytics pipeline
+4. **Production Infrastructure Enhancements**
+  - Cloud storage integration (AWS S3/Azure Blob)
+  - Monitoring/logging improvements
+  - CDN integration for global image delivery
 
 ### 🏗️ Architecture Decisions Made
 
 #### Microservices Communication
 - **Service-to-Service**: HTTP REST APIs through YARP gateway
-- **Authentication**: Shared RSA public key validation
+- **Authentication**: Keycloak OIDC/JWT validation (no more RSA key files)
 - **Data Consistency**: Each service owns its domain data
 - **Real-time**: SignalR hubs for messaging, WebSockets for notifications
 
@@ -787,20 +813,32 @@ lsof -p $(pgrep -f photo-service) | wc -l
 - **.NET 8**: Latest LTS version with performance improvements
 - **Entity Framework Core**: Code-first approach with migrations
 - **PostgreSQL**: Chosen over MySQL/SQLite for advanced dating app features (PostGIS, JSON, full-text search)
+- **Keycloak**: Centralized authentication and JWT validation for all backend services
 - **ImageSharp**: Cross-platform image processing
 - **Serilog**: Structured logging with multiple sinks
 - **YARP**: Microsoft's reverse proxy for .NET
 - **Flutter Web**: Chrome-based development with hot reload
 
 #### Security Implementation
-- **JWT Tokens**: RSA-256 signed, 1-hour expiration
+- **JWT Tokens**: Keycloak-signed, 1-hour expiration
 - **Password Security**: ASP.NET Identity with hashing
 - **API Security**: All endpoints require authentication except auth/health
 - **File Upload Security**: Type validation, size limits, virus scanning placeholder
 
 ### 🎯 Next Development Priorities
 
-1. **PostgreSQL Migration for Remaining Services (Next)**: 
+1. **Photo Grid Integration Testing (Immediate - Tomorrow)**:
+   - Test the photo upload fix with actual Flutter app usage
+   - Verify uploaded photos appear immediately in profile grid
+   - Test navigation flow: Profile → Photo Upload → Return to Profile → See photos
+   - Validate both single photo and prepare for multi-photo uploads
+   - Document any remaining issues with the grid integration
+2. **Multi-Photo Upload Implementation (High Priority)**:
+   - Implement multi-photo selection in photo upload screen
+   - Add progress indicators for batch photo processing
+   - Ensure grid refreshes properly after multiple uploads
+   - Add drag-and-drop reordering once multiple photos are uploaded
+3. **PostgreSQL Migration for Remaining Services (Next)**: 
    - Migrate AuthService from in-memory to PostgreSQL with user management schema
    - Migrate UserService to PostgreSQL with profile and relationship data
    - Migrate MatchmakingService to PostgreSQL with matching algorithms data
@@ -815,13 +853,20 @@ lsof -p $(pgrep -f photo-service) | wc -l
    - Implement PostGIS location-based queries for photo geotags
    - Utilize JSONB metadata for advanced photo search and filtering
    - Create efficient tag-based photo discovery system
-   - Implement background photo processing jobs queue
-4. **Service Integration and Testing**: 
+   - Implement background photo processing jobs queue (see Message Queue Architecture below)
+4. **Message Queue Architecture Implementation (High Priority)**: 
+   - Add RabbitMQ or Hangfire for asynchronous background processing
+   - Implement photo processing queue (resize, thumbnails, ML.NET moderation)
+   - Create matchmaking event queues for compatibility calculations
+   - Build notification delivery system (email, push notifications)
+   - Implement inter-service communication events for loose coupling
+   - Add analytics pipeline for user behavior tracking
+5. **Service Integration and Testing**: 
    - Ensure all services work together with PostgreSQL
    - Update demo data generation for PostgreSQL schema
    - Test end-to-end photo upload workflow
    - Verify service-to-service communication with persistent databases
-5. **Production Infrastructure**: 
+6. **Production Infrastructure**: 
    - Setup PostgreSQL connection pooling and performance optimization
    - Implement database backup and recovery procedures
    - Add database monitoring and alerting
@@ -829,7 +874,7 @@ lsof -p $(pgrep -f photo-service) | wc -l
 
 ## 🐛 Comprehensive Issue Resolution Guide
 
-### Authentication & JWT Issues
+### Authentication & JWT Issues (Keycloak)
 
 #### Problem: "Demo user not found" (HTTP 401)
 **Root Causes:**
@@ -842,10 +887,8 @@ lsof -p $(pgrep -f photo-service) | wc -l
 # 1. Restart services to reset in-memory DB
 cd /home/m/development/DatingApp && ./dev-restart.sh
 
-# 2. Manual user registration
-curl -X POST http://localhost:8081/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"erik.astrom@demo.com","password":"Demo123!","userName":"Erik"}'
+# 2. Manual user registration (via Keycloak)
+# Use Keycloak admin console or API to create users
 
 # 3. Verify AuthService health
 curl -s http://localhost:8081/health
@@ -853,19 +896,15 @@ curl -s http://localhost:8081/health
 
 #### Problem: "401 Unauthorized" on authenticated endpoints
 **Root Causes:**
-- JWT Issuer/Audience mismatch between services
-- Missing or corrupted public key files
+- Keycloak configuration mismatch (authority/clientId/audience)
 - Token format issues
 
 **Diagnostic Steps:**
 ```bash
-# 1. Check JWT configuration consistency
-grep -r "DatingApp-Issuer" /home/m/development/DatingApp/*/appsettings.json
+# 1. Check Keycloak configuration consistency
+grep -r "Keycloak" /home/m/development/DatingApp/*/appsettings.json
 
-# 2. Verify public key files exist and are identical
-find /home/m/development/DatingApp -name "public.key" -exec md5sum {} \;
-
-# 3. Test token generation
+# 2. Test token generation
 TOKEN=$(curl -s -X POST http://localhost:8081/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"erik.astrom@demo.com","password":"Demo123!"}' \
@@ -875,15 +914,26 @@ echo $TOKEN | cut -d'.' -f2 | base64 -d | jq  # Decode JWT payload
 
 **Fixes:**
 ```bash
-# Copy master public key to all services
-cd /home/m/development/DatingApp
-for service in UserService photo-service messaging-service MatchmakingService swipe-service; do
-  cp AuthService/public.key $service/public.key
-done
-
-# Restart services to reload keys
+# Ensure all services use correct Keycloak authority/clientId/audience
+# Restart services to reload config
 ./dev-restart.sh
 ```
+# Migration Summary (October 2025)
+
+**Keycloak Migration & Repo Cleanup:**
+- All backend services migrated to Keycloak for authentication (OIDC/JWT)
+- All legacy RSA key files (`public.key`, `private.key`) removed from repo
+- All Program.cs files refactored for Keycloak JWT validation
+- All appsettings.json files updated for Keycloak config
+- Health check endpoints standardized across all services
+- Build verified for all services (no errors/warnings)
+- Documentation updated for new authentication flow
+
+**Next Steps:**
+- Complete PostgreSQL migration for all services
+- Test advanced photo grid and multi-photo upload
+- Implement message queue architecture for background processing
+- Enhance production infrastructure (cloud storage, monitoring, CDN)
 
 ### Service Startup & Communication Issues
 
@@ -1395,3 +1445,163 @@ POST   /api/Photos/{id}/regenerate-blur       - Regenerate blur with new setting
 - **Testing**: ✅ Privacy system validated and enterprise-ready
 
 **💡 Usage Tip**: Always include this AI_CONTEXT.md file in conversations to provide complete project understanding and prevent knowledge gaps!
+
+---
+
+## 🚀 Message Queue Architecture Recommendations (Future Implementation)
+
+### Current Messaging Analysis
+The project currently implements:
+- **✅ Real-time Messaging**: SignalR Hub for instant chat and user presence
+- **✅ WebSocket Connections**: Direct real-time communication for messaging
+- **❌ No Async Queues**: All operations synchronous, heavy processing blocks user requests
+- **❌ No Background Jobs**: Image processing happens during upload, causing delays
+- **❌ No Event-Driven Architecture**: Microservices tightly coupled via direct API calls
+
+### **🎯 High-Priority Message Queue Implementation**
+
+#### **1. Photo Processing Queue (Critical)**
+```
+User uploads photo → Queue job → Background processing → Notify completion
+```
+**Current Problem**: 
+- Image resizing (thumbnails, medium) blocks upload response
+- ML.NET content moderation runs synchronously during upload
+- Privacy blur generation causes upload delays
+
+**Solution**: Asynchronous photo processing pipeline
+```csharp
+// Upload returns immediately with "processing" status
+POST /api/Photos/upload → Response: 202 Accepted, PhotoId: 123
+// Background worker processes image
+Queue: PhotoProcessingJob { PhotoId: 123, UserId: 456, Tasks: [Resize, Moderate, Blur] }
+// Frontend polls or receives notification when complete
+```
+
+#### **2. Matchmaking Event Queue**
+```
+User swipes → Queue match calculation → Background processing → Push notifications
+```
+**Benefits**:
+- Decouple swipe actions from complex compatibility algorithms
+- Process match calculations asynchronously for better performance
+- Reliable delivery of match notifications
+
+#### **3. Notification Delivery System**
+```
+Match created → Queue notification → Email/Push delivery with retry
+```
+**Critical for Dating Apps**:
+- Reliable delivery of match notifications (core feature)
+- Retry failed notifications automatically
+- Support multiple channels (email, push, SMS)
+- Track delivery success rates
+
+#### **4. Inter-Service Communication Events**
+```
+UserService profile update → Queue event → PhotoService/MatchmakingService react
+```
+**Architecture Benefits**:
+- Loose coupling between microservices
+- Event-driven architecture for better fault tolerance
+- Scalable service communication patterns
+
+#### **5. Analytics & Reporting Pipeline**
+```
+User actions → Queue events → Background analytics processing
+```
+**Business Intelligence**:
+- Track user behavior without impacting app performance
+- Generate reports and insights asynchronously
+- Build recommendation systems with user data
+
+### **📋 Technology Recommendations**
+
+#### **Option 1: Hangfire (Recommended for Start)**
+**Pros**: .NET-native, easy setup, great for background jobs
+**Best For**: Photo processing, scheduled tasks
+```csharp
+// Simple background job example
+BackgroundJob.Enqueue(() => ProcessPhotoAsync(photoId));
+```
+
+#### **Option 2: RabbitMQ (Recommended for Scale)**
+**Pros**: Enterprise-grade, reliable, excellent for microservices
+**Best For**: Inter-service events, complex routing, high volume
+```csharp
+// Event publishing example
+await _messageBus.PublishAsync(new UserProfileUpdated { UserId = 123 });
+```
+
+#### **Option 3: Azure Service Bus**
+**Pros**: Cloud-native, integrated with Azure ecosystem
+**Best For**: Cloud deployment, enterprise reliability
+
+#### **Option 4: Redis Pub/Sub**
+**Pros**: Simple, you likely already use Redis for caching
+**Best For**: Simple event notifications, real-time updates
+
+### **🚦 Implementation Roadmap**
+
+#### **Phase 1: Photo Processing Queue (Week 1-2)**
+1. Add Hangfire to PhotoService
+2. Move image processing to background jobs
+3. Add processing status endpoint
+4. Update Flutter app to handle async uploads
+
+#### **Phase 2: Event-Driven Notifications (Week 3-4)**
+1. Implement RabbitMQ for inter-service communication
+2. Create match notification events
+3. Build email/push notification workers
+4. Add retry and failure handling
+
+#### **Phase 3: Advanced Queuing (Week 5-6)**
+1. Matchmaking algorithm optimization with queues
+2. Analytics event pipeline
+3. User behavior tracking
+4. Performance monitoring and alerting
+
+### **💡 Immediate Benefits**
+
+#### **For Photo Processing**:
+- **User Experience**: Instant upload responses (202 Accepted)
+- **Performance**: No blocking during thumbnail generation
+- **Reliability**: Retry failed processing jobs
+- **Scalability**: Process images on separate workers
+
+#### **For Matchmaking**:
+- **Responsiveness**: Instant swipe responses
+- **Accuracy**: More time for complex compatibility calculations  
+- **Notifications**: Reliable match alerts
+- **Analytics**: Track matching success rates
+
+#### **For Architecture**:
+- **Decoupling**: Services communicate via events
+- **Fault Tolerance**: Graceful degradation when services fail
+- **Monitoring**: Track queue health and processing metrics
+- **Scalability**: Scale workers independently from API servers
+
+### **🔧 Technical Integration Points**
+
+#### **Current Services Requiring Queue Integration**:
+1. **PhotoService**: Background image processing, content moderation
+2. **MatchmakingService**: Async compatibility calculations, match notifications
+3. **UserService**: Profile update events, user activity tracking
+4. **MessagingService**: Message delivery guarantees, offline user handling
+5. **SwipeService**: Swipe analytics, recommendation algorithm updates
+
+#### **Database Schema Extensions**:
+```sql
+-- Job tracking table
+CREATE TABLE background_jobs (
+    id SERIAL PRIMARY KEY,
+    job_type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    error_message TEXT NULL,
+    retry_count INTEGER DEFAULT 0
+);
+```
+
+**🎯 Impact Assessment**: Adding message queues will significantly improve app responsiveness, reliability, and user experience - especially critical for dating app engagement where fast interactions and reliable notifications are essential for user retention.
