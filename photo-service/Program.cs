@@ -1,4 +1,5 @@
 using DatingApp.Shared.Middleware;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using PhotoService.Data;
 using PhotoService.Extensions;
@@ -99,6 +100,12 @@ builder.Services.AddImageSharp();
 builder.Services.AddScoped<IPhotoService, PhotoService.Services.PhotoService>();
 builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();
 builder.Services.AddScoped<IStorageService, LocalStorageService>();
+
+// Add MediatR for CQRS
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 // HTTP Context for URL generation
 builder.Services.AddHttpContextAccessor();

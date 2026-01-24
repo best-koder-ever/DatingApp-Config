@@ -4,6 +4,21 @@
         <name>PhotoService</name>
     </assembly>
     <members>
+        <member name="T:PhotoService.Common.ApiResponse`1">
+            <summary>
+            Standardized API response wrapper
+            </summary>
+        </member>
+        <member name="T:PhotoService.Common.Result`1">
+            <summary>
+            Result pattern for operation outcomes
+            </summary>
+        </member>
+        <member name="T:PhotoService.Common.Result">
+            <summary>
+            Result pattern for operations without return value
+            </summary>
+        </member>
         <member name="T:PhotoService.Controllers.PhotosController">
             <summary>
             Photo Controller - RESTful API for photo management operations

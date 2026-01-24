@@ -1,4 +1,5 @@
 using DatingApp.Shared.Middleware;
+using FluentValidation;
 using MessagingService.Data;
 using MessagingService.Extensions;
 using MessagingService.Hubs;
@@ -82,6 +83,12 @@ builder.Services.AddScoped<IPersonalInfoDetectionService, PersonalInfoDetectionS
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddCorrelationIds();
+
+// Add MediatR for CQRS
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 // Add Memory Cache for rate limiting and content caching
 builder.Services.AddMemoryCache();

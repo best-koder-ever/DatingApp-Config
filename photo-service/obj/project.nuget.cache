@@ -1,11 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "cfN9DLRqJyBhVm6M9ZhBlnsq1tjgbwBUJC9EFWQhq16/nVE0aLm2IiuAOPmzAR859RakPQRe+i+cAxV59cBbFw==",
+  "dgSpecHash": "aqMrt7oD93GEj0KH1KJlAfCxxScoEUbKF9a+2/T3iv/bAstMsolCdIbGb70Cm96yT/iRX+8XNuYpoxOtFUUCKg==",
   "success": true,
   "projectFilePath": "/home/m/development/DatingApp/photo-service/PhotoService.csproj",
   "expectedPackageFiles": [
+    "/home/m/.nuget/packages/fluentvalidation/11.9.0/fluentvalidation.11.9.0.nupkg.sha512",
+    "/home/m/.nuget/packages/fluentvalidation.dependencyinjectionextensions/11.9.0/fluentvalidation.dependencyinjectionextensions.11.9.0.nupkg.sha512",
     "/home/m/.nuget/packages/google.protobuf/3.19.6/google.protobuf.3.19.6.nupkg.sha512",
     "/home/m/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
+    "/home/m/.nuget/packages/mediatr/12.2.0/mediatr.12.2.0.nupkg.sha512",
+    "/home/m/.nuget/packages/mediatr.contracts/2.0.1/mediatr.contracts.2.0.1.nupkg.sha512",
     "/home/m/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/8.0.6/microsoft.aspnetcore.authentication.jwtbearer.8.0.6.nupkg.sha512",
     "/home/m/.nuget/packages/microsoft.aspnetcore.openapi/8.0.6/microsoft.aspnetcore.openapi.8.0.6.nupkg.sha512",
     "/home/m/.nuget/packages/microsoft.bcl.asyncinterfaces/6.0.0/microsoft.bcl.asyncinterfaces.6.0.0.nupkg.sha512",
