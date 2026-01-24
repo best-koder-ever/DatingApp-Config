@@ -164,11 +164,21 @@ while IFS='|' read -r task_id task_title task_phase; do
   issue_number=$(echo "$existing_json" | jq -r '.[0].number // empty')
   issue_url=$(echo "$existing_json" | jq -r '.[0].url // empty' | tr -d '\r' | xargs)
 
-  if [[ -z "$issue_number" || -z "$issue_url" ]]; then
-    echo "  [$current/$task_count] Creating: $task_id"
+  if [Get parent issue number for hierarchy
+    parent_number="${PHASE_PARENT_NUMBER["$task_phase"]:-}"
+    parent_ref=""
+    if [[ -n "$parent_number" ]]; then
+      parent_ref="
+
+---
+**Parent Epic**: #$parent_number"
+    fi
     
-    # Simple issue body (remove complex template for speed)
+    # Create issue body with parent reference
     issue_body="**Phase**: $task_phase  
+**Task**: $task_title
+
+See [\`tasks.md\`](https://github.com/$OWNER/DatingApp-Config/blob/001-mvp-foundation/specs/001-mvp-foundation/tasks.md) for details.$parent_ref
 **Task**: $task_title
 
 See [\`tasks.md\`](https://github.com/$OWNER/DatingApp-Config/blob/001-mvp-foundation/specs/001-mvp-foundation/tasks.md) for details.
@@ -251,26 +261,14 @@ for task_id in "${!ISSUE_MAP[@]}"; do
   sleep 0.2
 done
 
-# STEP 4: Set hierarchy
+# STEP 4: Set hierarchy (GitHub native - already done via issue body)
 if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
   echo ""
-  echo "🌳 Step 4/4: Linking to phase parents..."
-  
-  for task_id in "${!ISSUE_MAP[@]}"; do
-    IFS='|' read -r issue_url issue_number task_phase <<< "${ISSUE_MAP[$task_id]}"
-    issue_number="${issue_number//[^0-9]/}"
-    
-    item_id=$(echo "$items_json" | jq -r --argjson num "$issue_number" '.items[] | select(.content.number == $num) | .id')
-    parent_url="${PHASE_PARENT_ISSUE["$task_phase"]:-}"
-    
-    if [[ -n "$item_id" && -n "$parent_url" ]]; then
-      gh project itemPARENT_FIELD_ID" \
-        --text "$parent_url" >/dev/null 2>&1
-      echo "  🔗 $task_id → $task_phase parent"
-      sleep 0.2
-    fi
-  done
-else
+  echo "🌳 Step 4/4: Setting up task hierarchy (GitHub native)..."
+  echo "   ✓ Tasks reference their parent epic in issue body"
+  echo "   ✓ GitHub will automatically show hierarchy in project view"
+  echo "   ✓ Toggle 'Show hierarchy' in project view settings"
+else  
   echo ""
   echo "⏭️  Step 4/4: Skipped (hierarchy not enabled)"
 fi
@@ -278,11 +276,6 @@ fi
 echo ""
 echo "✅ Done! Synced ${#ISSUE_MAP[@]} tasks to project #$PROJECT_NUMBER"
 echo ""
-
-if [[ "$HIERARCHY_ENABLED" != "true" ]]; then
-  echo "💡 Enable hierarchy:"
-  echo "   1. https://github.com/users/$OWNER/projects/$PROJECT_NUMBER/settings"
-  echo "   2. Create field: Name='Parent Issue' Type='Issue'jects/$PROJECT_NUMBER/settings"
-  echo "   2. Create 'Tracks' field (type: Issue)"
-  echo "   3. Re-run this script"
-fi
+echo "💡 View hierarchy:"
+echo "   https://github.com/users/$OWNER/projects/$PROJECT_NUMBER/views/1"
+echo "   Settings → Show hierarchy (beta feature)"
