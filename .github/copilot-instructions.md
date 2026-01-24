@@ -39,4 +39,13 @@ TestDataGenerator/, api_tests.py  # Legacy demo seeding (avoid new usage); rely 
 - 001-mvp-foundation: Captured MVP constitution, user stories, implementation plan, and API/message contracts
 
 <!-- MANUAL ADDITIONS START -->
+
+## Multi-Repo Workflow (CRITICAL - READ FIRST!)
+**This project has 8+ Git repositories.** Use these tools, don't manually iterate:
+- **For commits/pushes:** `./gita-workflow.sh` or `./ai-commit-helper.sh`
+- **For GitHub operations:** `./gh-multi-repo.sh`
+- **Never:** Loop through repos with manual `cd repo && git commit && cd ..` patterns
+
+Why: User set up gita and helper scripts specifically to avoid tedious manual operations. Always check for and use these tools first.
+
 <!-- MANUAL ADDITIONS END -->
