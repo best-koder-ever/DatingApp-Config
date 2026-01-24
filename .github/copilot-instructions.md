@@ -1,5 +1,7 @@
 # DatingApp Development Guidelines
 
+**⚠️ BEFORE DOING ANYTHING: Check [RUNBOOK.md](../RUNBOOK.md) for operational commands and workflows**
+
 Auto-generated from Spec Kit feature plans. Last updated: 2025-10-20
 
 ## Active Technologies
