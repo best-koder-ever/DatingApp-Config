@@ -64,10 +64,7 @@ start_demo() {
     print_status "Waiting for services to be ready..."
     sleep 30
     
-    # Generate demo data
-    print_status "Generating demo data..."
-    cd TestDataGenerator
-    dotnet run --project TestDataGenerator.csproj -- --environment demo --create-users 50 --api
+    print_warning "TestDataGenerator seeding disabled. Provision demo users via Keycloak admin or automation (T029)."
     
     print_success "Demo environment started successfully!"
     print_status "Demo URLs:"
@@ -116,11 +113,7 @@ run_demo_journey() {
         start_demo
     fi
     
-    cd "${PROJECT_ROOT}/TestDataGenerator"
-    
-    # Run demo scenarios
-    print_status "Executing demo scenarios..."
-    dotnet run --project TestDataGenerator.csproj -- --environment demo --run-scenarios
+    print_warning "Legacy TestDataGenerator scenarios disabled. Use Keycloak-first automation once T029 ships."
     
     print_success "Demo journey completed!"
     print_status "You can now:"

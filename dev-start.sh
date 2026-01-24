@@ -5,6 +5,42 @@
 
 echo "🚀 Starting Local Development Environment..."
 
+check_port() {
+    local host="$1"
+    local port="$2"
+    if command -v timeout >/dev/null 2>&1; then
+        if timeout 1 bash -c "cat < /dev/null > /dev/tcp/${host}/${port}" >/dev/null 2>&1; then
+            return 0
+        fi
+    else
+        if bash -c "cat < /dev/null > /dev/tcp/${host}/${port}" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+ensure_infrastructure() {
+    local missing=0
+
+    if ! check_port localhost 8090; then
+        echo "❌ Keycloak (localhost:8090) is not reachable."
+        missing=1
+    fi
+
+    if ! check_port localhost 3309; then
+        echo "❌ Matchmaking MySQL (localhost:3309) is not reachable."
+        missing=1
+    fi
+
+    if [ "$missing" -eq 1 ]; then
+        echo "💡 Please run ./infrastructure/start.sh before launching the services."
+        exit 1
+    fi
+}
+
+ensure_infrastructure
+
 # Kill any existing processes
 echo "🧹 Cleaning up existing processes..."
 pkill -f "dotnet" 2>/dev/null || true
@@ -92,6 +128,7 @@ USER_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/healt
 MATCHMAKING_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8083/health 2>/dev/null || echo "000")
 PHOTO_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/health 2>/dev/null || echo "000")
 MESSAGING_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8086/health 2>/dev/null || echo "000")
+MESSAGING_READINESS=$(curl -s http://localhost:8086/health 2>/dev/null || echo "")
 SWIPE_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/health 2>/dev/null || echo "000")
 YARP_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health 2>/dev/null || echo "000")
 
@@ -122,7 +159,15 @@ else
 fi
 
 if [ "$MESSAGING_HEALTH" = "200" ]; then
-    echo "✅ MessagingService: Running (PID: $MESSAGING_PID)"
+    READY_MSG="$(echo "$MESSAGING_READINESS" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    if [ -z "$READY_MSG" ]; then
+        READY_MSG=$(echo "$MESSAGING_READINESS" | tr -d '\n' | cut -c1-120)
+    fi
+    if [ -n "$READY_MSG" ]; then
+        echo "✅ MessagingService: Running (PID: $MESSAGING_PID) – readiness: $READY_MSG"
+    else
+        echo "✅ MessagingService: Running (PID: $MESSAGING_PID)"
+    fi
 else
     echo "❌ MessagingService: Failed to start (HTTP: $MESSAGING_HEALTH)"
 fi

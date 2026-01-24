@@ -8,16 +8,8 @@
 - ⚡ Want **fast development velocity** while building features
 
 ## 📋 Recommended Strategy: "Professional Local"
-
-### **Phase 1: Current Local Development (Where You Are)**
-```
-Local Development → GitHub → CI/CD Validation → Ready for Production
      ↑                           ↑                      ↑
    You're here                CI tests              Future deployment
-```
-
-### **What You Need RIGHT NOW:**
-
 #### 1. **Fast Development Workflow** ⚡
 ```bash
 # Your daily development cycle
@@ -56,23 +48,10 @@ git commit -m "🚀 Setup professional CI/CD for real dating app
 
 git push origin main
 ```
-
-### **Your New Development Workflow**
-```bash
-# Feature development (super fast)
-./test_workflow_locally.sh build-local     # 30 seconds
 # Code, test, iterate...
-
-# Ready to commit (professional validation)
-git push origin feature/new-matching-algo   # 3 minutes CI
-# If green, merge to main
 
 # Release preparation (comprehensive)
 git push origin main                        # 8-10 minutes full pipeline
-# Ready for production deployment when you're ready
-```
-
-### **What This Gives You:**
 
 #### ✅ **For Real App Development**
 - **Database integrity** - Migrations tested
@@ -95,73 +74,46 @@ git push origin main                        # 8-10 minutes full pipeline
 
 ## 🏗️ Local Development Best Practices
 
-### **1. Database Management**
+### **1. Identity & Database Management**
 ```bash
-# Local development with real data patterns
-cd TestDataGenerator
-dotnet run -- --users 1000 --realistic-data
+# Boot shared infrastructure (MySQL, Keycloak, storage)
+cd /home/m/development/DatingApp
+./infrastructure/start.sh
 
-# Test migrations work
-dotnet ef database update
+# Start services; each applies its own EF Core migrations on launch
+./dev-start.sh
+
+# Provision demo identities via Keycloak admin (http://localhost:8090)
+# Until T029 lands, use Keycloak's UI or import `config/keycloak/realms/datingapp-realm.json`
 ```
 
 ### **2. Service Integration Testing**
 ```bash
-# Test full local stack
-docker-compose up -d postgres
-./start_all_services.sh
-./test_user_journey.sh  # Registration → matching → swiping
-```
-
-### **3. Mobile App Integration**
-```bash
 # Flutter app against local backend
 cd /home/m/development/mobile-apps/flutter/dejtingapp
 flutter run --dart-define=API_URL=http://localhost:8080
-```
 
-### **4. Performance Monitoring**
-```bash
-# Monitor local performance
+# Optional: monitor local performance
+cd /home/m/development/DatingApp
 docker-compose up -d prometheus grafana
 # View metrics at http://localhost:3000
 ```
-
-## 📅 Development Phases
-
-### **Phase 1: Core Features (Current)**
-- ✅ Authentication working
+- ✅ Authentication via Keycloak realm import
 - ✅ User profiles
 - ✅ Photo upload
-- 🚧 Matching algorithm
-- 🚧 Swiping mechanics
-- 🚧 Messaging system
-
-**CI/CD Focus:** Fast feedback, basic integration
+- 🚧 Matching algorithm tuning
 
 ### **Phase 2: Polish & Performance (Next Month)**
 - Real-time messaging
 - Push notifications
 - Performance optimization
 - Advanced matching
-
-**CI/CD Focus:** Performance testing, load testing
-
 ### **Phase 3: Pre-Production (Month 3)**
 - Security hardening
-- Scalability testing
-- Production infrastructure
-- Beta testing
 
 **CI/CD Focus:** Full E2E testing, security scanning, production deployment
-
-### **Phase 4: Production Launch (Month 4+)**
-- Real user deployment
 - Monitoring & alerting
 - Continuous deployment
-- Feature flags
-
-**CI/CD Focus:** Production deployment, monitoring, A/B testing
 
 ## 🎯 Why This Approach Works for Real Apps
 
@@ -200,7 +152,7 @@ The professional CI/CD pipeline gives you all of this without slowing down devel
 
 1. **Deploy professional pipeline** (30 minutes)
 2. **Test integration workflow** (1 hour)
-3. **Add comprehensive test data** (2 hours)
+3. **Automate Keycloak demo provisioning** (T029, 2 hours)
 4. **Continue building features** (fast development)
 5. **Prepare for production** (when ready)
 

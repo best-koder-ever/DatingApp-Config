@@ -20,7 +20,8 @@
 		}
 	],
 	"settings": {
-		"specstory.helpUsImprove": false
+		"specstory.helpUsImprove": false,
+		"github.copilot.chat.anthropic.tools.websearch.enabled": true
 
 	}
 }

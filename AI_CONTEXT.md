@@ -5,7 +5,7 @@
 ## 🏗️ Project Architecture
 
 ### Core Services (Microservices)
-- **AuthService** (Port 8081) - User authentication & JWT token generation
+- **AuthService** (Port 8081) - *Legacy shell; Keycloak now issues tokens & handles verification (Oct 22 2025 migration)*
 - **UserService** (Port 8082) - User profiles & management  
 - **MatchmakingService** (Port 8083) - Matching algorithms & preferences
 - **PhotoService** (Port 5000) - Advanced photo service with privacy system, ML.NET content moderation, OpenCV blur effects, and match-based access control
@@ -94,6 +94,13 @@
 - **Geospatial Support**: PostGIS integration for location-based dating features
 - **Professional Schema**: Comprehensive photo metadata, privacy controls, and user management
 
+### 🆕 Latest Progress (October 18, 2025)
+- ✅ Added `infrastructure/start.sh` and `infrastructure/stop.sh` to manage shared containers (Keycloak + Matchmaking MySQL) separately from the .NET services.
+- ✅ Automated Keycloak realm import on startup; the scripts wait for the container to become responsive and import `config/keycloak/realms/datingapp-realm.json` when needed.
+- ✅ Updated `dev-start.sh` to verify infrastructure availability before launching services; health checks now pass end-to-end and the smart demo seeder completes without errors.
+- ✅ Infrastructure start now truncates matchmaking tables, preventing duplicate match collisions during repeated demo runs.
+- ⚠️ Need to confirm SignalR conversations in the Flutter client post-refresh (manual QA still pending).
+
 ---
 
 **Authentication Configuration (ALL services):**
@@ -107,12 +114,14 @@
 }
 ```
 
+*As of Oct 22 2025, Keycloak owns user registration, verification emails, and token issuance; AuthService endpoints remain retired stubs only.*
+
 **Key Management:**
 - All legacy RSA key files (`public.key`, `private.key`) have been removed.
 - All services now validate JWT tokens using Keycloak public endpoints.
 
-**User ID Handling:**
-- AuthService generates tokens with string user IDs (IdentityUser.Id)
+- **User ID Handling:**
+- Keycloak issues tokens with string user IDs (Keycloak subject/UUID)
 - PhotoService maps string IDs to integers using hash code
 - Other services handle string IDs natively
 
@@ -120,7 +129,7 @@
 
 ```
 DatingApp/                              # Main backend project
-├── AuthService/                        # JWT token generation & user auth
+├── AuthService/                        # Legacy scaffolding; replaced by Keycloak OIDC flow
 │   ├── Controllers/
 │   │   ├── AuthController.cs           # Login, register endpoints
 │   │   └── TestController.cs           # Demo/health endpoints
@@ -222,11 +231,11 @@ DatingApp/                              # Main backend project
 │       ├── Program.cs                  # YARP routing configuration
 │       ├── appsettings.json            # Route definitions
 │       └── Controllers/HealthController.cs
-├── TestDataGenerator/                  # Demo data seeding
+├── TestDataGenerator/                  # Legacy demo seeding (scheduled for removal; replace with Keycloak-first automation)
 │   ├── Program.cs                      # Demo user creation
 │   └── TestDataGenerator.csproj
 ├── logs/                               # Service logs (auto-generated)
-│   ├── auth-service.log                # AuthService output
+│   ├── auth-service.log                # Legacy output (expect minimal activity after Keycloak migration)
 │   ├── photo-service.log               # PhotoService output
 │   ├── user-service.log                # UserService output
 │   ├── matchmaking-service.log         # MatchmakingService output
@@ -297,7 +306,11 @@ mobile-apps/flutter/dejtingapp/         # Flutter frontend application
 
 ### Service Management Scripts
 ```bash
-# 🚀 Start all services in demo mode (auto-restart on crash)
+# �️ Start shared infrastructure (Keycloak + MySQL)
+cd /home/m/development/DatingApp
+./infrastructure/start.sh
+
+# �🚀 Start all services in demo mode (auto-restart on crash)
 cd /home/m/development/DatingApp
 ./dev-start.sh
 
@@ -307,12 +320,17 @@ cd /home/m/development/DatingApp
 # 🔄 Restart all services (stop + start)
 ./dev-restart.sh
 
+# 🛑 Stop shared infrastructure containers
+cd /home/m/development/DatingApp
+./infrastructure/stop.sh
+
 # 📊 Check service status and health
 ./dev_status.sh
 
 # 🔧 Manual individual service start (demo mode)
+# AuthService process no longer needed after Keycloak migration; keep for historical reference only
 cd /home/m/development/DatingApp/AuthService
-DEMO_MODE=true dotnet run --urls=http://localhost:8081 > ../logs/auth-service.log 2>&1 &
+DEMO_MODE=true dotnet run --urls=http://localhost:8081 > ../logs/auth-service.log 2>&1 &  # Legacy
 
 cd /home/m/development/DatingApp/photo-service  
 DEMO_MODE=true dotnet run --urls=http://localhost:8085 > ../logs/photo-service.log 2>&1 &
@@ -325,7 +343,7 @@ pkill -f "dotnet run"
 ### Health Check Commands
 ```bash
 # 🏥 Quick health check all services (returns JSON or "Healthy")
-curl -s http://localhost:8081/health  # AuthService
+curl -s http://localhost:8081/health  # AuthService (legacy stub; expect 410)
 curl -s http://localhost:8082/health  # UserService  
 curl -s http://localhost:8083/health  # MatchmakingService
 curl -s http://localhost:5000/health  # PhotoService (returns JSON with privacy system status)
@@ -367,7 +385,8 @@ flutter run -d ios
 ### Database & Migration Commands
 ```bash
 # 📊 Entity Framework migrations (per service)
-cd /home/m/development/DatingApp/AuthService
+# AuthService migrations are frozen; run commands from active services (e.g., UserService)
+cd /home/m/development/DatingApp/UserService
 dotnet ef migrations add AddNewFeature
 dotnet ef database update
 
@@ -376,7 +395,7 @@ export DEMO_MODE=true
 ./dev-restart.sh
 
 # 🔍 Check database connections (production mode)
-cd /home/m/development/DatingApp/AuthService
+cd /home/m/development/DatingApp/UserService
 dotnet ef database can-connect
 ```
 
@@ -666,7 +685,7 @@ lsof -p $(pgrep -f photo-service) | wc -l
   - Optimized indexes for user queries and moderation workflows
   - Foreign key relationships with cascade delete
   - Modern PostgreSQL data types and constraints
-- **Next Steps**: Migrate other services (AuthService, UserService, etc.) to PostgreSQL
+- **Next Steps**: Migrate remaining active services (UserService, MatchmakingService, MessagingService, SwipeService) to PostgreSQL; AuthService is excluded after Keycloak migration
 
 #### Advanced Photo System with Privacy (Enhanced - Sept 30, 2025)
 - **Status**: ✅ FULLY ENHANCED WITH ENTERPRISE PRIVACY FEATURES
@@ -740,7 +759,7 @@ lsof -p $(pgrep -f photo-service) | wc -l
 
 | Service | Port | Auth Method | Database | Status | Notes |
 |---------|------|-------------|----------|--------|-------|
-| AuthService | 8081 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak token generation |
+| AuthService | 8081 | *Retired* | N/A | ⚠️ Legacy | Replace with Keycloak realm endpoints (Oct 22 2025) |
 | UserService | 8082 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak JWT validation |
 | MatchmakingService | 8083 | Keycloak (OIDC/JWT) | In-Memory | ✅ Working | Keycloak JWT validation |
 | PhotoService | 8085 | Keycloak (OIDC/JWT) | PostgreSQL | ✅ Working | **NEW: Fully PostgreSQL optimized** |
@@ -754,16 +773,16 @@ lsof -p $(pgrep -f photo-service) | wc -l
 - **Backend Upload**: ✅ Files successfully uploaded with comprehensive metadata
 - **Backend Processing**: ✅ ImageSharp processing (resize, format conversion, quality scoring)
 - **Backend Storage**: ✅ Organized file storage with multiple format versions
-- **Backend Serving**: ⚠️ May have database record issues (needs PostgreSQL connection fix)
+- **Backend Serving**: ✅ Verified PhotoService URLs resolve after upload (Oct 14 Linux desktop run)
 - **Flutter Integration**: ✅ Professional photo picker with platform-specific implementations
-- **End-to-End**: ✅ Complete upload workflow with Image.memory() display as backup
+- **End-to-End**: ✅ Confirmed desktop flow with `diecopilotdie.png`; grid renders the returned PhotoService URL immediately
 - **API Testing**: ✅ Python scripts validate full backend functionality
 - **Visual Testing**: ✅ Browser-based integration tests with user feedback
 
 #### Demo Environment
-- **Services**: ⚠️ 6/7 services running (PhotoService needs connection string fix)
+- **Services**: ⚠️ MatchmakingService (and its MySQL instance) offline; other services running after `dev-start.sh`
 - **Demo Users**: ✅ 5 Swedish demo users with realistic profiles and full data
-- **Database**: 🔄 PhotoService configured for PostgreSQL but connection string mismatch
+- **Database**: 🔄 Matchmaking MySQL container needs attention before rerunning smart demo seeder
 - **Health Checks**: ✅ All endpoints responding correctly (when services running)
 - **Testing Infrastructure**: ✅ Comprehensive automated testing system deployed
 
@@ -778,25 +797,26 @@ lsof -p $(pgrep -f photo-service) | wc -l
 ### 🔄 Known Limitations & Future Work
 
 #### Current Limitations (October 2025)
-1. **Photo Grid Integration Testing**: Need to verify the fix works with actual photo uploads in practice
-2. **PostgreSQL Connection Configuration**: PhotoService Program.cs configured for PostgreSQL but appsettings.json still has MySQL connection string
-3. **Database Migration Incomplete**: Other services still using in-memory databases (need PostgreSQL migration)
-4. **Multi-Photo Upload**: Single photo upload works, need to implement multi-selection for grid uploads
-5. **Real-time Messaging Frontend**: SignalR configured in backend but needs Flutter integration
-6. **Cloud Storage Migration**: Currently using local filesystem (AWS S3/Azure Blob planned)
+1. **Messaging Conversations QA**: Need to rerun the Flutter chat flows to confirm conversation APIs behave correctly after matchmaking restore.
+2. **Database Migration Incomplete**: Other services still rely on in-memory data stores and need PostgreSQL migration.
+3. **Multi-Photo Upload**: Single photo upload works; multi-selection and batch operations remain outstanding.
+4. **Real-time Messaging Frontend**: SignalR backend is healthy, but Flutter chat UI still needs full integration.
+5. **Cloud Storage Migration**: Photos live on local disk; S3/Azure Blob integration remains planned work.
 
 #### Next Session Priorities
-1. **Complete PostgreSQL Migration for All Services**
-  - Migrate AuthService, UserService, MatchmakingService, MessagingService, and SwipeService to PostgreSQL
-  - Create unified PostgreSQL database strategy for all services
-2. **Advanced Photo Grid Testing**
-  - Test photo upload workflow in Flutter app
-  - Implement multi-photo selection and batch upload
-  - Add progress indicators and drag-and-drop reordering
-3. **Message Queue Implementation**
-  - Add Hangfire or RabbitMQ for background photo processing and matchmaking events
-  - Implement notification delivery system and analytics pipeline
-4. **Production Infrastructure Enhancements**
+1. **Verify Messaging & Real-time Flows**
+  - Run Flutter chat/conversation flows to confirm SignalR + Keycloak integration after matchmaking restore
+  - Capture any remaining 401s or state issues in the logs and update the seeder if adjustments are needed
+2. **Complete PostgreSQL Migration for All Services**
+  - Migrate UserService, MatchmakingService, MessagingService, and SwipeService to PostgreSQL (AuthService removed post-Keycloak)
+  - Create a unified PostgreSQL strategy (dockerized infra + host configuration)
+3. **Advanced Photo Grid Testing**
+  - Test multi-upload workflow in Flutter
+  - Implement multi-photo selection, batch upload, and drag-and-drop ordering
+4. **Message Queue Implementation**
+  - Add Hangfire or RabbitMQ for background processing and matchmaking events
+  - Implement notification delivery and analytics pipelines
+5. **Production Infrastructure Enhancements**
   - Cloud storage integration (AWS S3/Azure Blob)
   - Monitoring/logging improvements
   - CDN integration for global image delivery
@@ -839,8 +859,8 @@ lsof -p $(pgrep -f photo-service) | wc -l
    - Ensure grid refreshes properly after multiple uploads
    - Add drag-and-drop reordering once multiple photos are uploaded
 3. **PostgreSQL Migration for Remaining Services (Next)**: 
-   - Migrate AuthService from in-memory to PostgreSQL with user management schema
-   - Migrate UserService to PostgreSQL with profile and relationship data
+  - Remove residual AuthService dependencies and rely on Keycloak realm data
+  - Migrate UserService to PostgreSQL with profile and relationship data
    - Migrate MatchmakingService to PostgreSQL with matching algorithms data
    - Migrate MessagingService and SwipeService to PostgreSQL
    - Create unified PostgreSQL database strategy for all services
@@ -879,8 +899,8 @@ lsof -p $(pgrep -f photo-service) | wc -l
 #### Problem: "Demo user not found" (HTTP 401)
 **Root Causes:**
 - Services restarted, in-memory databases reset
-- Demo users not seeded properly
-- AuthService not running
+- Demo users not seeded properly in Keycloak realm
+- Keycloak email verification or client configuration incomplete
 
 **Solutions:**
 ```bash
@@ -890,8 +910,8 @@ cd /home/m/development/DatingApp && ./dev-restart.sh
 # 2. Manual user registration (via Keycloak)
 # Use Keycloak admin console or API to create users
 
-# 3. Verify AuthService health
-curl -s http://localhost:8081/health
+# 3. Verify Keycloak realm health
+curl -s http://localhost:8090/realms/DatingApp/.well-known/openid-configuration
 ```
 
 #### Problem: "401 Unauthorized" on authenticated endpoints

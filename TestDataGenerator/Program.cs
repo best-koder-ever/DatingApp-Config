@@ -7,11 +7,15 @@ using AuthService.Models; // Import the User model
 using AuthService.Data; // Import ApplicationDbContext for AuthService
 using Microsoft.AspNetCore.Identity; // Added for PasswordHasher
 using System.Text;
+using System.Net;
 using System.Net.Http; // Added for HttpClient
+using System.Net.Http.Headers;
 using System.Net.Http.Json; // Added for PostAsJsonAsync
 using AuthService.DTOs; // Assuming RegisterDto is in this namespace
 using UserService.Data; // For ApplicationDbContext
 using UserService.Models; // For UserProfile
+using System.Globalization;
+using System.Linq;
 using System.Text.Json; // Added for configuration parsing
 using TestDataGenerator.Profiles; // Added for demo profiles
 
@@ -895,22 +899,641 @@ class Program
             Console.WriteLine("❌ Demo scenarios can only be run in demo environment");
             return;
         }
-        
-        Console.WriteLine("🎬 Running Demo Scenarios...");
-        
-        var scenarios = DemoProfile.GetDemoScenarios();
-        foreach (var scenario in scenarios)
+
+        var options = SignupScenarioOptions.From(_config);
+        using var httpClient = new HttpClient
         {
-            Console.WriteLine($"\n🎭 Executing: {scenario.Description}");
-            foreach (var action in scenario.Actions)
+            Timeout = options.RequestTimeout
+        };
+        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+    Console.WriteLine("🎬 Running automated signup -> match scenario...");
+        var scenario = new SignupToMatchScenario(httpClient, options);
+        var result = await scenario.ExecuteAsync();
+
+        foreach (var log in result.Logs)
+        {
+            Console.WriteLine(log);
+        }
+
+    if (result.IsSuccess)
+        {
+            var matchText = result.MatchId.HasValue
+                ? result.MatchId.Value.ToString(CultureInfo.InvariantCulture)
+                : "unknown";
+            Console.WriteLine($"✅ Scenario completed successfully. MatchId: {matchText}");
+        }
+        else
+        {
+            Console.WriteLine("❌ Scenario failed.");
+            Console.WriteLine($"Reason: {result.ErrorMessage}");
+        }
+    }
+
+    private sealed record SignupScenarioOptions(
+        string KeycloakBaseUrl,
+        string KeycloakRealm,
+        string KeycloakAdminUser,
+        string KeycloakAdminPassword,
+        string ClientId,
+        string ClientScopes,
+        string DemoUserPassword,
+        string UserServiceBaseUrl,
+        string UserServiceHealthUrl,
+        string SwipeServiceBaseUrl,
+        string SwipeServiceHealthUrl,
+        string MatchmakingServiceBaseUrl,
+        string MatchmakingHealthUrl,
+        string GatewayHealthUrl,
+        TimeSpan RequestTimeout)
+    {
+        public static SignupScenarioOptions From(EnvironmentConfig? config)
+        {
+            static string ResolveEndpoint(EnvironmentConfig? cfg, string key, string? environmentValue, string fallback)
             {
-                Console.WriteLine($"   ▶️  {action}");
-                await Task.Delay(1000); // Simulate realistic timing
+                if (!string.IsNullOrWhiteSpace(environmentValue))
+                {
+                    return environmentValue.TrimEnd('/');
+                }
+
+                if (cfg?.ApiEndpoints != null && cfg.ApiEndpoints.TryGetValue(key, out var configured) && !string.IsNullOrWhiteSpace(configured))
+                {
+                    return configured.TrimEnd('/');
+                }
+
+                return fallback.TrimEnd('/');
+            }
+
+            var keycloakBase = (Environment.GetEnvironmentVariable("KEYCLOAK_URL") ?? "http://localhost:8090").TrimEnd('/');
+            var keycloakRealm = Environment.GetEnvironmentVariable("KEYCLOAK_REALM") ?? "DatingApp";
+            var keycloakAdmin = Environment.GetEnvironmentVariable("KEYCLOAK_ADMIN") ?? "admin";
+            var keycloakAdminPassword = Environment.GetEnvironmentVariable("KEYCLOAK_ADMIN_PASSWORD") ?? "admin";
+            var clientId = Environment.GetEnvironmentVariable("KEYCLOAK_CLIENT_ID") ?? "dejtingapp-flutter";
+            var clientScopes = Environment.GetEnvironmentVariable("KEYCLOAK_CLIENT_SCOPES") ?? "openid profile email offline_access";
+            var demoPassword = Environment.GetEnvironmentVariable("DEMO_USER_PASSWORD") ?? "Demo123!";
+
+            var userServiceBase = ResolveEndpoint(config, "UserService", Environment.GetEnvironmentVariable("USER_SERVICE_URL"), "http://localhost:8082");
+            var swipeServiceBase = ResolveEndpoint(config, "SwipeService", Environment.GetEnvironmentVariable("SWIPE_SERVICE_URL"), "http://localhost:8087");
+            var matchmakingBase = ResolveEndpoint(config, "MatchmakingService", Environment.GetEnvironmentVariable("MATCHMAKING_SERVICE_URL"), "http://localhost:8083");
+
+            var gatewayHealth = Environment.GetEnvironmentVariable("DATINGAPP_GATEWAY_HEALTH") ?? "http://localhost:8080/health";
+
+            var userServiceApi = $"{userServiceBase}/api/UserProfiles";
+            var swipeServiceApi = $"{swipeServiceBase}/api/Swipes";
+            var matchmakingApi = $"{matchmakingBase}/api/Matchmaking";
+
+            var userServiceHealth = $"{userServiceBase}/health";
+            var swipeServiceHealth = $"{swipeServiceBase}/health";
+            var matchmakingHealth = $"{matchmakingBase}/health";
+
+            return new SignupScenarioOptions(
+                KeycloakBaseUrl: keycloakBase,
+                KeycloakRealm: keycloakRealm,
+                KeycloakAdminUser: keycloakAdmin,
+                KeycloakAdminPassword: keycloakAdminPassword,
+                ClientId: clientId,
+                ClientScopes: clientScopes,
+                DemoUserPassword: demoPassword,
+                UserServiceBaseUrl: userServiceApi,
+                UserServiceHealthUrl: userServiceHealth,
+                SwipeServiceBaseUrl: swipeServiceApi,
+                SwipeServiceHealthUrl: swipeServiceHealth,
+                MatchmakingServiceBaseUrl: matchmakingApi,
+                MatchmakingHealthUrl: matchmakingHealth,
+                GatewayHealthUrl: gatewayHealth,
+                RequestTimeout: TimeSpan.FromSeconds(20));
+        }
+    }
+
+    private sealed class SignupToMatchScenario
+    {
+        private readonly HttpClient _httpClient;
+        private readonly SignupScenarioOptions _options;
+        private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+        private readonly Random _random = new();
+
+        public SignupToMatchScenario(HttpClient httpClient, SignupScenarioOptions options)
+        {
+            _httpClient = httpClient;
+            _options = options;
+        }
+
+        public async Task<ScenarioResult> ExecuteAsync()
+        {
+            var logs = new List<string>();
+            try
+            {
+                await EnsureHealthAsync(logs);
+
+                var adminToken = await AcquireAdminTokenAsync(logs);
+                var primaryUser = await ProvisionKeycloakUserAsync("signup_demo_a", adminToken, logs);
+                var secondaryUser = await ProvisionKeycloakUserAsync("signup_demo_b", adminToken, logs);
+
+                primaryUser.Token = await AcquireUserTokenAsync(primaryUser.Username, primaryUser.Password, logs);
+                secondaryUser.Token = await AcquireUserTokenAsync(secondaryUser.Username, secondaryUser.Password, logs);
+
+                primaryUser.ProfileId = await CreateUserProfileAsync(primaryUser, logs);
+                secondaryUser.ProfileId = await CreateUserProfileAsync(secondaryUser, logs);
+
+                await RecordSwipeAsync(primaryUser.ProfileId!.Value, secondaryUser.ProfileId!.Value, primaryUser.Token!, logs);
+                await RecordSwipeAsync(secondaryUser.ProfileId!.Value, primaryUser.ProfileId!.Value, secondaryUser.Token!, logs);
+
+                var matchId = await WaitForMatchAsync(primaryUser.ProfileId.Value, primaryUser.Token!, logs);
+
+                return ScenarioResult.Success(matchId, logs);
+            }
+            catch (Exception ex)
+            {
+                logs.Add($"[ERROR] {ex.Message}");
+                return ScenarioResult.Failure(ex.Message, logs);
             }
         }
-        
-        Console.WriteLine("\n✅ All demo scenarios completed!");
+
+        private async Task EnsureHealthAsync(List<string> logs)
+        {
+            var checks = new List<(string Name, string Url)>
+            {
+                ("Keycloak", $"{_options.KeycloakBaseUrl}/realms/{_options.KeycloakRealm}"),
+                ("UserService", _options.UserServiceHealthUrl),
+                ("SwipeService", _options.SwipeServiceHealthUrl),
+                ("MatchmakingService", _options.MatchmakingHealthUrl),
+                ("Gateway", _options.GatewayHealthUrl)
+            };
+
+            foreach (var (name, url) in checks)
+            {
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    using var response = await _httpClient.GetAsync(url);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var status = (int)response.StatusCode;
+                        throw new InvalidOperationException($"{name} health returned {status}");
+                    }
+                    logs.Add($"[HEALTH] {name}: {(int)response.StatusCode}");
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"{name} health check failed: {ex.Message}", ex);
+                }
+            }
+        }
+
+        private async Task<string> AcquireAdminTokenAsync(List<string> logs)
+        {
+            var data = new Dictionary<string, string>
+            {
+                ["grant_type"] = "password",
+                ["client_id"] = "admin-cli",
+                ["username"] = _options.KeycloakAdminUser,
+                ["password"] = _options.KeycloakAdminPassword
+            };
+
+            using var response = await _httpClient.PostAsync(
+                $"{_options.KeycloakBaseUrl}/realms/master/protocol/openid-connect/token",
+                new FormUrlEncodedContent(data));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var status = (int)response.StatusCode;
+                var body = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Failed to acquire Keycloak admin token ({status}): {body}");
+            }
+
+            var payload = await response.Content.ReadAsStringAsync();
+            using var document = JsonDocument.Parse(payload);
+            var token = document.RootElement.TryGetProperty("access_token", out var accessToken)
+                ? accessToken.GetString()
+                : null;
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new InvalidOperationException("Keycloak admin token missing access_token field");
+            }
+
+            logs.Add("[KEYCLOAK] Admin token acquired");
+            return token;
+        }
+
+        private async Task<ScenarioUser> ProvisionKeycloakUserAsync(string prefix, string adminToken, List<string> logs)
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var username = $"{prefix}_{suffix}".ToLowerInvariant();
+            var email = $"{username}@demo.local";
+
+            var (firstName, lastName, gender, preferences) = prefix.Equals("signup_demo_b", StringComparison.OrdinalIgnoreCase)
+                ? ("Casey", "Scenario", "Female", "Male")
+                : ("Avery", "Scenario", "Male", "Female");
+
+            var user = new ScenarioUser(username, email, _options.DemoUserPassword, firstName, lastName, gender, preferences);
+
+            var payload = new
+            {
+                username = user.Username,
+                email = user.Email,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                enabled = true,
+                emailVerified = true,
+                realmRoles = new[] { "user" }
+            };
+
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{_options.KeycloakBaseUrl}/admin/realms/{_options.KeycloakRealm}/users")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+            using var response = await _httpClient.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.Created)
+            {
+                user.KeycloakId = ExtractTrailingSegment(response.Headers.Location?.ToString());
+                logs.Add($"[KEYCLOAK] Created user {user.Username}");
+            }
+            else if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                user.KeycloakId = await FindKeycloakUserAsync(user.Username, adminToken);
+                logs.Add($"[KEYCLOAK] Reusing existing user {user.Username}");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                var status = (int)response.StatusCode;
+                throw new InvalidOperationException($"Keycloak user creation failed ({status}): {body}");
+            }
+
+            user.KeycloakId ??= await FindKeycloakUserAsync(user.Username, adminToken);
+            if (string.IsNullOrWhiteSpace(user.KeycloakId))
+            {
+                throw new InvalidOperationException($"Unable to resolve Keycloak ID for {user.Username}");
+            }
+
+            await SetKeycloakPasswordAsync(user.KeycloakId, adminToken);
+            return user;
+        }
+
+        private async Task SetKeycloakPasswordAsync(string userId, string adminToken)
+        {
+            var payload = new { type = "password", value = _options.DemoUserPassword, temporary = false };
+            var request = new HttpRequestMessage(HttpMethod.Put, $"{_options.KeycloakBaseUrl}/admin/realms/{_options.KeycloakRealm}/users/{userId}/reset-password")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+            using var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                var status = (int)response.StatusCode;
+                throw new InvalidOperationException($"Failed to set password for Keycloak user {userId} ({status}): {body}");
+            }
+        }
+
+        private async Task<string> AcquireUserTokenAsync(string username, string password, List<string> logs)
+        {
+            var data = new Dictionary<string, string>
+            {
+                ["grant_type"] = "password",
+                ["client_id"] = _options.ClientId,
+                ["username"] = username,
+                ["password"] = password,
+                ["scope"] = _options.ClientScopes
+            };
+
+            using var response = await _httpClient.PostAsync(
+                $"{_options.KeycloakBaseUrl}/realms/{_options.KeycloakRealm}/protocol/openid-connect/token",
+                new FormUrlEncodedContent(data));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                var status = (int)response.StatusCode;
+                throw new InvalidOperationException($"Failed to acquire token for {username} ({status}): {body}");
+            }
+
+            var payload = await response.Content.ReadAsStringAsync();
+            using var document = JsonDocument.Parse(payload);
+            var token = document.RootElement.TryGetProperty("access_token", out var accessToken)
+                ? accessToken.GetString()
+                : null;
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new InvalidOperationException($"Token response for {username} missing access_token field");
+            }
+
+            logs.Add($"[KEYCLOAK] Token issued for {username}");
+            return token;
+        }
+
+        private async Task<int> CreateUserProfileAsync(ScenarioUser user, List<string> logs)
+        {
+            if (string.IsNullOrWhiteSpace(user.Token))
+            {
+                throw new InvalidOperationException($"Cannot create profile for {user.Username} without token");
+            }
+
+            var age = _random.Next(24, 34);
+            var birthDate = DateTime.UtcNow.AddYears(-age).AddDays(-_random.Next(0, 365));
+
+            var payload = new
+            {
+                name = user.FullName,
+                email = user.Email,
+                bio = "Automated scenario profile used to validate signup to match flow.",
+                gender = user.Gender,
+                preferences = user.Preferences,
+                dateOfBirth = birthDate,
+                city = "Stockholm",
+                state = "Stockholm County",
+                country = "Sweden",
+                latitude = 59.3293,
+                longitude = 18.0686,
+                occupation = "Automation Engineer",
+                education = "University Degree",
+                interests = new[] { "Hiking", "Technology", "Food" },
+                languages = new[] { "English", "Swedish" },
+                height = 170 + _random.Next(0, 15),
+                religion = "None",
+                smokingStatus = "Never",
+                drinkingStatus = "Socially",
+                wantsChildren = true,
+                hasChildren = false,
+                relationshipType = "Long-term relationship"
+            };
+
+            var request = new HttpRequestMessage(HttpMethod.Post, _options.UserServiceBaseUrl)
+            {
+                Content = JsonContent.Create(payload)
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
+
+            using var response = await _httpClient.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                throw new InvalidOperationException($"Profile already exists for {user.Email}");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                var status = (int)response.StatusCode;
+                throw new InvalidOperationException($"User profile creation failed ({status}): {body}");
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var profileId = ExtractProfileId(response, responseBody);
+            logs.Add($"[PROFILE] Created profile {profileId} for {user.Username}");
+            return profileId;
+        }
+
+        private async Task RecordSwipeAsync(int actorId, int targetId, string token, List<string> logs)
+        {
+            var payload = new { userId = actorId, targetUserId = targetId, isLike = true };
+            var request = new HttpRequestMessage(HttpMethod.Post, _options.SwipeServiceBaseUrl)
+            {
+                Content = JsonContent.Create(payload)
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                var status = (int)response.StatusCode;
+                throw new InvalidOperationException($"Swipe failed ({status}): {body}");
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var mutual = false;
+            if (!string.IsNullOrWhiteSpace(responseBody))
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(responseBody);
+                    if (document.RootElement.TryGetProperty("isMutualMatch", out var mutualElement) && mutualElement.ValueKind == JsonValueKind.True)
+                    {
+                        mutual = true;
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Ignore parsing errors for optional response data
+                }
+            }
+
+            var suffix = mutual ? " (mutual match detected)" : string.Empty;
+            logs.Add($"[SWIPE] {actorId} liked {targetId}{suffix}");
+        }
+
+        private async Task<int?> WaitForMatchAsync(int userId, string token, List<string> logs)
+        {
+            const int maxAttempts = 6;
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                var matches = await GetSwipeMatchesAsync(userId, token);
+                if (matches.Count > 0)
+                {
+                    var matchId = matches[0].Id;
+                    logs.Add($"[MATCH] Found mutual match for user {userId} on attempt {attempt}. MatchId: {matchId}");
+                    return matchId;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+
+            throw new InvalidOperationException($"No mutual match detected for user {userId} after waiting.");
+        }
+
+        private async Task<List<SwipeMatchDto>> GetSwipeMatchesAsync(int userId, string token)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{_options.SwipeServiceBaseUrl}/matches/{userId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                var status = (int)response.StatusCode;
+                throw new InvalidOperationException($"Failed to retrieve matches ({status}): {body}");
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return new List<SwipeMatchDto>();
+            }
+
+            return JsonSerializer.Deserialize<List<SwipeMatchDto>>(content, _jsonOptions) ?? new List<SwipeMatchDto>();
+        }
+
+        private async Task<string?> FindKeycloakUserAsync(string username, string adminToken)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{_options.KeycloakBaseUrl}/admin/realms/{_options.KeycloakRealm}/users?username={Uri.EscapeDataString(username)}")
+            {
+                Headers =
+                {
+                    Authorization = new AuthenticationHeaderValue("Bearer", adminToken)
+                }
+            };
+
+            using var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var payload = await response.Content.ReadAsStringAsync();
+            using var document = JsonDocument.Parse(payload);
+            if (document.RootElement.ValueKind != JsonValueKind.Array || document.RootElement.GetArrayLength() == 0)
+            {
+                return null;
+            }
+
+            var first = document.RootElement[0];
+            if (first.TryGetProperty("id", out var idProperty))
+            {
+                return idProperty.GetString();
+            }
+
+            return null;
+        }
+
+        private static string ExtractTrailingSegment(string? location)
+        {
+            if (string.IsNullOrWhiteSpace(location))
+            {
+                return string.Empty;
+            }
+
+            if (Uri.TryCreate(location, UriKind.Absolute, out var absolute))
+            {
+                if (absolute.Segments.Length > 0)
+                {
+                    return absolute.Segments[^1].Trim('/');
+                }
+            }
+            else if (Uri.TryCreate(location, UriKind.Relative, out var relative))
+            {
+                var segments = relative.ToString().Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Length > 0)
+                {
+                    return segments[^1];
+                }
+            }
+
+            var parts = location.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length > 0 ? parts[^1] : string.Empty;
+        }
+
+        private static int ExtractProfileId(HttpResponseMessage response, string body)
+        {
+            if (response.Headers.Location != null)
+            {
+                var candidate = ExtractTrailingSegment(response.Headers.Location.ToString());
+                if (int.TryParse(candidate, NumberStyles.Integer, CultureInfo.InvariantCulture, out var locationId))
+                {
+                    return locationId;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(body);
+                    if (document.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        if (document.RootElement.TryGetProperty("id", out var idProperty) && idProperty.ValueKind == JsonValueKind.Number)
+                        {
+                            return idProperty.GetInt32();
+                        }
+
+                        if (document.RootElement.TryGetProperty("Id", out var idPropertyPascal) && idPropertyPascal.ValueKind == JsonValueKind.Number)
+                        {
+                            return idPropertyPascal.GetInt32();
+                        }
+
+                        if (document.RootElement.TryGetProperty("value", out var valueProperty) && valueProperty.ValueKind == JsonValueKind.Object)
+                        {
+                            if (valueProperty.TryGetProperty("id", out var nestedId) && nestedId.ValueKind == JsonValueKind.Number)
+                            {
+                                return nestedId.GetInt32();
+                            }
+
+                            if (valueProperty.TryGetProperty("Id", out var nestedIdPascal) && nestedIdPascal.ValueKind == JsonValueKind.Number)
+                            {
+                                return nestedIdPascal.GetInt32();
+                            }
+                        }
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Ignore parsing errors and fall through to exception below
+                }
+            }
+
+            throw new InvalidOperationException("Unable to determine created profile identifier from response.");
+        }
     }
+
+    private sealed class ScenarioResult
+    {
+        private ScenarioResult(bool isSuccess, int? matchId, string? errorMessage, IReadOnlyList<string> logs)
+        {
+            IsSuccess = isSuccess;
+            MatchId = matchId;
+            ErrorMessage = errorMessage;
+            Logs = logs;
+        }
+
+        public bool IsSuccess { get; }
+        public int? MatchId { get; }
+        public string? ErrorMessage { get; }
+        public IReadOnlyList<string> Logs { get; }
+
+        public static ScenarioResult Success(int? matchId, List<string> logs) =>
+            new ScenarioResult(true, matchId, null, logs.ToArray());
+
+        public static ScenarioResult Failure(string? errorMessage, List<string> logs) =>
+            new ScenarioResult(false, null, errorMessage, logs.ToArray());
+    }
+
+    private sealed class ScenarioUser
+    {
+        public ScenarioUser(string username, string email, string password, string firstName, string lastName, string gender, string preferences)
+        {
+            Username = username;
+            Email = email;
+            Password = password;
+            FirstName = firstName;
+            LastName = lastName;
+            Gender = gender;
+            Preferences = preferences;
+        }
+
+        public string Username { get; }
+        public string Email { get; }
+        public string Password { get; }
+        public string FirstName { get; }
+        public string LastName { get; }
+        public string Gender { get; }
+        public string Preferences { get; }
+        public string FullName => $"{FirstName} {LastName}";
+        public string? KeycloakId { get; set; }
+        public string? Token { get; set; }
+        public int? ProfileId { get; set; }
+    }
+
+    private sealed record SwipeMatchDto(int Id, int MatchedUserId);
+
 
     // --- STUBS for missing menu methods to fix build ---
     static void CreateSwipes() { Console.WriteLine("[STUB] CreateSwipes not implemented."); Console.ReadKey(); }

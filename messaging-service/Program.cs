@@ -1,3 +1,4 @@
+using DatingApp.Shared.Middleware;
 using MessagingService.Data;
 using MessagingService.Extensions;
 using MessagingService.Hubs;
@@ -10,6 +11,12 @@ using Microsoft.IdentityModel.Tokens;
 using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddSimpleConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+});
 
 // Add services to the container.
 var isDemoMode = Environment.GetEnvironmentVariable("DEMO_MODE") == "true";
@@ -74,6 +81,7 @@ builder.Services.AddScoped<ISpamDetectionService, SpamDetectionService>();
 builder.Services.AddScoped<IPersonalInfoDetectionService, PersonalInfoDetectionService>();
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
+builder.Services.AddCorrelationIds();
 
 // Add Memory Cache for rate limiting and content caching
 builder.Services.AddMemoryCache();
@@ -118,6 +126,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("AllowSpecificOrigins");
+
+app.UseCorrelationIds();
 
 // Add custom rate limiting middleware
 app.UseMiddleware<RateLimitingMiddleware>();

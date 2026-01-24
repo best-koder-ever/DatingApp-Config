@@ -30,4 +30,8 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\Middleware\CorrelationIdMiddleware.cs" Link="Shared/Middleware/CorrelationIdMiddleware.cs" />
+  </ItemGroup>
+
 </Project>

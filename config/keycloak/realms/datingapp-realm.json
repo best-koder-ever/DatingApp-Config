@@ -9,21 +9,6 @@
   "internationalizationEnabled": false,
   "clients": [
     {
-      "clientId": "auth-service",
-      "name": "Auth Service",
-      "enabled": true,
-      "publicClient": false,
-      "protocol": "openid-connect",
-      "redirectUris": [
-        "http://localhost:8081/*"
-      ],
-      "baseUrl": "http://localhost:8081",
-      "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": true,
-      "secret": "CHANGE_ME_AUTH_SERVICE"
-    },
-    {
       "clientId": "matchmaking-service",
       "name": "Matchmaking Service",
       "enabled": true,
@@ -36,7 +21,21 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
-      "secret": "CHANGE_ME_MATCHMAKING"
+      "secret": "CHANGE_ME_MATCHMAKING",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "included.client.audience": "matchmaking-service"
+          }
+        }
+      ]
     },
     {
       "clientId": "photo-service",
@@ -51,7 +50,21 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
-      "secret": "CHANGE_ME_PHOTO"
+      "secret": "CHANGE_ME_PHOTO",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "included.client.audience": "photo-service"
+          }
+        }
+      ]
     },
     {
       "clientId": "messaging-service",
@@ -66,7 +79,21 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
-      "secret": "CHANGE_ME_MESSAGING"
+      "secret": "CHANGE_ME_MESSAGING",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "included.client.audience": "messaging-service"
+          }
+        }
+      ]
     },
     {
       "clientId": "swipe-service",
@@ -81,7 +108,21 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
-      "secret": "CHANGE_ME_SWIPE"
+      "secret": "CHANGE_ME_SWIPE",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "included.client.audience": "swipe-service"
+          }
+        }
+      ]
     },
     {
       "clientId": "dejtingapp-flutter",
@@ -93,12 +134,26 @@
         "dejtingapp://callback",
         "com.dejtingapp://oauth2redirect"
       ],
-      "webOrigins": ["*"] ,
+      "webOrigins": ["*"],
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "attributes": {
         "pkce.code.challenge.method": "S256"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "yarp-gateway-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "included.client.audience": "yarp-gateway"
+          }
+        }
+      ]
     },
     {
       "clientId": "yarp-gateway",
@@ -113,7 +168,21 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
-      "secret": "CHANGE_ME_YARP"
+      "secret": "CHANGE_ME_YARP",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "included.client.audience": "yarp-gateway"
+          }
+        }
+      ]
     }
   ],
   "roles": {
