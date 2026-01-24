@@ -3,6 +3,66 @@
 **Input**: Design documents from `/specs/001-mvp-foundation/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
+---
+
+## Phase 0: Product Management & Development Visibility (Priority: P0)
+
+**Goal**: Establish tracking, testing, and visualization systems to make development progress graspable for solo developer. Prevent over-engineering by mapping features to APIs and ensuring test coverage before implementation.
+**Rationale**: With 72 tasks and 8 microservices, need automated progress tracking, feature-to-API traceability, and test-first workflow to avoid forgetting what's done and building unused code.
+
+### Planning & Tracking
+- [ ] T000 [P] [Planning] Create DASHBOARD.md with auto-updating metrics (parse codebase for implemented endpoints, calculate test coverage per service, track user story %, generate phase burndown chart)
+	- **Estimate**: 4h
+	- **Evidence**: `specs/001-mvp-foundation/DASHBOARD.md` exists, shows 13% overall progress, coverage by service, task completion by phase
+	- **Tools**: Bash script parsing controller files, test directories, tasks.md checkboxes
+	
+- [ ] T001 [P] [Planning] Create FEATURE_MAP.md traceability matrix mapping APIs to user stories (identify which endpoints serve US1-4, flag orphaned/missing APIs, show implementation status, test coverage)
+	- **Estimate**: 3h
+	- **Evidence**: `specs/001-mvp-foundation/FEATURE_MAP.md` covers all endpoints from api-spec.md, signalr-spec.md with user story columns
+	- **Prevents**: Building APIs that no feature uses, missing critical endpoints
+	
+- [ ] T002 [Planning] Add Mermaid dependency graphs to tasks.md showing task dependencies, service dependencies, critical path to MVP (visual representation per phase)
+	- **Estimate**: 2h
+	- **Evidence**: Each phase section has dependency graph, critical path highlighted, renders correctly in GitHub
+	- **Benefits**: Shows what must be done in sequence vs parallel
+
+### Testing Infrastructure
+- [ ] T003 [P] [Testing] Generate test skeletons for all services (create failing xUnit tests for every controller action in UserService, MatchmakingService, SwipeService, PhotoService, MessagingService)
+	- **Estimate**: 4h
+	- **Evidence**: `dotnet test` discovers 50+ tests across all service test projects (currently ~5 tests exist), all skeletons marked `[Fact(Skip = "Not implemented")]`
+	- **Next**: Remove skip attributes as implementations complete
+	
+- [ ] T004 [P] [Testing] Fix CI/CD pipeline for green builds (validate comprehensive-ci-cd.yml runs successfully, add coverage badges to README.md, set 80% coverage gate)
+	- **Estimate**: 3h
+	- **Evidence**: GitHub Actions workflow runs green, README shows coverage badges per service, builds fail below 80% threshold
+	- **Prevents**: Regression bugs, breaking changes going unnoticed
+
+### Automation & Tooling
+- [ ] T005 [Planning] Enhance sync_mvp_project.sh with completion detection (parse controller files to auto-detect implemented tasks, update GitHub Project fields, generate weekly progress reports to specs/reports/)
+	- **Estimate**: 3h
+	- **Evidence**: Script successfully updates 8 completed tasks from codebase scan, generates `specs/reports/weekly-YYYY-MM-DD.md` report
+	- **Benefits**: Auto-tracks progress without manual checkbox updates
+	
+- [ ] T006 [Planning] Define MMP (Minimum Marketable Product) scope reduction (identify absolute minimum shippable features, create SCOPE.md with Phase 1=MMP vs Phase 2=Enhancements, update task priorities)
+	- **Estimate**: 2h
+	- **Evidence**: `specs/001-mvp-foundation/SCOPE.md` approved, clearly separates must-have (US1+US2) from nice-to-have (US3+US4), revised task priority tags
+	- **Decision**: Should MVP be just onboarding+discovery, or include messaging?
+
+### Architecture Cleanup
+- [ ] T007 [P] [Foundational] Consolidate database strategy (standardize on PostgreSQL OR MySQL across all services, document migration plan for inconsistent services, update docker-compose)
+	- **Estimate**: 4h
+	- **Evidence**: All services use single database engine, migration script exists for transitioning services, `infrastructure/docker-compose.yml` updated
+	- **Rationale**: Currently mixing PostgreSQL (photo, swipe, matchmaking) and MySQL (user, messaging, auth) without clear strategy
+	
+- [ ] T008 [P] [Foundational] Remove deprecated AuthService (complete Keycloak migration for all auth flows, delete AuthService directory, update YARP routes, remove from dev-start.sh)
+	- **Estimate**: 3h
+	- **Evidence**: AuthService directory deleted, all services use Keycloak OIDC, YARP routes updated, dev-start.sh no longer references port 8081
+	- **Rationale**: Dual auth system causes confusion, Keycloak is primary per spec
+
+**Checkpoint**: Development visibility established, testing infrastructure ready, architecture cleaned up. Ready to execute user stories with confidence.
+
+---
+
 ## Phase 1: Setup (Shared Infrastructure)
 
 - [x] T001 [P] [Setup] Verify `./infrastructure/start.sh` bootstrap succeeds and refresh Keycloak realm exports (`infrastructure/`)

@@ -67,9 +67,13 @@ done < <(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Phase") | .optio
 
 echo "Available phases: ${!PHASE_OPTION[@]}"
 
-# Map Phase 1 to Phase 2 if missing
+# Map Phase 0 and Phase 1 to Phase 2 if missing
+if [[ ! -v PHASE_OPTION["Phase 0"] ]]; then
+  echo "⚠ Phase 0 missing - will tag Phase 0 tasks as Phase 2"
+  PHASE_OPTION["Phase 0"]="${PHASE_OPTION["Phase 2"]}"
+fi
 if [[ ! -v PHASE_OPTION["Phase 1"] ]]; then
-  echo "⚠ Phase 1 missing - will  tag Phase 1 tasks as Phase 2"
+  echo "⚠ Phase 1 missing - will tag Phase 1 tasks as Phase 2"
   PHASE_OPTION["Phase 1"]="${PHASE_OPTION["Phase 2"]}"
 fi
 
@@ -116,7 +120,7 @@ declare -A PHASE_PARENT_ISSUE
 if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
   echo ""
   echo "🔨 Creating phase parent epics..."
-  for phase in "Phase 1" "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
+  for phase in "Phase 0" "Phase 1" "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
     phase_issue_json=$(gh issue list --repo "$REPO" --search "\"$phase\" in:title is:issue label:epic" --limit 1 --json number,url 2>/dev/null || echo "[]")
     phase_number=$(echo "$phase_issue_json" | jq -r '.[0].number // empty')
     phase_url=$(echo "$phase_issue_json" | jq -r '.[0].url // empty')
@@ -267,7 +271,7 @@ if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
   done
   
   # Update each phase epic with its task list
-  for phase in "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
+  for phase in "Phase 0" "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
     phase_number="${PHASE_PARENT_NUMBER["$phase"]:-}"
     task_list="${PHASE_TASKS["$phase"]:-}"
     
