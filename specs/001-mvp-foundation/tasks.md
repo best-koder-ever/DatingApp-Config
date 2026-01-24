@@ -11,10 +11,11 @@
 **Rationale**: With 72 tasks and 8 microservices, need automated progress tracking, feature-to-API traceability, and test-first workflow to avoid forgetting what's done and building unused code.
 
 ### Planning & Tracking
-- [ ] T000 [P] [Planning] Create DASHBOARD.md with auto-updating metrics (parse codebase for implemented endpoints, calculate test coverage per service, track user story %, generate phase burndown chart)
+- [x] T000 [P] [Planning] Create DASHBOARD.md with auto-updating metrics (parse codebase for implemented endpoints, calculate test coverage per service, track user story %, generate phase burndown chart)
 	- **Estimate**: 4h
-	- **Evidence**: `specs/001-mvp-foundation/DASHBOARD.md` exists, shows 13% overall progress, coverage by service, task completion by phase
-	- **Tools**: Bash script parsing controller files, test directories, tasks.md checkboxes
+	- **Evidence**: `specs/001-mvp-foundation/DASHBOARD.md` exists, shows 0% overall progress, coverage by service, task completion by phase, generated via `./scripts/generate_dashboard.sh`
+	- **Tools**: Bash script parsing GitHub Projects API, controller files, test directories
+	- **Completed**: 2026-01-24
 	
 - [ ] T001 [P] [Planning] Create FEATURE_MAP.md traceability matrix mapping APIs to user stories (identify which endpoints serve US1-4, flag orphaned/missing APIs, show implementation status, test coverage)
 	- **Estimate**: 3h
