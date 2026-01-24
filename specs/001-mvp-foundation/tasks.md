@@ -62,6 +62,31 @@
 
 **Checkpoint**: Development visibility established, testing infrastructure ready, architecture cleaned up. Ready to execute user stories with confidence.
 
+### 📊 Phase 0 Dependencies
+
+```mermaid
+graph TB
+    T000[T000: Dashboard] --> T001[T001: Feature Map]
+    T000 --> T005[T005: Sync Enhancement]
+    T003[T003: Test Skeletons] --> T004[T004: CI/CD Fix]
+    T006[T006: MMP Scope] -.influences.-> T001
+    T007[T007: DB Consolidation] --> T008[T008: Remove AuthService]
+    
+    T006 -.defines priority.-> Phase1[Phase 1+]
+    T004 -.gates.-> Phase1
+    
+    style T000 fill:#90EE90
+    style T006 fill:#FFD700
+    style T004 fill:#FFB6C1
+```
+
+**Legend**: 
+- 🟢 Green = Complete
+- 🟡 Gold = High Priority (defines scope)
+- 🔴 Pink = Blocker (must fix before shipping)
+- Solid line = Hard dependency
+- Dotted line = Influences/recommends
+
 ---
 
 ## Phase 1: Setup (Shared Infrastructure)
@@ -85,6 +110,28 @@
 - [ ] T017 [Foundational] Run matchmaking load/perf harness and capture baseline metrics (`monitoring/dashboard/`, `MatchmakingService` logs)
 
 **Checkpoint**: Constitution evidence gates satisfied, unblock user stories.
+
+### 📊 Phase 2 Dependencies
+
+```mermaid
+graph LR
+    T010[T010: Align DTOs] --> T013[T013: YARP Routes]
+    T011[T011: Logging] --> T014[T014: Flutter Services]
+    T013 --> T014
+    T014 --> US1[User Story 1]
+    T012[T012: Demo Coverage] --> T029[T029: Keycloak Migration]
+    T015[T015: Observability Docs]
+    T016[T016: Matchmaking Docs]
+    T017[T017: Load Tests]
+    
+    style T010 fill:#90EE90
+    style T011 fill:#90EE90
+    style T012 fill:#90EE90
+    style T013 fill:#90EE90
+    style T014 fill:#90EE90
+```
+
+**Critical Path**: T010 → T013 → T014 (blocks all user stories)
 
 ---
 
@@ -111,6 +158,34 @@
 
 **Checkpoint**: New profiles appear in matchmaking queue with validated photos and privacy flags.
 
+### 📊 User Story 1 Dependencies
+
+```mermaid
+graph TB
+    T020[T020: Profile Tests] --> T021[T021: Flutter Tests]
+    T022[T022: Keycloak Config] --> T023[T023: Wizard Endpoints]
+    T022 --> T028[T028: Webhook Listener]
+    T023 --> T025[T025: Status Transitions]
+    T023 --> T026[T026: Flutter Wizard UI]
+    T024[T024: Photo Privacy] --> T026
+    T025 --> T026
+    T027[T027: Telemetry] --> T020
+    T029[T029: Keycloak Migration] --> T022
+    
+    T026 --> READY[Profile Ready for Matchmaking]
+    T025 --> READY
+    
+    subgraph "BLOCKER - Must Complete First"
+    T022
+    end
+    
+    style T022 fill:#FF6B6B
+    style T020 fill:#90EE90
+    style READY fill:#4CAF50,color:#fff
+```
+
+**Critical Path**: T029 → T022 → T023 → T025/T026 (⚠️ T022 is blocking everything)
+
 ---
 
 ## Phase 4: User Story 2 – Daily Match Discovery (Priority: P1)
@@ -131,6 +206,32 @@
 - [ ] T037 [P] [US2] Finalize Flutter offline cache strategy for swipe queue + pending actions and integrate with retry logic (`lib/services/`, caching layer)
 
 **Checkpoint**: Mutual matches create records, notifications fire, and queue gracefully handles exhaustion.
+
+### 📊 User Story 2 Dependencies
+
+```mermaid
+graph TB
+    T030[T030: Matchmaking Tests] --> T032[T032: Scoring Tuning]
+    T031[T031: Flutter Swipe Tests] --> T035[T035: Swipe UI]
+    T032 --> T033[T033: Daily Limits]
+    T033 --> T035
+    T034[T034: Swipe Idempotency] --> T035
+    T035 --> T036[T036: Match Notifications]
+    T037[T037: Offline Cache] --> T035
+    
+    US1[User Story 1] -.provides profiles.-> T032
+    
+    subgraph "P1 - Must Ship for MVP"
+    T035
+    T036
+    end
+    
+    style T030 fill:#FFB6C1
+    style T035 fill:#FFB6C1
+    style T036 fill:#FFB6C1
+```
+
+**Critical Path**: US1 → T030 → T032 → T033 → T035 → T036
 
 ---
 
