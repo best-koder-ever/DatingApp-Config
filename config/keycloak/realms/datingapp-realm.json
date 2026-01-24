@@ -1,7 +1,7 @@
 {
   "realm": "DatingApp",
   "enabled": true,
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
@@ -134,7 +134,9 @@
         "dejtingapp://callback",
         "com.dejtingapp://oauth2redirect"
       ],
-      "webOrigins": ["*"],
+      "webOrigins": [
+        "*"
+      ],
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "attributes": {
@@ -213,7 +215,34 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["user"]
+      "realmRoles": [
+        "user"
+      ]
     }
-  ]
+  ],
+  "verifyEmail": true,
+  "registrationEmailAsUsername": true,
+  "requiredActions": [
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 50,
+      "config": {}
+    }
+  ],
+  "smtpServer": {
+    "host": "localhost",
+    "port": "1025",
+    "from": "noreply@datingapp.local",
+    "fromDisplayName": "DatingApp",
+    "replyTo": "",
+    "replyToDisplayName": "",
+    "envelopeFrom": "",
+    "ssl": "",
+    "starttls": "",
+    "auth": ""
+  }
 }

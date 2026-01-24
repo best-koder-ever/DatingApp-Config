@@ -36,6 +36,15 @@ services:
     networks:
       - app-network
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+   ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - app-network
+
   yarp:
     image: yarp:latest
     build:

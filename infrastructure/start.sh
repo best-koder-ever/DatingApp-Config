@@ -16,7 +16,7 @@ if ! ${COMPOSE_CMD} version >/dev/null 2>&1; then
     fi
 fi
 
-REQUIRED_SERVICES=(keycloak-db keycloak MatchmakingService-db)
+REQUIRED_SERVICES=(keycloak-db keycloak mailhog MatchmakingService-db)
 
 pushd "${PROJECT_ROOT}" >/dev/null
 
