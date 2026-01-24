@@ -117,6 +117,7 @@ items_json=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --limit 500
 
 # Create phase parent issues (if hierarchy enabled)
 declare -A PHASE_PARENT_ISSUE
+declare -A PHASE_PARENT_NUMBER
 if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
   echo ""
   echo "🔨 Creating phase parent epics..."
@@ -140,13 +141,20 @@ _Task list will be populated after all tasks are created..._
 
 ---
 **Auto-generated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        2>/dev/null | tail -n 1 | tr -d '\r' | xargs)
-      phase_number="${phase_url##*/}"
-      sleep 0.5
+        2>&1 | tail -n 1 | tr -d '\r' | xargs)
+      
+      if [[ "$phase_url" =~ ^https?:// ]]; then
+        phase_number="${phase_url##*/}"
+        sleep 0.5
+      else
+        echo "  ⚠ Failed to create $phase epic: $phase_url"
+        continue
+      fi
     fi
     
-    PHASE_PARENT_ISSUE["$phase"]="$phase_url"
-    PHASE_PARENT_NUMBER["$phase"]="$phase_number"
+    # Store with properly quoted keys
+    PHASE_PARENT_ISSUE["${phase}"]="${phase_url}"
+    PHASE_PARENT_NUMBER["${phase}"]="${phase_number}"
     echo "  ✓ $phase (#$phase_number)"
   done
 fi
