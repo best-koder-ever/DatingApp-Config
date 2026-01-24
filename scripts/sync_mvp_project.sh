@@ -9,8 +9,8 @@
 #
 # HIERARCHY SUPPORT:
 # - Creates parent "epic" issues for each phase  
-# - Links tasks to phase parents via "Tracks" field
-# - Enable at: Project Settings → Create "Tracks" issue field
+# - Builds task lists in epic bodies for native GitHub hierarchy
+# - View options: Group by Phase OR toggle "Show hierarchy"
 #
 set -euo pipefail
 
@@ -48,7 +48,6 @@ FIELD_JSON=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format j
 # Get field IDs
 PHASE_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Phase") | .id')
 SPEC_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Spec Task ID") | .id')
-# Note: Hierarchy uses native GitHub issue relationships, not custom fields
 
 if [[ -z "$PHASE_FIELD_ID" || -z "$SPEC_FIELD_ID" ]]; then
   echo "Error: Required fields ('Phase', 'Spec Task ID') missing from project" >&2
@@ -56,10 +55,9 @@ if [[ -z "$PHASE_FIELD_ID" || -z "$SPEC_FIELD_ID" ]]; then
   exit 1
 fi
 
-# Check if user enabled hierarchy view
-echo "ℹ️  GitHub Projects hierarchy uses native issue relationships"
-echo "   Enable at: Project → Settings → Views → Show hierarchy"
+# Hierarchy always enabled (uses native GitHub features)
 HIERARCHY_ENABLED=true
+echo "ℹ️  Hierarchy: Creates phase epics with task lists"
 
 # Parse phase options
 declare -A PHASE_OPTION
@@ -120,12 +118,6 @@ if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
   echo "🔨 Creating phase parent epics..."
   for phase in "Phase 1" "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
     phase_issue_json=$(gh issue list --repo "$REPO" --search "\"$phase\" in:title is:issue label:epic" --limit 1 --json number,url 2>/dev/null || echo "[]")
-declare -A PHASE_PARENT_NUMBER
-if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
-  echo ""
-  echo "🔨 Creating phase parent epics..."
-  for phase in "Phase 1" "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
-    phase_issue_json=$(gh issue list --repo "$REPO" --search "\"$phase\" in:title is:issue label:epic" --limit 1 --json number,url 2>/dev/null || echo "[]")
     phase_number=$(echo "$phase_issue_json" | jq -r '.[0].number // empty')
     phase_url=$(echo "$phase_issue_json" | jq -r '.[0].url // empty')
     
@@ -136,10 +128,13 @@ if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
         --label "epic" \
         --body "## $phase Parent Epic
 
-Groups all tasks from \`specs/001-mvp-foundation/tasks.md\` for $phase.
+**Status**: Planning  
+**Source**: \`specs/001-mvp-foundation/tasks.md\`
 
-**Filter**: Phase = $phase  
-**Source**: \`specs/001-mvp-foundation/tasks.md\`  
+### Tasks
+_Task list will be populated after all tasks are created..._
+
+---
 **Auto-generated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         2>/dev/null | tail -n 1 | tr -d '\r' | xargs)
       phase_number="${phase_url##*/}"
@@ -148,7 +143,12 @@ Groups all tasks from \`specs/001-mvp-foundation/tasks.md\` for $phase.
     
     PHASE_PARENT_ISSUE["$phase"]="$phase_url"
     PHASE_PARENT_NUMBER["$phase"]="$phase_number"
-    echo "  ✓ $phase (#$phase_number)
+    echo "  ✓ $phase (#$phase_number)"
+  done
+fi
+
+# STEP 1: Create missing issues
+echo ""
 echo "📝 Step 1/4: Creating missing issues..."
 declare -A ISSUE_MAP
 current=0
@@ -164,21 +164,11 @@ while IFS='|' read -r task_id task_title task_phase; do
   issue_number=$(echo "$existing_json" | jq -r '.[0].number // empty')
   issue_url=$(echo "$existing_json" | jq -r '.[0].url // empty' | tr -d '\r' | xargs)
 
-  if [Get parent issue number for hierarchy
-    parent_number="${PHASE_PARENT_NUMBER["$task_phase"]:-}"
-    parent_ref=""
-    if [[ -n "$parent_number" ]]; then
-      parent_ref="
-
----
-**Parent Epic**: #$parent_number"
-    fi
+  if [[ -z "$issue_number" || -z "$issue_url" ]]; then
+    echo "  [$current/$task_count] Creating: $task_id"
     
-    # Create issue body with parent reference
+    # Simple issue body (remove complex template for speed)
     issue_body="**Phase**: $task_phase  
-**Task**: $task_title
-
-See [\`tasks.md\`](https://github.com/$OWNER/DatingApp-Config/blob/001-mvp-foundation/specs/001-mvp-foundation/tasks.md) for details.$parent_ref
 **Task**: $task_title
 
 See [\`tasks.md\`](https://github.com/$OWNER/DatingApp-Config/blob/001-mvp-foundation/specs/001-mvp-foundation/tasks.md) for details.
@@ -261,21 +251,58 @@ for task_id in "${!ISSUE_MAP[@]}"; do
   sleep 0.2
 done
 
-# STEP 4: Set hierarchy (GitHub native - already done via issue body)
+# STEP 4: Build task lists in parent epics
 if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
   echo ""
-  echo "🌳 Step 4/4: Setting up task hierarchy (GitHub native)..."
-  echo "   ✓ Tasks reference their parent epic in issue body"
-  echo "   ✓ GitHub will automatically show hierarchy in project view"
-  echo "   ✓ Toggle 'Show hierarchy' in project view settings"
-else  
+  echo "🌳 Step 4/4: Building phase task lists..."
+  
+  # Group tasks by phase
+  declare -A PHASE_TASKS
+  for task_id in $(echo "${!ISSUE_MAP[@]}" | tr ' ' '\n' | sort); do
+    IFS='|' read -r issue_url issue_number task_phase <<< "${ISSUE_MAP[$task_id]}"
+    if [[ -n "${PHASE_TASKS["$task_phase"]}" ]]; then
+      PHASE_TASKS["$task_phase"]+=$'\n'
+    fi
+    PHASE_TASKS["$task_phase"]+="- [ ] $task_id – $issue_url"
+  done
+  
+  # Update each phase epic with its task list
+  for phase in "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
+    phase_number="${PHASE_PARENT_NUMBER["$phase"]:-}"
+    task_list="${PHASE_TASKS["$phase"]:-}"
+    
+    if [[ -n "$phase_number" && -n "$task_list" ]]; then
+      task_count=$(echo "$task_list" | wc -l)
+      echo "  📋 $phase: $task_count tasks"
+      
+      # Build updated body with task list
+      updated_body="## $phase Parent Epic
+
+**Status**: Planning  
+**Source**: \`specs/001-mvp-foundation/tasks.md\`
+
+### Tasks
+$task_list
+
+---
+**Updated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      
+      # Update the issue body
+      gh issue edit "$phase_number" --repo "$REPO" --body "$updated_body" 2>/dev/null || true
+      sleep 0.3
+    fi
+  done
+  
+  echo "  ✓ Phase epics updated with task lists"
+else
   echo ""
-  echo "⏭️  Step 4/4: Skipped (hierarchy not enabled)"
+  echo "⏭️  Step 4/4: Skipped"
 fi
 
 echo ""
 echo "✅ Done! Synced ${#ISSUE_MAP[@]} tasks to project #$PROJECT_NUMBER"
 echo ""
-echo "💡 View hierarchy:"
-echo "   https://github.com/users/$OWNER/projects/$PROJECT_NUMBER/views/1"
-echo "   Settings → Show hierarchy (beta feature)"
+echo "💡 Next steps:"
+echo "   1. Group by Phase: View Settings → Group by → Phase"
+echo "   2. Or hierarchy: View Settings → Show hierarchy (beta)"
+echo "   → https://github.com/users/$OWNER/projects/$PROJECT_NUMBER/views/1"
