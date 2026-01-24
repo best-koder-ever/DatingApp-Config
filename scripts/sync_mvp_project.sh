@@ -48,8 +48,7 @@ FIELD_JSON=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format j
 # Get field IDs
 PHASE_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Phase") | .id')
 SPEC_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Spec Task ID") | .id')
-# Try multiple hierarchy field names (Tracks is reserved, try Parent Issue or Epic)
-PARENT_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Parent Issue" or .name=="Epic" or .name=="Parent") | .id' | head -1)
+# Note: Hierarchy uses native GitHub issue relationships, not custom fields
 
 if [[ -z "$PHASE_FIELD_ID" || -z "$SPEC_FIELD_ID" ]]; then
   echo "Error: Required fields ('Phase', 'Spec Task ID') missing from project" >&2
@@ -57,15 +56,10 @@ if [[ -z "$PHASE_FIELD_ID" || -z "$SPEC_FIELD_ID" ]]; then
   exit 1
 fi
 
-# Check hierarchy support
-HIERARCHY_ENABLED=false
-if [[ -n "$PARENT_FIELD_ID" ]]; then
-  parent_field_name=$(echo "$FIELD_JSON" | jq -r --arg id "$PARENT_FIELD_ID" '.fields[] | select(.id==$id) | .name')
-  echo "✓ Hierarchy enabled - using '$parent_field_name' field"
-  HIERARCHY_ENABLED=true
-else
-  echo "⚠ Hierarchy disabled (no 'Parent Issue', 'Epic', or 'Parent' field found)"
-fi
+# Check if user enabled hierarchy view
+echo "ℹ️  GitHub Projects hierarchy uses native issue relationships"
+echo "   Enable at: Project → Settings → Views → Show hierarchy"
+HIERARCHY_ENABLED=true
 
 # Parse phase options
 declare -A PHASE_OPTION
@@ -126,6 +120,12 @@ if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
   echo "🔨 Creating phase parent epics..."
   for phase in "Phase 1" "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
     phase_issue_json=$(gh issue list --repo "$REPO" --search "\"$phase\" in:title is:issue label:epic" --limit 1 --json number,url 2>/dev/null || echo "[]")
+declare -A PHASE_PARENT_NUMBER
+if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
+  echo ""
+  echo "🔨 Creating phase parent epics..."
+  for phase in "Phase 1" "Phase 2" "Phase 3" "Phase 4" "Phase 5" "Phase 6" "Phase 7"; do
+    phase_issue_json=$(gh issue list --repo "$REPO" --search "\"$phase\" in:title is:issue label:epic" --limit 1 --json number,url 2>/dev/null || echo "[]")
     phase_number=$(echo "$phase_issue_json" | jq -r '.[0].number // empty')
     phase_url=$(echo "$phase_issue_json" | jq -r '.[0].url // empty')
     
@@ -142,16 +142,13 @@ Groups all tasks from \`specs/001-mvp-foundation/tasks.md\` for $phase.
 **Source**: \`specs/001-mvp-foundation/tasks.md\`  
 **Auto-generated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         2>/dev/null | tail -n 1 | tr -d '\r' | xargs)
+      phase_number="${phase_url##*/}"
       sleep 0.5
     fi
     
     PHASE_PARENT_ISSUE["$phase"]="$phase_url"
-    echo "  ✓ $phase"
-  done
-fi
-
-# STEP 1: Create missing issues
-echo ""
+    PHASE_PARENT_NUMBER["$phase"]="$phase_number"
+    echo "  ✓ $phase (#$phase_number)
 echo "📝 Step 1/4: Creating missing issues..."
 declare -A ISSUE_MAP
 current=0
@@ -267,8 +264,7 @@ if [[ "$HIERARCHY_ENABLED" == "true" ]]; then
     parent_url="${PHASE_PARENT_ISSUE["$task_phase"]:-}"
     
     if [[ -n "$item_id" && -n "$parent_url" ]]; then
-      gh project item-edit --project-id "$PROJECT_ID" --id "$item_id" \
-        --field-id "$TRACKS_FIELD_ID" \
+      gh project itemPARENT_FIELD_ID" \
         --text "$parent_url" >/dev/null 2>&1
       echo "  🔗 $task_id → $task_phase parent"
       sleep 0.2
@@ -286,6 +282,7 @@ echo ""
 if [[ "$HIERARCHY_ENABLED" != "true" ]]; then
   echo "💡 Enable hierarchy:"
   echo "   1. https://github.com/users/$OWNER/projects/$PROJECT_NUMBER/settings"
+  echo "   2. Create field: Name='Parent Issue' Type='Issue'jects/$PROJECT_NUMBER/settings"
   echo "   2. Create 'Tracks' field (type: Issue)"
   echo "   3. Re-run this script"
 fi
