@@ -48,7 +48,8 @@ FIELD_JSON=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format j
 # Get field IDs
 PHASE_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Phase") | .id')
 SPEC_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Spec Task ID") | .id')
-TRACKS_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Tracks") | .id')
+# Try multiple hierarchy field names (Tracks is reserved, try Parent Issue or Epic)
+PARENT_FIELD_ID=$(echo "$FIELD_JSON" | jq -r '.fields[] | select(.name=="Parent Issue" or .name=="Epic" or .name=="Parent") | .id' | head -1)
 
 if [[ -z "$PHASE_FIELD_ID" || -z "$SPEC_FIELD_ID" ]]; then
   echo "Error: Required fields ('Phase', 'Spec Task ID') missing from project" >&2
@@ -58,11 +59,12 @@ fi
 
 # Check hierarchy support
 HIERARCHY_ENABLED=false
-if [[ -n "$TRACKS_FIELD_ID" ]]; then
-  echo "✓ Hierarchy enabled - will organize tasks by phase"
+if [[ -n "$PARENT_FIELD_ID" ]]; then
+  parent_field_name=$(echo "$FIELD_JSON" | jq -r --arg id "$PARENT_FIELD_ID" '.fields[] | select(.id==$id) | .name')
+  echo "✓ Hierarchy enabled - using '$parent_field_name' field"
   HIERARCHY_ENABLED=true
 else
-  echo "⚠ Hierarchy disabled (no 'Tracks' field found)"
+  echo "⚠ Hierarchy disabled (no 'Parent Issue', 'Epic', or 'Parent' field found)"
 fi
 
 # Parse phase options
