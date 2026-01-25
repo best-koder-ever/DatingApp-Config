@@ -44,10 +44,11 @@
 	- **Evidence**: Script successfully updates 8 completed tasks from codebase scan, generates `specs/reports/weekly-YYYY-MM-DD.md` report
 	- **Benefits**: Auto-tracks progress without manual checkbox updates
 	
-- [ ] T006 [Planning] Define MMP (Minimum Marketable Product) scope reduction (identify absolute minimum shippable features, create SCOPE.md with Phase 1=MMP vs Phase 2=Enhancements, update task priorities)
+- [x] T006 [Planning] Define MMP (Minimum Marketable Product) scope reduction (identify absolute minimum shippable features, create SCOPE.md with Phase 1=MMP vs Phase 2=Enhancements, update task priorities)
 	- **Estimate**: 2h
-	- **Evidence**: `specs/001-mvp-foundation/SCOPE.md` approved, clearly separates must-have (US1+US2) from nice-to-have (US3+US4), revised task priority tags
-	- **Decision**: Should MVP be just onboarding+discovery, or include messaging?
+	- **Evidence**: `specs/001-mvp-foundation/SCOPE.md` created with competitive analysis (Tinder/Bumble/Hinge MVPs), MMP defined as "The Match Loop" (Profile + Discovery + Messaging), task priorities updated in tasks.md
+	- **Decision**: ✅ INCLUDE messaging in MMP - modern users expect complete signup→match→chat flow in 2026
+	- **Completed**: 2026-01-25
 
 ### Architecture Cleanup
 - [ ] T007 [P] [Foundational] Consolidate database strategy (standardize on PostgreSQL OR MySQL across all services, document migration plan for inconsistent services, update docker-compose)
@@ -158,8 +159,10 @@ graph LR
 - [ ] T026 [US1] Implement Flutter onboarding UI updates (guided wizard, photo privacy toggles, resumable steps, "add later" modules with analytics) (`mobile-apps/flutter/dejtingapp/lib/screens/`)
 - [ ] T027 [US1] Add telemetry + audit logs for signup + photo moderation (`AuthService`, `photo-service` logging configuration)
 
-- [ ] T028 [US1] Expose onboarding webhook/listener to consume Keycloak user events and populate initial profile state (`UserService/Services/`, `Controllers/`)
-- [ ] T029 [P] [US1] Replace TestDataGenerator flows with Keycloak-first end-to-end automation (`api_tests.py`, supporting scripts)
+- [ ] T028 [US1] [Deferred to Phase 2] Expose onboarding webhook/listener to consume Keycloak user events and populate initial profile state (`UserService/Services/`, `Controllers/`)
+	- **Note**: Manual profile creation works for MMP beta (<100 users), automate post-launch
+- [ ] T029 [US1] [Deferred to Phase 2] Replace TestDataGenerator flows with Keycloak-first end-to-end automation (`api_tests.py`, supporting scripts)
+	- **Note**: Current test data works for MMP, migrate after validating Keycloak integration stability
 
 **Checkpoint**: New profiles appear in matchmaking queue with validated photos and privacy flags.
 
@@ -240,7 +243,7 @@ graph TB
 
 ---
 
-## Phase 5: User Story 3 – Secure Match Messaging (Priority: P2)
+## Phase 5: User Story 3 – Secure Match Messaging (Priority: P1 ⬆️ PROMOTED FOR MMP)
 
 **Goal**: Matched users exchange real-time messages with delivery guarantees and offline catch-up.
 **Independent Test**: Create match, chat between web session + mobile emulator, verify read receipts + reconnect sync.
@@ -250,11 +253,11 @@ graph TB
 - [ ] T041 [P] [US3] Extend Flutter widget test for conversation view and offline resend queue (`lib/screens/chat/` tests)
 
 ### Implementation
-- [ ] T042 [US3] Finalize SignalR hub contracts per spec (`messaging-service/Hubs/MessagingHub.cs`, `contracts/signalr-spec.md`)
-- [ ] T043 [US3] Add message persistence + delivery receipts in `MessagingService/Services/MessageService.cs`
-- [ ] T044 [P] [US3] Implement offline queue + reconnection handling in Flutter messaging service (`lib/services/messaging_service.dart`)
-- [ ] T045 [US3] Ensure YARP websockets + auth pipeline pass through tokens (`dejting-yarp/Program.cs`)
-- [ ] T046 [US3] Update audit logging + moderation hooks for flagged messages (`messaging-service/Services/`)
+- [ ] T042 [P] [US3] [MMP] Finalize SignalR hub contracts per spec - BASIC only (send/receive messages, no typing indicators) (`messaging-service/Hubs/MessagingHub.cs`, `contracts/signalr-spec.md`)
+- [ ] T043 [P] [US3] [MMP] Add message persistence (NO read receipts initially) in `MessagingService/Services/MessageService.cs`
+- [ ] T044 [P] [US3] [MMP] Implement offline queue + reconnection handling in Flutter messaging service (`lib/services/messaging_service.dart`)
+- [ ] T045 [P] [US3] [MMP] Ensure YARP websockets + auth pipeline pass through tokens (`dejting-yarp/Program.cs`)
+- [ ] T046 [US3] [Deferred to Phase 2] Update audit logging + moderation hooks for flagged messages - manual moderation OK for MMP beta (`messaging-service/Services/`)
 
 **Checkpoint**: Messaging works across devices with resilience and moderation capture.
 
@@ -270,11 +273,11 @@ graph TB
 - [ ] T051 [US4] Add Flutter integration coverage for privacy settings screen (`integration_test/privacy_controls_test.dart`)
 
 ### Implementation
-- [ ] T052 [US4] Expand PhotoService privacy enforcement + blurred responses (`photo-service/Controllers/`) 
-- [ ] T053 [US4] Build reporting endpoints + moderation queue integration (`messaging-service/Controllers/`, `UserService` admin hooks)
-- [ ] T054 [US4] Implement block UX + state sync in Flutter (`lib/screens/settings/privacy_settings.dart`)
-- [ ] T055 [US4] Add account recovery + rehydration logic in AuthService/UserService (`AuthService/Controllers/`, `UserService/Services/`)
-- [ ] T056 [US4] Publish operations playbook entry documenting response SLAs (`docs/operations/mvp-safety.md`)
+- [ ] T052 [P] [US4] [MMP] Expand PhotoService privacy enforcement + blurred responses - MINIMUM: blur for non-matches (`photo-service/Controllers/`) 
+- [ ] T053 [US4] [Deferred to Phase 2] Build reporting endpoints + moderation queue integration - block action is sufficient for MMP (`messaging-service/Controllers/`, `UserService` admin hooks)
+- [ ] T054 [P] [US4] [MMP] Implement block UX + state sync in Flutter - MINIMUM: block button, no unblock UI needed (`lib/screens/settings/privacy_settings.dart`)
+- [ ] T055 [US4] [Deferred to Phase 2] Add account recovery + rehydration logic - manual support OK for beta scale (`AuthService/Controllers/`, `UserService/Services/`)
+- [ ] T056 [US4] [Deferred to Phase 2] Publish operations playbook - handle manually during 100-user beta (`docs/operations/mvp-safety.md`)
 
 **Checkpoint**: Safety flows enforce privacy, produce audits, and support recovery.
 
