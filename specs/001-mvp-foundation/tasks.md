@@ -318,6 +318,224 @@ graph TB
 
 ---
 
+
+
+## Phase 8: Comprehensive E2E Testing & CI/CD Automation 🤖
+
+**Goal**: Achieve production-grade automated testing with full user journey simulation, continuous integration, and zero-touch deployments validating all success criteria (SC-001 through SC-005).
+**Independent Test**: Nightly bot army runs 100+ synthetic user journeys, reports 95%+ success rate with P95 latency <500ms on comprehensive metrics dashboard.
+
+### Load & Performance Testing
+
+- [ ] T073 [P2] [Testing] Create K6 load testing scripts for matchmaking algorithm (`load-tests/k6/`)
+- **Estimate**: 8h
+- **Evidence**: Script simulates 10K concurrent users swiping, validates SC-002 (P95 <350ms API latency)
+- **Tools**: K6, Prometheus scraping, Grafana dashboards
+- **Dependencies**: T030 (scoring algorithm), T063 (monitoring dashboards)
+
+- [ ] T074 [P2] [Testing] Build SignalR hub stress testing framework (`load-tests/signalr-stress/`)
+- **Estimate**: 6h
+- **Evidence**: 1K concurrent connections sending 10K msgs/sec, validates SC-004 (95% delivery <1s)
+- **Tools**: SignalR .NET client, custom load generator
+- **Dependencies**: T040 (messaging hub implementation)
+
+- [ ] T075 [P2] [Testing] Photo upload/moderation pipeline load test (`load-tests/photo-pipeline/`)
+- **Estimate**: 4h
+- **Evidence**: 100 concurrent uploads/min, validates moderation queue processing <2min P95
+- **Tools**: Python concurrent.futures, ImageSharp metrics
+- **Dependencies**: T020 (photo upload API)
+
+- [ ] T076 [Backlog] [Testing] Database query performance benchmarking suite (`load-tests/db-benchmarks/`)
+- **Estimate**: 6h
+- **Evidence**: P95 <100ms for all queries, identifies slow query patterns
+- **Tools**: SQL query logging, Prometheus MySQL exporter, pt-query-digest
+- **Dependencies**: Phase 2 complete (all schemas migrated)
+
+**Checkpoint**: Load test results validate SC-002 (API latency <350ms) and SC-004 (SignalR delivery <1s) under production-scale traffic.
+
+### End-to-End Test Automation
+
+- [ ] T077 [P1] [Testing] Create comprehensive E2E user journey test suite (`integration_test/journey_tests/`)
+- **Estimate**: 16h
+- **Evidence**: 5 golden path tests (registration, discovery, messaging, safety, full lifecycle) all passing
+- **Tools**: Flutter integration tests, Playwright (web fallback)
+- **Dependencies**: T031 (swipe flow stabilization), T021 (onboarding wizard), T041 (messaging UI)
+- **Sub-tasks**:
+T077.1 Registration & onboarding journey (6 phases: visitor → active profile with photos) - `01_registration_journey_test.dart`
+T077.2 Match discovery journey (swipe → mutual match → notification) - `02_match_discovery_journey_test.dart`
+T077.3 Messaging journey (match → chat → send/receive → offline sync) - `03_messaging_journey_test.dart`
+T077.4 Safety & privacy journey (privacy toggle → block → report workflows) - `04_safety_journey_test.dart`
+T077.5 Full happy path (30+ step lifecycle from signup to active conversation) - `05_full_happy_path_test.dart`
+
+- [ ] T078 [P1] [Testing] Build synthetic user bot framework for automated simulation (`tools/synthetic-users/`)
+- **Estimate**: 12h
+- **Evidence**: Bot orchestrator spawns 100+ concurrent user simulations with realistic behavior patterns
+- **Tools**: Python/Node.js bot controller, Keycloak automation, randomized swipe/message cadence
+- **Dependencies**: T077 (journey flows as templates), T029 (Keycloak test data automation)
+- **Features**:
+domized behavior (swipe rates, messaging, photo uploads)
+ (success rate, latency P50/P95/P99, error rates)
+jection (network delays, service failures)
+
+- [ ] T079 [P2] [Testing] Visual regression test suite for Flutter UI (`integration_test/visual_regression/`)
+- **Estimate**: 8h
+- **Evidence**: Screenshot baselines for 20+ screens, automated PR comparison
+- **Tools**: Percy/Chromatic integration, Flutter golden files
+- **Dependencies**: T066 (design system extraction), T021/T031/T041 (all major screens)
+
+- [ ] T080 [Backlog] [Testing] Cross-browser E2E testing (web platform) (`e2e-tests/playwright/`)
+- **Estimate**: 10h
+- **Evidence**: Journey tests pass on Chrome, Firefox, Safari (desktop + mobile viewports)
+- **Tools**: Playwright, existing `e2e-tests/test_login_enhanced.py` as foundation
+- **Dependencies**: T077 (journey test suite), Flutter web build stability
+
+**Checkpoint**: E2E test suite validates all 4 user stories (US1-US4) end-to-end with 95%+ pass rate on nightly runs.
+
+### Observability & Success Criteria Instrumentation
+
+- [ ] T081 [P1] [Testing] Create Grafana JSON dashboards for all success criteria (`monitoring/grafana/dashboards/`)
+- **Estimate**: 10h
+- **Evidence**: 5 dashboards (one per SC-001 through SC-005) showing real-time metrics vs targets
+- **Tools**: Grafana provisioning, Prometheus queries, Loki log aggregation
+- **Dependencies**: T063 (monitoring foundation), T027 (onboarding funnel logging)
+- **Dashboards**:
+boarding funnel conversion (target: 90% complete <12min)
+latency by endpoint (target: P95 <350ms)
+conversion rate (target: 80% mutual match <48h)
+alR message delivery (target: 95% delivered <1s)
+ report response time (target: <2min acknowledgement)
+
+- [ ] T082 [P1] [Testing] Instrument distributed tracing across all 8 microservices (`*/Program.cs`, OpenTelemetry)
+- **Estimate**: 8h
+- **Evidence**: Jaeger UI shows complete request traces from YARP → services → database
+- **Tools**: OpenTelemetry .NET SDK, Jaeger, W3C TraceContext propagation
+- **Dependencies**: All services deployed (Phases 1-6)
+
+- [ ] T083 [P1] [Testing] Configure alert rules for success criteria violations (`monitoring/prometheus/alerts.yml`)
+- **Estimate**: 6h
+- **Evidence**: Alerts fire to Slack when SC targets missed (e.g., P95 latency >350ms for 5min)
+- **Tools**: Prometheus Alertmanager, Slack webhook integration
+- **Dependencies**: T081 (dashboards with queries), T063 (Prometheus setup)
+
+- [ ] T084 [Backlog] [Testing] Real User Monitoring (RUM) integration for Flutter app (`mobile-apps/flutter/dejtingapp/lib/monitoring/`)
+- **Estimate**: 6h
+- **Evidence**: Sentry captures frontend errors, performance vitals sent to observability stack
+- **Tools**: Sentry Flutter SDK, custom performance tracking
+- **Dependencies**: T066 (design system), production deployment
+
+**Checkpoint**: All success criteria (SC-001 through SC-005) instrumented with live dashboards showing real-time compliance vs targets.
+
+### CI/CD Pipeline Enhancement
+
+- [ ] T085 [P1] [CI/CD] Create comprehensive CI pipeline with fast feedback loops (`.github/workflows/ci-comprehensive.yml`)
+- **Estimate**: 12h
+- **Evidence**: PR builds complete <15min with unit + integration + E2E tests
+- **Tools**: GitHub Actions, existing `.github/workflows/comprehensive-ci-cd.yml` as foundation
+- **Dependencies**: T077 (E2E tests), T004 (coverage enforcement)
+- **Jobs**:
+e (<5min): Unit tests + linting on every commit
+tegration pipeline (<15min): API tests (`api_tests.py`) + service health checks on PR
+e (<30min): Full Flutter journey tests on PR
+ightly pipeline (2h): All tests + load tests + visual regression (runs at 2 AM)
+
+- [ ] T086 [P1] [CI/CD] Implement automated deployment pipeline with smoke tests (`.github/workflows/deploy-*.yml`)
+- **Estimate**: 10h
+- **Evidence**: Staging auto-deploys on main merge, smoke tests validate, production requires manual approval
+- **Tools**: GitHub Actions, Docker Hub/ECR, smoke test suite from `api_tests.py`
+- **Dependencies**: T085 (CI pipeline), Docker infrastructure
+- **Workflows**:
+g.yml`: Auto-deploy on main merge
+Health checks + critical path validation (signup → match)
+.yml`: Manual approval gate, rollback on error spike
+
+- [ ] T087 [P2] [CI/CD] Security scanning integration (SAST/DAST, container vulnerabilities)
+- **Estimate**: 6h
+- **Evidence**: CI blocks on critical vulnerabilities, Dependabot alerts configured
+- **Tools**: Snyk, GitHub Advanced Security, Trivy (container scanning)
+- **Dependencies**: T085 (CI pipeline)
+
+- [ ] T088 [Backlog] [CI/CD] Canary deployment infrastructure with automated rollback (`.github/workflows/deploy-canary.yml`)
+- **Estimate**: 12h
+- **Evidence**: 5% traffic to canary, auto-rollback if error rate >2x baseline
+- **Tools**: Kubernetes/ECS traffic splitting, Prometheus metric comparison
+- **Dependencies**: T086 (deployment automation), production K8s/ECS cluster
+
+**Checkpoint**: CI/CD pipeline achieves <15min PR feedback, 3+ deployments/week, <30min MTTR with automated rollback.
+
+### Documentation & Operational Readiness
+
+- [ ] T089 [P2] [Docs] Create ops runbooks for common incidents (`docs/operations/runbooks/`)
+- **Estimate**: 8h
+- **Evidence**: Runbooks cover: service degradation, database failover, SignalR reconnection storm, photo moderation queue backlog
+- **Tools**: Markdown docs, links to Grafana dashboards + Jaeger traces
+- **Dependencies**: T081 (dashboards), T082 (tracing), production incidents
+
+- [ ] T090 [Backlog] [Docs] Performance tuning guide with benchmarks (`docs/performance/tuning-guide.md`)
+- **Estimate**: 6h
+- **Evidence**: Guide documents: MySQL query optimization, SignalR scaling, photo processing throughput, matchmaking algorithm complexity
+- **Tools**: Benchmark results from T073-T076, profiling data
+- **Dependencies**: T076 (DB benchmarks), T074 (SignalR stress test)
+
+**Checkpoint**: Ops team can respond to incidents using runbooks achieving <30min MTTR for common scenarios.
+
+---
+
+## 📊 Phase 8 Success Metrics
+
+**Testing Coverage**:
+- ✅ 90%+ unit test coverage (C# + Dart) - enforced in CI via T004
+- ✅ 100% critical path coverage (5 golden journey tests)
+- ✅ Visual regression baselines for all 20+ screens
+
+**CI/CD Performance**:
+- ✅ PR feedback <15min (fast tests + integration)
+- ✅ Nightly full suite <2h (all tests + load + visual)
+- ✅ Deployment frequency: 3+ per week
+- ✅ Mean time to recovery (MTTR): <30min
+
+**Production Readiness**:
+- ✅ 99.9% uptime SLA capability (validated via load tests)
+- ✅ Automated incident detection <2min (Prometheus alerts)
+- ✅ Sub-second distributed trace lookup (Jaeger)
+- ✅ Zero-downtime deployments validated (canary testing)
+
+### 📋 Phase 8 Dependencies
+
+```mermaid
+graph TB
+    Phase7[Phase 7: Polish] --> T077[T077: E2E Journey Tests]
+    T030[T030: Scoring Algorithm] --> T073[T073: K6 Load Tests]
+    T040[T040: Messaging Hub] --> T074[T074: SignalR Stress]
+    
+    T077 --> T078[T078: Bot Framework]
+    T077 --> T079[T079: Visual Regression]
+    T077 --> T080[T080: Cross-Browser]
+    
+    T063[T063: Monitoring] --> T081[T081: Grafana Dashboards]
+    T081 --> T082[T082: Distributed Tracing]
+    T081 --> T083[T083: Alert Rules]
+    
+    T077 --> T085[T085: CI Pipeline]
+    T004[T004: Coverage] --> T085
+    T085 --> T086[T086: Deploy Pipeline]
+    T086 --> T087[T087: Security Scanning]
+    T086 --> T088[T088: Canary Deploy]
+    
+    T081 --> T089[T089: Ops Runbooks]
+    T076[T076: DB Benchmarks] --> T090[T090: Perf Tuning Guide]
+    
+    style T077 fill:#FFB6C1
+    style T081 fill:#FFB6C1
+    style T085 fill:#FFB6C1
+    style T086 fill:#FFB6C1
+```
+
+**Legend**: 🔴 Pink = P1 Blocker for production launch | Solid = Hard dependency | Dotted = Recommended
+
+**Critical Path**: Phase 7 → T077 (E2E tests) → T081 (observability) → T085/T086 (CI/CD) → Production readiness
+
+**Timeline**: Phase 8 should begin **immediately after MMP launch** - use real production data to tune synthetic user behaviors (T078) and validate monitoring thresholds (T081/T083) against actual traffic patterns.
+
 ## Dependencies & Execution Order
 - Phase 1 → Phase 2 must complete before user stories.
 - User Stories 1 & 2 (P1) should finish before starting messaging (P2) unless parallel teams available.
