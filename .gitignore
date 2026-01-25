@@ -57,3 +57,5 @@ logs/
 # Package managers
 *.lock
 package-lock.json
+.old_scaffolds/
+

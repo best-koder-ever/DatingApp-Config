@@ -4,13 +4,25 @@
 			"path": "."
 		},
 		{
-			"path": "auth-service"
+			"path": "AuthService"
+		},
+		{
+			"path": "UserService"
+		},
+		{
+			"path": "MatchmakingService"
 		},
 		{
 			"path": "dejting-yarp"
 		},
 		{
-			"path": "matchmaking-service"
+			"path": "photo-service"
+		},
+		{
+			"path": "swipe-service"
+		},
+		{
+			"path": "messaging-service"
 		},
 		{
 			"path": "TestDataGenerator"
@@ -26,6 +38,5 @@
 			"./gita-workflow.sh": true,
 			"cp": true
 		}
-
 	}
 }
