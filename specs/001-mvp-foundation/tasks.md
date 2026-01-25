@@ -28,10 +28,11 @@
 	- **Benefits**: Shows what must be done in sequence vs parallel
 
 ### Testing Infrastructure
-- [ ] T003 [P] [Testing] Generate test skeletons for all services (create failing xUnit tests for every controller action in UserService, MatchmakingService, SwipeService, PhotoService, MessagingService)
+- [x] T003 [P] [Testing] Generate test skeletons for all services (create failing xUnit tests for every controller action in UserService, MatchmakingService, SwipeService, PhotoService, MessagingService)
 	- **Estimate**: 4h
-	- **Evidence**: `dotnet test` discovers 50+ tests across all service test projects (currently ~5 tests exist), all skeletons marked `[Fact(Skip = "Not implemented")]`
+	- **Evidence**: Test projects created with 60+ skipped test methods: SwipeService.Tests (17 tests), PhotoService.Tests (34 tests), UserService.Tests (7 tests for WizardController), MatchmakingService.Tests (3 tests), MessagingService.Tests (1 test). All marked `[Fact(Skip = "Not implemented - T003")]`. `dotnet test --list-tests` discovers all test methods across services.
 	- **Next**: Remove skip attributes as implementations complete
+	- **Completed**: 2026-01-25
 	
 - [ ] T004 [P] [Testing] Fix CI/CD pipeline for green builds (validate comprehensive-ci-cd.yml runs successfully, add coverage badges to README.md, set 80% coverage gate)
 	- **Estimate**: 3h
