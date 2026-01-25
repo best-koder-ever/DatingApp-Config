@@ -50,4 +50,27 @@ TestDataGenerator/, api_tests.py  # Legacy demo seeding (avoid new usage); rely 
 
 Why: User set up gita and helper scripts specifically to avoid tedious manual operations. Always check for and use these tools first.
 
+## AI Workflow - Non-Breaking Automation (CRITICAL!)
+**ALWAYS use terminal commands for file operations.** Never use interactive tools that require user confirmation.
+
+### File Creation & Editing
+- ✅ **DO:** Use `cat > file.ext << 'EOF'`, `echo "content" > file.ext`, `sed`, `awk`
+- ✅ **DO:** Use `dotnet add package`, `dotnet remove package` for NuGet operations
+- ✅ **DO:** Use `mkdir -p`, `cp`, `mv`, `rm` for file system operations
+- ❌ **DON'T:** Use tools that require "accept/allow" prompts or user interaction
+- ❌ **DON'T:** Use `create_file` or `replace_string_in_file` if stuck - switch to terminal commands
+
+### Build & Test Operations
+- ✅ **DO:** `dotnet build`, `dotnet test`, `flutter build`, `flutter test`
+- ✅ **DO:** Use `--no-restore` flag when packages already restored
+- ✅ **DO:** Chain commands with `&&` for atomic operations: `cd dir && dotnet build && dotnet test`
+
+### Package Management
+- ✅ **DO:** `dotnet add package PackageName --version X.Y.Z`
+- ✅ **DO:** `flutter pub add package_name`
+- ✅ **DO:** `pip install package` or add to requirements.txt + `pip install -r requirements.txt`
+
+### Why Terminal-First?
+User requires **autonomous, non-breaking execution**. Terminal commands never block on confirmations, allowing AI to complete entire tasks without human intervention.
+
 <!-- MANUAL ADDITIONS END -->
