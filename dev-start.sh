@@ -50,7 +50,7 @@ sleep 2
 
 # Check if ports are available
 echo "🔍 Checking port availability..."
-PORTS=(8080 8081 8082 8083 8085 8086 8087)
+PORTS=(8080 8081 8082 8083 8085 8086 8087 8088)
 for port in "${PORTS[@]}"; do
     if lsof -i :$port >/dev/null 2>&1; then
         echo "❌ Port $port is busy - killing processes..."
@@ -101,6 +101,13 @@ ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8087 
 SWIPE_PID=$!
 sleep 2
 
+# Start SafetyService
+echo "🛡️ Starting SafetyService on port 8088..."
+cd /home/m/development/DatingApp/safety-service/SafetyService
+ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8088 dotnet run > ../../logs/safety-service.log 2>&1 &
+SAFETY_PID=$!
+sleep 2
+
 # Start YARP Gateway
 echo "🌐 Starting YARP Gateway on port 8080..."
 cd /home/m/development/DatingApp/dejting-yarp/src/dejting-yarp
@@ -130,6 +137,7 @@ PHOTO_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/heal
 MESSAGING_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8086/health 2>/dev/null || echo "000")
 MESSAGING_READINESS=$(curl -s http://localhost:8086/health 2>/dev/null || echo "")
 SWIPE_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/health 2>/dev/null || echo "000")
+SAFETY_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8088/health 2>/dev/null || echo "000")
 YARP_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health 2>/dev/null || echo "000")
 
 echo ""
@@ -178,6 +186,12 @@ else
     echo "❌ SwipeService: Failed to start (HTTP: $SWIPE_HEALTH)"
 fi
 
+if [ "$SAFETY_HEALTH" = "200" ]; then
+    echo "✅ SafetyService: Running (PID: $SAFETY_PID)"
+else
+    echo "❌ SafetyService: Failed to start (HTTP: $SAFETY_HEALTH)"
+fi
+
 if [ "$YARP_HEALTH" = "200" ]; then
     echo "✅ YARP Gateway: Running (PID: $YARP_PID)"
 else
@@ -192,6 +206,7 @@ echo "   MatchmakingService: tail -f logs/matchmaking-service.log"
 echo "   PhotoService: tail -f logs/photo-service.log"
 echo "   MessagingService: tail -f logs/messaging-service.log"
 echo "   SwipeService: tail -f logs/swipe-service.log"
+echo "   SafetyService: tail -f logs/safety-service.log"
 echo "   YARP Gateway: tail -f logs/yarp-gateway.log"
 echo ""
 echo "🛑 To stop: ./dev-stop.sh"
@@ -200,7 +215,7 @@ echo "📊 To check status: ./dev-status.sh"
 echo ""
 echo "🎯 Complete Dating App Backend Running!"
 
-echo "💡 All services: 8080(Gateway), 8081(Auth), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe)"
+echo "💡 All services: 8080(Gateway), 8081(Auth), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe), 8088(Safety)"
 
 # Automatically start Flutter app on Chrome for development
 echo "📱 Launching Flutter app on Chrome..."
