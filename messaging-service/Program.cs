@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -77,12 +78,25 @@ builder.Services.AddSignalR(options =>
 
 // Add Custom Services
 builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IMessageServiceSpec, MessageServiceSpec>();
 builder.Services.AddScoped<IContentModerationService, ContentModerationService>();
 builder.Services.AddScoped<ISpamDetectionService, SpamDetectionService>();
 builder.Services.AddScoped<IPersonalInfoDetectionService, PersonalInfoDetectionService>();
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddCorrelationIds();
+
+// Add HttpClient for Safety Service
+builder.Services.AddHttpClient<ISafetyServiceClient, SafetyServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Gateway:BaseUrl"] ?? "http://dejting-yarp:8080");
+});
+
+// Add HttpClient for MessageServiceSpec (to call MatchmakingService)
+builder.Services.AddHttpClient<MessageServiceSpec>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Gateway:BaseUrl"] ?? "http://dejting-yarp:8080");
+});
 
 // Add MediatR for CQRS
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
@@ -109,16 +123,44 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() 
+    c.SwaggerDoc("v1", new OpenApiInfo 
     { 
         Title = "Dating App Messaging Service API", 
         Version = "v1",
         Description = "Real-time messaging service with proactive safety features including content moderation, spam detection, and personal information protection."
     });
     
+    // JWT Authentication
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using Bearer scheme. Enter 'Bearer' [space] and then your token.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+    
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    c.IncludeXmlComments(xmlPath);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 });
 
 var app = builder.Build();
@@ -146,8 +188,8 @@ app.MapControllers();
 
 app.MapHealthChecks("/health");
 
-// Map SignalR hub
-app.MapHub<MessagingHub>("/messagingHub");
+// Map SignalR hub - Use the spec-compliant hub
+app.MapHub<MessagingHubSpec>("/messagingHub");
 
 // Ensure database is created
 using (var scope = app.Services.CreateScope())

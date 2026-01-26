@@ -307,6 +307,29 @@ graph TB
 
 ---
 
+- **Estimate**: 2h
+- **Evidence**:
+  - MessagingHubSpec: BASIC implementation with SendMessage + Acknowledge only
+  - Updated signalr-spec.md: Clear BASIC (MMP) vs DEFERRED (Phase 2) markings
+  - IMessageServiceSpec: Match-based messaging interface (matchId not userId pairs)
+  - MessageServiceSpec: Persistence + match verification via MatchmakingService API
+  - SignalRDtos: SendMessageRequest, AcknowledgeRequest, MessageDto
+  - Program.cs: SignalR already configured with auth + websocket support
+  - DEFERRED: Typing indicators, presence, read receipts, message updates
+- **Completion**: 2026-01-26
+- **Files**: Hubs/MessagingHub.Spec.cs, Services/IMessageServiceSpec.cs, Services/MessageServiceSpec.cs, DTOs/SignalRDtos.cs, Contracts/signalr-spec.md, Program.cs (already configured)
+- **Estimate**: 2h
+- **Evidence**:
+  - MessagingHubSpec: BASIC implementation with SendMessage + Acknowledge only
+  - Updated signalr-spec.md: Clear BASIC (MMP) vs DEFERRED (Phase 2) markings
+  - IMessageServiceSpec: Match-based messaging interface (matchId not userId pairs)
+  - MessageServiceSpec: Persistence + match verification via MatchmakingService API
+  - SignalRDtos: SendMessageRequest, AcknowledgeRequest, MessageDto
+  - DEFERRED: Typing indicators, presence, read receipts, message updates
+- **Completion**: 2026-01-26
+- **Files**: Hubs/MessagingHub.Spec.cs, Services/IMessageServiceSpec.cs, Services/MessageServiceSpec.cs, DTOs/SignalRDtos.cs, Contracts/signalr-spec.md
+- **Build**: No errors, no warnings
+- **Build**: No errors, no warnings
 ## Phase 5: User Story 3 – Secure Match Messaging (Priority: P1 ⬆️ PROMOTED FOR MMP)
 
 **Goal**: Matched users exchange real-time messages with delivery guarantees and offline catch-up.

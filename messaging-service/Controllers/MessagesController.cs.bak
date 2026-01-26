@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
 using MessagingService.Services;
 using MessagingService.Commands;
 using MessagingService.Queries;
 using MessagingService.Common;
-using MessagingService.Data;
 using MediatR;
 using System.Security.Claims;
 
@@ -18,13 +16,11 @@ public class MessagesController : ControllerBase
 {
     private readonly ILogger<MessagesController> _logger;
     private readonly IMediator _mediator;
-    private readonly MessagingDbContext _context;
 
-    public MessagesController(ILogger<MessagesController> logger, IMediator mediator, MessagingDbContext context)
+    public MessagesController(ILogger<MessagesController> logger, IMediator mediator)
     {
         _logger = logger;
         _mediator = mediator;
-        _context = context;
     }
 
     [HttpGet("conversations")]
@@ -116,33 +112,34 @@ public class MessagesController : ControllerBase
 
         return Ok(ApiResponse<object>.SuccessResult(new { }));
     }
+}
 
-    /// <summary>
-    /// Delete all messages for a specific user (used during account deletion)
-    /// </summary>
-    [HttpDelete("user/{userId}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> DeleteUserMessages(string userId)
-    {
-        try
+        /// <summary>
+        /// Delete all messages for a specific user (used during account deletion)
+        /// </summary>
+        [HttpDelete("user/{userProfileId:int}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DeleteUserMessages(int userProfileId)
         {
-            _logger.LogInformation("Deleting all messages for user {UserId}", userId);
+            try
+            {
+                _logger.LogInformation("Deleting all messages for user {UserProfileId}", userProfileId);
 
-            var messages = await _context.Messages
-                .Where(m => m.SenderId == userId || m.ReceiverId == userId)
-                .ToListAsync();
+                var messages = await _context.Messages
+                    .Where(m => m.SenderId == userProfileId || m.ReceiverId == userProfileId)
+                    .ToListAsync();
 
-            var count = messages.Count;
-            _context.Messages.RemoveRange(messages);
-            await _context.SaveChangesAsync();
+                var count = messages.Count;
+                _context.Messages.RemoveRange(messages);
+                await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Deleted {Count} messages for user {UserId}", count, userId);
-            return Ok(count);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting messages for user {UserId}", userId);
-            return StatusCode(500, "An error occurred while deleting user messages");
+                _logger.LogInformation("Deleted {Count} messages for user {UserProfileId}", count, userProfileId);
+                return Ok(count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting messages for user {UserProfileId}", userProfileId);
+                return StatusCode(500, "An error occurred while deleting user messages");
+            }
         }
     }
-}
