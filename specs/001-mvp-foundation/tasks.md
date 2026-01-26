@@ -356,7 +356,7 @@ graph TB
 **Independent Test**: Run manual script toggling photo visibility, submitting reports, and reactivating account to confirm enforcement.
 
 ### Tests
-- [ ] T050 [P] [US4] Write API test covering report + block lifecycle (`api_tests.py` scenario)
+- [x] T050 [P] [US4] Write API test covering report + block lifecycle - COMPLETE: Added SafetyScenarioRunner to api_tests.py with full test coverage (report user, block user, verify blocked candidates filtering, unblock user). Run with `python3 api_tests.py --safety`.
 - [ ] T051 [US4] Add Flutter integration coverage for privacy settings screen (`integration_test/privacy_controls_test.dart`)
 
 ### Implementation
