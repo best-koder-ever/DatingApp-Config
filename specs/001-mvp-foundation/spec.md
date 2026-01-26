@@ -90,6 +90,68 @@ As any participant I can control my visibility, report bad actors, and recover a
 
 [Add more user stories as needed, each with an assigned priority]
 
+## User Journey Documentation *(detailed flows)*
+
+Each user story above has comprehensive documentation covering service integration points, sequence diagrams, edge cases, state machines, and acceptance tests:
+
+### 📋 Layer 1: Registration & Onboarding
+**File**: [features/user-journeys/01-registration-onboarding.md](features/user-journeys/01-registration-onboarding.md)
+
+Covers the complete new user activation flow from registration through profile wizard completion, including:
+- Keycloak authentication & email verification
+- 3-step wizard (BasicInfo → Preferences → Photos)
+- Photo upload with privacy controls & moderation
+- Onboarding status state machine
+- Integration: UserService, photo-service, Keycloak, YARP
+- **Status**: ✅ Implemented (T020-T027 complete)
+
+### 🔍 Layer 2: Match Discovery & Swipe Flow  
+**File**: [features/user-journeys/02-match-discovery.md](features/user-journeys/02-match-discovery.md)
+
+Covers daily candidate browsing, compatibility scoring, and swipe processing:
+- Advanced matchmaking algorithm (location, age, interests, lifestyle)
+- Daily suggestion limits (20 free, 50 premium)
+- Swipe left/right actions with mutual match detection
+- Queue exhaustion & preference expansion
+- Integration: MatchmakingService, SwipeService, UserService, PhotoService
+- **Status**: 🔨 In Progress (T030-T032 complete, T033-T037 remaining)
+
+### 💬 Layer 3: Real-Time Messaging
+**File**: [features/user-journeys/03-messaging.md](features/user-journeys/03-messaging.md)
+
+Covers SignalR-based chat between matched users with delivery guarantees:
+- WebSocket connection lifecycle & reconnection
+- SendMessage & ReceiveMessage hub methods
+- Offline queue & message sync
+- Message persistence & idempotency
+- Read receipts (deferred to Phase 2)
+- Integration: MessagingService (SignalR Hub + REST), YARP WebSocket routing
+- **Status**: 📋 Documented (Implementation: T040-T046)
+
+### 🔒 Layer 4: Safety & Privacy Controls
+**File**: [features/user-journeys/04-safety-privacy.md](features/user-journeys/04-safety-privacy.md)
+
+Covers photo privacy enforcement, blocking, reporting, and moderation workflows:
+- Privacy level enforcement (PUBLIC, PRIVATE, MATCH_ONLY, VIP)
+- Blur generation & CDN cache invalidation
+- Block/unblock actions with match deactivation
+- Report submission with priority queuing
+- Moderation queue integration
+- Integration: photo-service, safety-service, UserService (suspension)
+- **Status**: 📋 Documented (Implementation: T050-T056)
+
+---
+
+**Navigation**: Each journey document includes:
+- High-level sequence diagrams (Mermaid)
+- State machines for key workflows
+- Edge case handling & failure modes
+- Service integration point details
+- Acceptance test scenarios (manual + automated)
+- Performance targets & monitoring
+
+---
+
 ### Edge Cases
 
 - What happens when photo uploads exceed quota or fail moderation? → Reject with actionable error, preserve partially completed profile state.
