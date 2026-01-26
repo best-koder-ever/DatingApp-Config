@@ -24,7 +24,7 @@
    ./dev-start.sh
    ```
        - Verifies Keycloak & MySQL
-       - Use Keycloak admin console or forthcoming automation (T029) to provision demo users; TestDataGenerator is retired
+       - Use Keycloak admin console or api_tests.py for demo user provisioning; TestDataGenerator has been removed
 3. **Start Flutter demo client**
    ```bash
    cd mobile-apps/flutter/dejtingapp

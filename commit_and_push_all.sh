@@ -12,7 +12,6 @@ projects=(
   "MatchmakingService"
   "messaging-service"
   "swipe-service"
-  "TestDataGenerator"
   "../mobile-apps/flutter/dejtingapp"
 )
 

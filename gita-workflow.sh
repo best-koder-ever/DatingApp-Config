@@ -147,7 +147,7 @@ clean_builds() {
   echo -e "${YELLOW}Cleaning build artifacts...${NC}\n"
   
   for service in AuthService UserService MatchmakingService dejting-yarp \
-                 messaging-service swipe-service photo-service TestDataGenerator; do
+                 messaging-service swipe-service photo-service; do
     if [ -d "$service" ]; then
       echo "Cleaning $service..."
       ( cd "$service" && dotnet clean --nologo -v q 2>/dev/null || true )

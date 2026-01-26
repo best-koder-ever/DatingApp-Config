@@ -4,7 +4,7 @@
 set -e
 
 # Corrected paths for the projects
-projects=("AuthService" "dejting-yarp" "UserService" "MatchmakingService" "swipe-service" "photo-service" "TestDataGenerator" "../mobile-apps/flutter/dejtingapp")
+projects=("AuthService" "dejting-yarp" "UserService" "MatchmakingService" "swipe-service" "photo-service" "../mobile-apps/flutter/dejtingapp")
 declare -A project_remotes
 project_remotes["UserService"]="https://github.com/best-koder-ever/UserService.git"
 project_remotes["MatchmakingService"]="https://github.com/best-koder-ever/MatchmakingService.git"
@@ -12,7 +12,6 @@ project_remotes["swipe-service"]="https://github.com/best-koder-ever/swipe-servi
 project_remotes["AuthService"]="https://github.com/best-koder-ever/AuthService.git"
 project_remotes["dejting-yarp"]="https://github.com/best-koder-ever/dejting-yarp.git"
 project_remotes["photo-service"]="https://github.com/best-koder-ever/photo-service.git"
-project_remotes["TestDataGenerator"]="https://github.com/best-koder-ever/TestDataGenerator.git"
 project_remotes["../mobile-apps/flutter/dejtingapp"]=""
 
 # Navigate to the root directory

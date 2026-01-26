@@ -305,14 +305,6 @@ services:
     networks:
       - app-network
 
-  test-data-generator:
-    build:
-      context: . # Changed from ./TestDataGenerator
-      dockerfile: ./TestDataGenerator/Dockerfile # Specified Dockerfile path
-    networks:
-      - app-network
-    command: ["dotnet", "TestDataGenerator.dll"]
-
   debug:
     image: ubuntu:22.04
     command: ["sleep", "infinity"]
