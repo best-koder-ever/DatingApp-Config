@@ -263,7 +263,18 @@ graph TB
   - Flutter: lib/services/swipe_service.dart (new), lib/api_services.dart (updated to use SwipeService)
 - **Analysis**: flutter analyze - No issues found
 - [ ] T035 [US2] Update Flutter Discover UI for compatibility indicators + empty-state messaging (`lib/screens/swipe_screen.dart`)
-- [ ] T036 [US2] Emit notifications + YARP route for match creation (`MatchmakingService`, `dejting-yarp/appsettings*.json`)
+- [x] T036 [US2] Emit notifications + YARP route for match creation (`MatchmakingService`, `dejting-yarp/appsettings*.json`)
+- **Estimate**: 3h
+- **Evidence**:
+  - Created MatchmakingHub (SignalR) for real-time match notifications at /hubs/matchmaking
+  - Updated NotificationService to use IHubContext<MatchmakingHub> for instant push notifications
+  - Added YARP websocket route: matchmakingHubRoute → matchmakingCluster
+  - Configured SignalR in Program.cs (AddSignalR + MapHub)
+  - Dual delivery: SignalR push (primary) + HTTP fallback to MessagingService (offline users)
+  - Client events: "MatchCreated", "NewLike" with userId grouping for targeted delivery
+- **Completion**: 2026-01-26
+- **Files**: MatchmakingService/Hubs/MatchmakingHub.cs (new), Services/NotificationService.cs (enhanced), Program.cs (SignalR config), dejting-yarp/appsettings.Development.json (route)
+- **Build**: No errors, 4 warnings (unrelated async)
 - [ ] T037 [P] [US2] Finalize Flutter offline cache strategy for swipe queue + pending actions and integrate with retry logic (`lib/services/`, caching layer)
 
 **Checkpoint**: Mutual matches create records, notifications fire, and queue gracefully handles exhaustion.
