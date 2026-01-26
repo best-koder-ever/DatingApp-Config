@@ -237,7 +237,18 @@ graph TB
 	- **Evidence**: AdvancedMatchingService implements comprehensive scoring algorithm with configurable weights: Location (25%), Age (30%), Interests (45%), Education (20%), Lifestyle (35%). Configuration in appsettings.json with Scoring section (8 tunable parameters) and DailySuggestionLimits (4 parameters). Registered in Program.cs lines 91-97. Unit tests verify scoring accuracy.
 	- **Completion**: 2026-01-26
 	- **Files**: Services/AdvancedMatchingService.cs (504 lines), Models/ScoringConfiguration.cs, appsettings.json (Scoring section), Program.cs (configuration registration)
-- [ ] T033 [US2] Introduce daily suggestion limits + exhaustion handling (`MatchmakingService/Controllers/`)
+- [x] T033 [US2] Introduce daily suggestion limits + exhaustion handling (`MatchmakingService/Controllers/`)
+	- **Status**: ✅ COMPLETE
+	- **Evidence**: 
+	  - DTOs: Created DailySuggestionDTOs.cs with DailySuggestionStatusResponse and FindMatchesResponse
+	  - Service: Added GetStatusAsync() to IDailySuggestionTracker with DailySuggestionStatus class
+	  - Controller: Enhanced FindMatches endpoint to return limit tracking (remaining, next reset, exhaustion status)
+	  - Controller: Added GET /api/matchmaking/daily-suggestions/status/{userId} endpoint
+	  - Messages: Friendly messaging for limit reached ("Upgrade to Premium for X more!") and queue exhaustion
+	  - Configuration: Daily limits already configured (20 free, 50 premium, 24h refresh)
+	- **Completion**: 2026-01-26
+	- **Files**: DTOs/DailySuggestionDTOs.cs, Services/DailySuggestionTracker.cs (GetStatusAsync method), Controllers/MatchmakingController.cs (enhanced FindMatches + status endpoint)
+	- **Tests**: 18/18 passing, builds successfully
 - [ ] T034 [P] [US2] Implement swipe retry/idempotency logic in SwipeService + API client (`swipe-service/Controllers/SwipesController.cs`, Flutter services)
 - [ ] T035 [US2] Update Flutter Discover UI for compatibility indicators + empty-state messaging (`lib/screens/swipe_screen.dart`)
 - [ ] T036 [US2] Emit notifications + YARP route for match creation (`MatchmakingService`, `dejting-yarp/appsettings*.json`)
