@@ -245,11 +245,23 @@ graph TB
 	  - Controller: Enhanced FindMatches endpoint to return limit tracking (remaining, next reset, exhaustion status)
 	  - Controller: Added GET /api/matchmaking/daily-suggestions/status/{userId} endpoint
 	  - Messages: Friendly messaging for limit reached ("Upgrade to Premium for X more!") and queue exhaustion
-	  - Configuration: Daily limits already configured (20 free, 50 premium, 24h refresh)
-	- **Completion**: 2026-01-26
-	- **Files**: DTOs/DailySuggestionDTOs.cs, Services/DailySuggestionTracker.cs (GetStatusAsync method), Controllers/MatchmakingController.cs (enhanced FindMatches + status endpoint)
-	- **Tests**: 18/18 passing, builds successfully
-- [ ] T034 [P] [US2] Implement swipe retry/idempotency logic in SwipeService + API client (`swipe-service/Controllers/SwipesController.cs`, Flutter services)
+- **Completion**: 2026-01-26
+- **Files**: DTOs/DailySuggestionDTOs.cs, Services/DailySuggestionTracker.cs (GetStatusAsync method), Controllers/MatchmakingController.cs (enhanced FindMatches + status endpoint)
+- **Tests**: 18/18 passing, builds successfully
+- [x] T034 [P] [US2] Implement swipe retry/idempotency logic in SwipeService + API client (`swipe-service/Controllers/SwipesController.cs`, Flutter services)
+- **Estimate**: 4h
+- **Evidence**:
+  - Backend: RecordSwipeHandler already has IdempotencyKey support with duplicate detection
+  - Flutter: Created SwipeService with UUID generation, exponential backoff (3 retries, 200ms→400ms→800ms base delays)
+  - Updated MatchmakingApiService.swipe() to use new retry-capable service
+  - Timeout handling: 10s for single swipe, 15s for batch operations
+  - HTTP 429 rate limit detection with automatic retry, 4xx errors (except 429) don't retry
+  - All swipes include client-generated UUID for safe retry on network failure
+- **Completion**: 2026-01-26
+- **Files**: 
+  - Backend: swipe-service/Commands/RecordSwipeHandler.cs (idempotency already implemented)
+  - Flutter: lib/services/swipe_service.dart (new), lib/api_services.dart (updated to use SwipeService)
+- **Analysis**: flutter analyze - No issues found
 - [ ] T035 [US2] Update Flutter Discover UI for compatibility indicators + empty-state messaging (`lib/screens/swipe_screen.dart`)
 - [ ] T036 [US2] Emit notifications + YARP route for match creation (`MatchmakingService`, `dejting-yarp/appsettings*.json`)
 - [ ] T037 [P] [US2] Finalize Flutter offline cache strategy for swipe queue + pending actions and integrate with retry logic (`lib/services/`, caching layer)
