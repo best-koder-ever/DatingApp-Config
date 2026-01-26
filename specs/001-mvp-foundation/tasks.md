@@ -34,8 +34,13 @@
 	- **Next**: Remove skip attributes as implementations complete
 	- **Completed**: 2026-01-25
 	
-- [ ] T004 [P] [Testing] Fix CI/CD pipeline for green builds (validate comprehensive-ci-cd.yml runs successfully, add coverage badges to README.md, set 80% coverage gate)
+- [ ] T004 [P] [Testing] Fix CI/CD pipeline for green builds (validate comprehensive-ci-cd.yml runs successfully, add coverage badges to README.md, set 80% coverage gate) 🔨 **IN PROGRESS**
 	- **Estimate**: 3h
+	- **Progress**:
+		- ✅ Updated CI/CD workflow (b4e9c93): Removed AuthService, TestDataGenerator, changed PostgreSQL→MySQL, simplified integration tests
+		- ✅ Added CI/CD badge to README.md (6a5a42c): Status badge shows workflow runs, comprehensive project documentation
+		- ⏳ Waiting for workflow run results to verify builds pass
+		- ⏳ Coverage gates (80% threshold) - Need to add to workflow
 	- **Evidence**: GitHub Actions workflow runs green, README shows coverage badges per service, builds fail below 80% threshold
 	- **Prevents**: Regression bugs, breaking changes going unnoticed
 
