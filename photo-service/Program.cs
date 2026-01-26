@@ -5,6 +5,9 @@ using PhotoService.Data;
 using PhotoService.Extensions;
 using PhotoService.Services;
 using SixLabors.ImageSharp.Web.DependencyInjection;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -143,6 +146,45 @@ builder.Services.AddHttpClient<IMatchmakingServiceClient, MatchmakingServiceClie
 })
 .AddHttpMessageHandler<InternalApiKeyAuthHandler>(); // Add internal API key to requests
 
+// Configure OpenTelemetry for metrics and distributed tracing
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(serviceName: "photo-service",
+                    serviceVersion: "1.0.0"))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddMeter("PhotoService")
+        .AddPrometheusExporter())
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            options.RecordException = true;
+            options.Filter = (httpContext) =>
+            {
+                // Don't trace health checks and metrics endpoints
+                var path = httpContext.Request.Path.ToString();
+                return !path.Contains("/health") && !path.Contains("/metrics");
+            };
+        })
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation(options =>
+        {
+            options.SetDbStatementForText = true;
+            options.EnrichWithIDbCommand = (activity, command) =>
+            {
+                activity.SetTag("db.query", command.CommandText);
+            };
+        }));
+
+// Create custom meters for business metrics
+System.Diagnostics.Metrics.Meter customMeter = new("PhotoService");
+var photosUploadedCounter = customMeter.CreateCounter<long>("photos_uploaded_total", description: "Total number of photos uploaded");
+var photosDeletedCounter = customMeter.CreateCounter<long>("photos_deleted_total", description: "Total number of photos deleted");
+var photoProcessingDuration = customMeter.CreateHistogram<double>("photo_processing_duration_ms", description: "Duration of photo processing in milliseconds");
+var photoModerationScore = customMeter.CreateHistogram<double>("photo_moderation_score", description: "Distribution of photo moderation safety scores");
+
 var app = builder.Build();
 
 // ================================
@@ -198,6 +240,9 @@ app.MapControllers();
 
 // Health Check Endpoint - Standard for microservices
 app.MapGet("/health", () => new { Status = "Healthy", Service = "PhotoService", Timestamp = DateTime.UtcNow });
+
+// Prometheus metrics endpoint
+app.MapPrometheusScrapingEndpoint("/metrics");
 
 // Database Migration on Startup - Development convenience
 if (app.Environment.IsDevelopment())

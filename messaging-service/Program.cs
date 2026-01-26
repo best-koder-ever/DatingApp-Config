@@ -11,6 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Threading.Tasks;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -169,6 +172,45 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
+// Configure OpenTelemetry for metrics and distributed tracing
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(serviceName: "messaging-service",
+                    serviceVersion: "1.0.0"))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddMeter("MessagingService")
+        .AddPrometheusExporter())
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            options.RecordException = true;
+            options.Filter = (httpContext) =>
+            {
+                // Don't trace health checks and metrics endpoints
+                var path = httpContext.Request.Path.ToString();
+                return !path.Contains("/health") && !path.Contains("/metrics");
+            };
+        })
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation(options =>
+        {
+            options.SetDbStatementForText = true;
+            options.EnrichWithIDbCommand = (activity, command) =>
+            {
+                activity.SetTag("db.query", command.CommandText);
+            };
+        }));
+
+// Create custom meters for business metrics
+System.Diagnostics.Metrics.Meter customMeter = new("MessagingService");
+var messagesSentCounter = customMeter.CreateCounter<long>("messages_sent_total", description: "Total number of messages sent");
+var messagesModeratedCounter = customMeter.CreateCounter<long>("messages_moderated_total", description: "Total number of messages moderated/blocked");
+var messageDeliveryDuration = customMeter.CreateHistogram<double>("message_delivery_duration_ms", description: "Duration of message delivery via SignalR in milliseconds");
+var spamDetectionScore = customMeter.CreateHistogram<double>("spam_detection_score", description: "Distribution of spam detection scores");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -193,6 +235,9 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapHealthChecks("/health");
+
+// Prometheus metrics endpoint
+app.MapPrometheusScrapingEndpoint("/metrics");
 
 // Map SignalR hub - Use the spec-compliant hub
 app.MapHub<MessagingHubSpec>("/messagingHub");
