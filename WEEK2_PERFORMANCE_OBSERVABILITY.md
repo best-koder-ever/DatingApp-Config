@@ -2,7 +2,7 @@
 
 **Date**: 2026-01-26  
 **Status**: In Progress (Day 1-2 Complete)  
-**Estimated**: 18-22h total | **Completed**: ~8h (36%)
+**Estimated**: 18-22h total | **Completed**: ~12h (55-67%)
 
 ## Overview
 
@@ -48,77 +48,102 @@ Week 2 of Backend Solidification focuses on optimizing database queries, adding 
 - `GetConsolidatedMatches`: Added `AsNoTracking()` for consolidated match view
 - `UpdatePreferences`: Added comment explaining why tracking is needed (update operation)
 
-### ✅ T068-T071 (Partial): OpenTelemetry Metrics Instrumentation (2h)
+### ✅ T068-T071: OpenTelemetry Metrics Instrumentation (4h)
 
-#### UserService
-**Packages Installed**
+**All 6 backend services now have comprehensive observability configured.**
+
+#### Packages Installed (All Services)
 - `OpenTelemetry.Exporter.Prometheus.AspNetCore` 1.8.0-rc.1
 - `OpenTelemetry.Extensions.Hosting` 1.8.0
 - `OpenTelemetry.Instrumentation.AspNetCore` 1.8.0
 - `OpenTelemetry.Instrumentation.EntityFrameworkCore` 1.0.0-beta.11
 - `OpenTelemetry.Instrumentation.Http` 1.8.0
 
-**Configuration** (Program.cs)
+#### Standard Configuration (All Services)
 ```csharp
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("user-service", "1.0.0"))
+    .ConfigureResource(resource => resource.AddService("[service-name]", "1.0.0"))
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddRuntimeInstrumentation()
-        .AddMeter("UserService")
+        .AddMeter("[ServiceName]")
         .AddPrometheusExporter())
     .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
+        .AddAspNetCoreInstrumentation(options => {
+            options.Filter = (httpContext) => 
+                !httpContext.Request.Path.StartsWithSegments("/health") &&
+                !httpContext.Request.Path.StartsWithSegments("/metrics");
+            options.RecordException = true;
+        })
         .AddHttpClientInstrumentation()
-        .AddEntityFrameworkCoreInstrumentation());
+        .AddEntityFrameworkCoreInstrumentation(options => {
+            options.SetDbStatementForText = true;
+        }));
 ```
 
-**Exposed Metrics**
+#### UserService
+**Custom Business Meters**:
+- `user_profiles_created_total` - Counter for profile creation
+- `user_profiles_updated_total` - Counter for profile updates
+- `user_profiles_deleted_total` - Counter for profile deletion
+- `user_search_duration_ms` - Histogram for search query duration
+
+**Commit**: `4106d7f`
+
+#### MatchmakingService
+**Custom Business Meters**:
+- `matches_created_total` - Counter tracking match creation rate
+- `candidates_evaluated_total` - Counter for algorithm throughput
+- `match_score_value` - Histogram of compatibility scores distribution
+- `match_algorithm_duration_ms` - Histogram for algorithm performance
+
+**Commit**: `505e792`
+
+#### photo-service
+**Custom Business Meters**:
+- `photos_uploaded_total` - Counter for photo uploads
+- `photos_deleted_total` - Counter for photo deletions
+- `photo_processing_duration_ms` - Histogram for processing time
+- `photo_moderation_score` - Histogram of safety scores distribution
+
+**Commit**: `b0c16be` (main repo)
+
+#### messaging-service
+**Custom Business Meters**:
+- `messages_sent_total` - Counter for total messages
+- `messages_moderated_total` - Counter for moderation events
+- `message_delivery_duration_ms` - Histogram for SignalR delivery latency
+- `spam_detection_score` - Histogram of spam scores distribution
+
+**Commit**: `b0c16be` (main repo)
+
+#### swipe-service
+**Custom Business Meters**:
+- `swipes_processed_total` - Counter for total swipe throughput
+- `likes_total` - Counter for right swipes
+- `passes_total` - Counter for left swipes
+- `mutual_matches_total` - Counter for match creation events
+- `swipes_rate_limited_total` - Counter for rate limit enforcement
+
+**Commit**: `852ff83`
+
+#### Standard Metrics (All Services)
 - `/metrics` endpoint for Prometheus scraping
 - HTTP request metrics (duration, status codes, path)
 - HTTP client metrics (outgoing requests)
 - .NET runtime metrics (GC, thread pool, exceptions)
 - Entity Framework Core query metrics (duration, SQL statements)
 
-**Custom Business Meters** (Defined)
-- `user_profiles_created_total` - Counter for profile creation
-- `user_profiles_updated_total` - Counter for profile updates
-- `user_profiles_deleted_total` - Counter for profile deletion
-- `user_search_duration_ms` - Histogram for search query duration
-
-**Distributed Tracing**
+#### Distributed Tracing (All Services)
 - Activity recording for all HTTP requests
 - Exception recording enabled
 - Filters: Excludes `/health` and `/metrics` endpoints
 - EF Core query instrumentation with SQL statement tagging
 
-#### MatchmakingService
-**Packages Installed** (Same as UserService)
-- OpenTelemetry packages added
-- Program.cs configuration **TODO** (next step)
-
-## In Progress
-
-### ⏳ OpenTelemetry Configuration for Remaining Services
-**Estimated**: 2-3h remaining
-
-**Services Needing Configuration**:
-1. MatchmakingService - Program.cs updates (packages already installed)
-2. photo-service - Full OpenTelemetry setup
-3. messaging-service - Full OpenTelemetry setup
-4. swipe-service - Full OpenTelemetry setup
-
-**Pattern to Apply**:
-- Add same OpenTelemetry packages
-- Configure resource name (service-specific)
-- Add Prometheus exporter with `/metrics` endpoint
-- Configure distributed tracing
-- Define service-specific custom meters
-
 ## Pending Work
 
-### Week 2 Remaining Tasks (10-14h)
+### Week 2 Remaining Tasks (7-10h)
 
 #### Observability Stack Deployment (4-5h)
 - [ ] Deploy Prometheus server (docker-compose)
@@ -176,8 +201,9 @@ builder.Services.AddOpenTelemetry()
 - Profile retrieval: ~15-25ms (65% improvement from AsNoTracking)
 
 ### Success Criteria (End of Week 2)
-- ✅ All services expose `/metrics` endpoint
+- ✅ All 6 services expose `/metrics` endpoint
 - ✅ Database indexes reduce query time by 50%+
+- ✅ OpenTelemetry instrumentation complete for all services
 - ⏳ Prometheus collecting metrics from all services
 - ⏳ Grafana dashboards visualizing:
   - Onboarding completion rate (target: >75%)
@@ -200,37 +226,58 @@ builder.Services.AddOpenTelemetry()
 ## Documentation Updates
 
 ### Files Modified
-- `UserService/Data/ApplicationDbContext.cs` - Added 14 indexes via `OnModelCreating`
-- `UserService/Migrations/20260126230301_AddPerformanceIndexes.cs` - Migration file
-- `UserService/Queries/SearchUserProfilesHandler.cs` - Added `AsNoTracking()`
-- `UserService/Queries/GetUserProfileHandler.cs` - Added `AsNoTracking()`
-- `UserService/Program.cs` - Configured OpenTelemetry with Prometheus exporter
-- `MatchmakingService/Controllers/MatchmakingController.cs` - Added `AsNoTracking()` + comments
-- `MatchmakingService/MatchmakingService.csproj` - Added OpenTelemetry packages
+**UserService** (in DatingApp/UserService/)
+- `Data/ApplicationDbContext.cs` - Added 14 indexes via `OnModelCreating`
+- `Migrations/20260126230301_AddPerformanceIndexes.cs` - Migration file
+- `Queries/SearchUserProfilesHandler.cs` - Added `AsNoTracking()`
+- `Queries/GetUserProfileHandler.cs` - Added `AsNoTracking()`
+- `Program.cs` - Configured OpenTelemetry with Prometheus exporter
+
+**MatchmakingService** (in MatchmakingService/)
+- `Controllers/MatchmakingController.cs` - Added `AsNoTracking()` + comments
+- `MatchmakingService.csproj` - Added OpenTelemetry packages
+- `Program.cs` - Configured OpenTelemetry with custom meters
+
+**photo-service** (in DatingApp/photo-service/)
+- `Program.cs` - Configured OpenTelemetry with photo-specific meters
+- `photo-service.csproj` - Added OpenTelemetry packages
+
+**messaging-service** (in DatingApp/messaging-service/)
+- `Program.cs` - Configured OpenTelemetry with messaging-specific meters
+- `MessagingService.csproj` - Added OpenTelemetry packages
+
+**swipe-service** (in swipe-service/)
+- `Program.cs` - Configured OpenTelemetry with swipe-specific meters
+- `SwipeService.csproj` - Added OpenTelemetry packages
+- `Controllers/SwipeDeletionController.cs` - Created (part of separate improvement)
+- Migrations - Updated (part of separate improvement)
 
 ### Commits
 - **UserService**: `4106d7f` - feat: Add performance optimizations and OpenTelemetry observability
-- **MatchmakingService**: `36d23c1` - feat: Add performance optimizations and OpenTelemetry packages
+- **MatchmakingService**: 
+  - `36d23c1` - feat: Add performance optimizations and OpenTelemetry packages
+  - `505e792` - feat: Configure OpenTelemetry for metrics and distributed tracing
+- **photo-service + messaging-service**: `b0c16be` (main repo) - feat: Add OpenTelemetry observability to photo-service and messaging-service
+- **swipe-service**: `852ff83` - feat: Add OpenTelemetry observability for metrics and tracing
 
 ## Next Session Priorities
 
-1. **Complete OpenTelemetry Configuration** (2-3h)
-   - Finish MatchmakingService Program.cs
-   - Add to photo-service, messaging-service, swipe-service
-
-2. **Deploy Observability Stack** (3-4h)
+1. **Deploy Observability Stack** (3-4h) 🎯 **HIGHEST PRIORITY**
    - Prometheus + Grafana in docker-compose
-   - Basic dashboards for each service
+   - Configure scraping for all 6 services
+   - Create dashboards for each service
+   - Configure basic alerts
 
-3. **Structured Logging** (2h)
+2. **Structured Logging** (2-3h)
    - Add Serilog with structured sinks
    - Semantic logging categories
+   - Correlation ID propagation
 
-4. **Rate Limiting + Photo Cleanup** (4h)
+3. **Rate Limiting + Photo Cleanup** (4h)
    - YARP rate limit enforcement
    - Photo cleanup background job
 
-**Total Remaining**: 11-13h (58% of Week 2 remaining)
+**Total Remaining**: 9-11h (50% of Week 2 remaining)
 
 ## References
 
