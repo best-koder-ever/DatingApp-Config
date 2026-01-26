@@ -86,17 +86,23 @@ builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddCorrelationIds();
 
+// Internal API Key Authentication for service-to-service calls
+builder.Services.AddScoped<InternalApiKeyAuthFilter>();
+builder.Services.AddTransient<InternalApiKeyAuthHandler>();
+
 // Add HttpClient for Safety Service
 builder.Services.AddHttpClient<ISafetyServiceClient, SafetyServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Gateway:BaseUrl"] ?? "http://dejting-yarp:8080");
-});
+})
+.AddHttpMessageHandler<InternalApiKeyAuthHandler>();
 
 // Add HttpClient for MessageServiceSpec (to call MatchmakingService)
 builder.Services.AddHttpClient<MessageServiceSpec>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Gateway:BaseUrl"] ?? "http://dejting-yarp:8080");
-});
+})
+.AddHttpMessageHandler<InternalApiKeyAuthHandler>();
 
 // Add MediatR for CQRS
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
