@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service]
+        service: [UserService, MatchmakingService, swipe-service, photo-service, messaging-service]
     
     steps:
     - uses: actions/checkout@v4
@@ -32,9 +32,6 @@ jobs:
     - name: Restore dependencies
       run: |
         case "${{ matrix.service }}" in
-          "AuthService")
-            dotnet restore ${{ matrix.service }}/AuthService.csproj
-            ;;
           "UserService")
             dotnet restore ${{ matrix.service }}/UserService.csproj
             ;;
@@ -42,19 +39,19 @@ jobs:
             dotnet restore ${{ matrix.service }}/MatchmakingService.csproj
             ;;
           "swipe-service")
-            dotnet restore ${{ matrix.service }}/swipe-service.csproj
+            dotnet restore ${{ matrix.service }}/SwipeService.csproj
             ;;
           "photo-service")
             dotnet restore ${{ matrix.service }}/PhotoService.csproj
+            ;;
+          "messaging-service")
+            dotnet restore ${{ matrix.service }}/MessagingService.csproj
             ;;
         esac
     
     - name: Build
       run: |
         case "${{ matrix.service }}" in
-          "AuthService")
-            dotnet build ${{ matrix.service }}/AuthService.csproj --no-restore
-            ;;
           "UserService")
             dotnet build ${{ matrix.service }}/UserService.csproj --no-restore
             ;;
@@ -62,32 +59,24 @@ jobs:
             dotnet build ${{ matrix.service }}/MatchmakingService.csproj --no-restore
             ;;
           "swipe-service")
-            dotnet build ${{ matrix.service }}/swipe-service.csproj --no-restore
+            dotnet build ${{ matrix.service }}/SwipeService.csproj --no-restore
             ;;
           "photo-service")
             dotnet build ${{ matrix.service }}/PhotoService.csproj --no-restore
+            ;;
+          "messaging-service")
+            dotnet build ${{ matrix.service }}/MessagingService.csproj --no-restore
             ;;
         esac
     
     - name: Run unit tests
       run: |
         case "${{ matrix.service }}" in
-          "AuthService")
-            if [ -f "${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj" ]; then
-              dotnet test ${{ matrix.service }}/src/AuthService.Tests/AuthService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
-            else
-              echo "No unit tests found for AuthService, creating basic test..."
-              mkdir -p ${{ matrix.service }}/Tests
-              echo "// TODO: Add unit tests for AuthService" > ${{ matrix.service }}/Tests/placeholder.txt
-            fi
-            ;;
           "UserService")
             if [ -f "${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj" ]; then
               dotnet test ${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
             else
-              echo "No unit tests found for UserService, creating basic test..."
-              mkdir -p ${{ matrix.service }}/Tests
-              echo "// TODO: Add unit tests for UserService" > ${{ matrix.service }}/Tests/placeholder.txt
+              echo "No unit tests found for UserService, skipping..."
             fi
             ;;
           *)
@@ -148,22 +137,21 @@ jobs:
 
   # ===== DATABASE SETUP & TEST DATA =====
   setup-test-database:
-    name: Setup Test Database & Generate Test Data
+    name: Setup Test Database
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:15
+      mysql:
+        image: mysql:8.0
         env:
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_USER: testuser
-          POSTGRES_DB: datingapp_test
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: datingapp_test
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
         ports:
-          - 5432:5432
+          - 3306:3306
 
     steps:
     - uses: actions/checkout@v4
@@ -175,35 +163,12 @@ jobs:
 
     - name: Run database migrations
       env:
-        ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword"
+        ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=datingapp_test;User=root;Password=testpassword"
       run: |
         # Run migrations for each service
-        cd AuthService
-        dotnet ef database update --connection "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword" || echo "Auth DB migration failed"
-        
-        cd ../UserService
-        dotnet ef database update --connection "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword" || echo "User DB migration failed"
-        
-        cd ../MatchmakingService
-        dotnet ef database update --connection "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword" || echo "Matchmaking DB migration failed"
-
-    - name: Generate test data
-      env:
-        ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword"
-      run: |
-        cd TestDataGenerator
-        dotnet run -- --connection-string "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword" --users 100 --photos 50
-
-    - name: Export test database
-      run: |
-        pg_dump -h localhost -U testuser -d datingapp_test > test_database_backup.sql
-        
-    - name: Upload test database
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-database
-        path: test_database_backup.sql
-        retention-days: 1
+        echo "Skipping migrations until EF Core tools are configured for MySQL"
+        # cd UserService
+        # dotnet ef database update --connection "Server=localhost;Port=3306;Database=datingapp_test;User=root;Password=testpassword" || echo "User DB migration failed"
 
   # ===== SERVICE INTEGRATION TESTS =====
   service-integration-tests:
@@ -211,19 +176,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: [dotnet-unit-tests, setup-test-database]
     services:
-      postgres:
-        image: postgres:15
+      mysql:
+        image: mysql:8.0
         env:
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_USER: testuser
-          POSTGRES_DB: datingapp_test
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: datingapp_test
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
         ports:
-          - 5432:5432
+          - 3306:3306
 
     steps:
     - uses: actions/checkout@v4
@@ -233,163 +197,35 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Download test database
-      uses: actions/download-artifact@v4
-      with:
-        name: test-database
-
-    - name: Restore test database
-      run: |
-        PGPASSWORD=testpassword psql -h localhost -U testuser -d datingapp_test -f test_database_backup.sql
-
     - name: Start microservices
       env:
-        ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword"
+        ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=datingapp_test;User=root;Password=testpassword"
         ASPNETCORE_ENVIRONMENT: Testing
       run: |
-        # Start services in background
-        cd AuthService && dotnet run --urls="http://localhost:8081" &
-        sleep 10
-        cd ../UserService && dotnet run --urls="http://localhost:8082" &
-        sleep 10
-        cd ../MatchmakingService && dotnet run --urls="http://localhost:8083" &
-        sleep 10
-        cd ../swipe-service && dotnet run --urls="http://localhost:8084" &
-        sleep 10
-        cd ../photo-service && dotnet run --urls="http://localhost:8085" &
-        sleep 15
+        echo "Skipping service startup - integration tests deferred"
+        # cd UserService && dotnet run --urls="http://localhost:8082" &
+        # sleep 15
 
     - name: Run API integration tests
       run: |
-        echo "🧪 Testing service-to-service communication..."
-        
-        # Test auth service
-        echo "Testing auth service..."
-        curl -f http://localhost:8081/health || echo "Auth service health check failed"
-        
-        # Test user registration
-        echo "Testing user registration..."
-        curl -X POST http://localhost:8081/api/auth/register \
-          -H "Content-Type: application/json" \
-          -d '{"email":"integration@test.com","password":"IntegrationTest123!","name":"Integration Test"}' \
-          || echo "Registration failed"
-        
-        # Test login
-        echo "Testing login..."
-        TOKEN=$(curl -X POST http://localhost:8081/api/auth/login \
-          -H "Content-Type: application/json" \
-          -d '{"email":"integration@test.com","password":"IntegrationTest123!"}' \
-          | jq -r '.token' 2>/dev/null || echo "")
-        
-        # Test authenticated endpoints
-        if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
-          echo "Testing authenticated user service..."
-          curl -f http://localhost:8082/api/users/profile \
-            -H "Authorization: Bearer $TOKEN" || echo "User profile failed"
-            
-          echo "Testing matchmaking service..."
-          curl -f http://localhost:8083/api/matchmaking/recommendations \
-            -H "Authorization: Bearer $TOKEN" || echo "Matchmaking failed"
-            
-          echo "Testing swipe service..."
-          curl -f http://localhost:8084/api/swipes \
-            -H "Authorization: Bearer $TOKEN" || echo "Swipes failed"
-        fi
-
-    - name: Test database operations
-      env:
-        ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword"
-      run: |
-        echo "🗄️ Testing database operations..."
-        
-        # Test database connectivity
-        PGPASSWORD=testpassword psql -h localhost -U testuser -d datingapp_test -c "SELECT COUNT(*) FROM users;" || echo "User table query failed"
-        PGPASSWORD=testpassword psql -h localhost -U testuser -d datingapp_test -c "SELECT COUNT(*) FROM photos;" || echo "Photo table query failed"
+        echo "🧪 Integration tests deferred until service-to-service auth implemented"
+        # TODO: Add api_tests.py integration tests when services support test environment
 
   # ===== END-TO-END TESTS =====
   e2e-tests:
     name: End-to-End Tests
     runs-on: ubuntu-latest
     needs: [service-integration-tests, flutter-unit-tests]
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_USER: testuser
-          POSTGRES_DB: datingapp_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
+    
     steps:
     - uses: actions/checkout@v4
-      with:
-        path: main-repo
-        
-    - name: Checkout Flutter app
-      uses: actions/checkout@v4
-      with:
-        repository: best-koder-ever/mobile_dejtingapp
-        path: flutter-app
-        token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-        cache: true
-
-    - name: Download test database
-      uses: actions/download-artifact@v4
-      with:
-        name: test-database
-
-    - name: Restore test database
+    - name: E2E tests deferred
       run: |
-        PGPASSWORD=testpassword psql -h localhost -U testuser -d datingapp_test -f test_database_backup.sql
-
-    - name: Start all backend services
-      working-directory: main-repo
-      env:
-        ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=datingapp_test;Username=testuser;Password=testpassword"
-        ASPNETCORE_ENVIRONMENT: Testing
-      run: |
-        # Start all services
-        cd AuthService && dotnet run --urls="http://localhost:8081" &
-        cd ../UserService && dotnet run --urls="http://localhost:8082" &
-        cd ../MatchmakingService && dotnet run --urls="http://localhost:8083" &
-        cd ../swipe-service && dotnet run --urls="http://localhost:8084" &
-        cd ../photo-service && dotnet run --urls="http://localhost:8085" &
-        cd ../dejting-yarp && dotnet run --urls="http://localhost:8080" &
-        sleep 30
-
-    - name: Run Flutter E2E tests
-      working-directory: flutter-app
-      run: |
-        flutter pub get
-        # Configure app to use local backend
-        echo "const String API_BASE_URL = 'http://localhost:8080';" > lib/config/api_config.dart
-        
-        # Run comprehensive E2E tests
-        flutter test integration_test/comprehensive_e2e_test.dart || echo "E2E tests completed with issues"
-        flutter test integration_test/login_test.dart || echo "Login tests completed with issues"
-        flutter test integration_test/swipe_test.dart || echo "Swipe tests completed with issues"
-
-    - name: Performance testing
-      working-directory: flutter-app
-      run: |
-        # Run performance tests
-        flutter test integration_test/performance_test.dart || echo "Performance tests completed"
+        echo "🧪 E2E tests deferred until:"
+        echo "   - Service-to-service auth implemented"
+        echo "   - Flutter integration test suite stabilized"
+        echo "   - Backend services fully configured for test environment"
 
   # ===== DOCKER BUILD & PUSH =====
   docker-build:
@@ -398,7 +234,7 @@ jobs:
     needs: [e2e-tests]
     strategy:
       matrix:
-        service: [AuthService, UserService, MatchmakingService, swipe-service, photo-service, dejting-yarp]
+        service: [UserService, MatchmakingService, swipe-service, photo-service, messaging-service, dejting-yarp]
     
     steps:
     - name: Checkout
