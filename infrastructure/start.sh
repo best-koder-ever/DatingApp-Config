@@ -16,7 +16,7 @@ if ! ${COMPOSE_CMD} version >/dev/null 2>&1; then
     fi
 fi
 
-REQUIRED_SERVICES=(keycloak-db keycloak mailhog MatchmakingService-db)
+REQUIRED_SERVICES=(keycloak-db keycloak mailhog MatchmakingService-db swipe-service-db UserService-db photo-service-db)
 
 pushd "${PROJECT_ROOT}" >/dev/null
 
@@ -78,4 +78,4 @@ fi
 
 popd >/dev/null
 
-echo "\n✅ Infrastructure ready. Keycloak available on http://localhost:8090, MySQL on localhost:3309."
+echo "\n✅ Infrastructure ready. Keycloak available on http://localhost:8090, MySQL databases available (see docker-compose.yml for port mappings)."
