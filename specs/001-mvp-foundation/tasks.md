@@ -341,7 +341,7 @@ graph TB
 
 ### Implementation
 - [ ] T042 [P] [US3] [MMP] Finalize SignalR hub contracts per spec - BASIC only (send/receive messages, no typing indicators) (`messaging-service/Hubs/MessagingHub.cs`, `contracts/signalr-spec.md`)
-- [ ] T043 [P] [US3] [MMP] Add message persistence (NO read receipts initially) in `MessagingService/Services/MessageService.cs`
+- [x] T043 [P] [US3] [MMP] Add message persistence (NO read receipts initially) - COMPLETE: MessageService & MessageServiceSpec persist to MessagingDbContext. ReadAt tracked internally but not exposed in MessageDto (always null). Conversation history via GET /api/messages/conversation/{otherUserId} with pagination.
 - [ ] T044 [P] [US3] [MMP] Implement offline queue + reconnection handling in Flutter messaging service (`lib/services/messaging_service.dart`)
 - [ ] T045 [P] [US3] [MMP] Ensure YARP websockets + auth pipeline pass through tokens (`dejting-yarp/Program.cs`)
 - [ ] T046 [US3] [Deferred to Phase 2] Update audit logging + moderation hooks for flagged messages - manual moderation OK for MMP beta (`messaging-service/Services/`)
