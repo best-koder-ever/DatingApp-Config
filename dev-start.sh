@@ -50,7 +50,7 @@ sleep 2
 
 # Check if ports are available
 echo "🔍 Checking port availability..."
-PORTS=(8080 8081 8082 8083 8085 8086 8087 8088)
+PORTS=(8080 8082 8083 8085 8086 8087 8088)
 for port in "${PORTS[@]}"; do
     if lsof -i :$port >/dev/null 2>&1; then
         echo "❌ Port $port is busy - killing processes..."
@@ -58,13 +58,6 @@ for port in "${PORTS[@]}"; do
         sleep 1
     fi
 done
-
-# Start AuthService
-echo "🔐 Starting AuthService on port 8081..."
-cd /home/m/development/DatingApp/AuthService
-ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8081 dotnet run > ../logs/auth-service.log 2>&1 &
-AUTH_PID=$!
-sleep 2
 
 # Start UserService
 echo "👤 Starting UserService on port 8082..."
@@ -130,7 +123,6 @@ cd /home/m/development/DatingApp
 
 # Health checks
 echo "🏥 Performing health checks..."
-AUTH_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/health 2>/dev/null || echo "000")
 USER_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/health 2>/dev/null || echo "000")
 MATCHMAKING_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8083/health 2>/dev/null || echo "000")
 PHOTO_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/health 2>/dev/null || echo "000")
@@ -142,12 +134,6 @@ YARP_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/healt
 
 echo ""
 echo "📊 Service Status:"
-if [ "$AUTH_HEALTH" = "200" ]; then
-    echo "✅ AuthService: Running (PID: $AUTH_PID)"
-else
-    echo "❌ AuthService: Failed to start (HTTP: $AUTH_HEALTH)"
-fi
-
 if [ "$USER_HEALTH" = "200" ]; then
     echo "✅ UserService: Running (PID: $USER_PID)"
 else
@@ -200,7 +186,6 @@ fi
 
 echo ""
 echo "📝 Logs:"
-echo "   AuthService: tail -f logs/auth-service.log"
 echo "   UserService: tail -f logs/user-service.log"
 echo "   MatchmakingService: tail -f logs/matchmaking-service.log"
 echo "   PhotoService: tail -f logs/photo-service.log"
@@ -215,7 +200,7 @@ echo "📊 To check status: ./dev-status.sh"
 echo ""
 echo "🎯 Complete Dating App Backend Running!"
 
-echo "💡 All services: 8080(Gateway), 8081(Auth), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe), 8088(Safety)"
+echo "💡 All services: 8080(Gateway), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe), 8088(Safety)"
 
 # Automatically start Flutter app on Chrome for development
 echo "📱 Launching Flutter app on Chrome..."

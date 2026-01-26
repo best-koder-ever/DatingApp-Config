@@ -51,7 +51,6 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - auth-service
       - user-service
       - matchmaking-service
       - swipe-service
@@ -64,47 +63,6 @@ services:
       - ASPNETCORE_URLS=http://*:8080     
     networks:
       - app-network
-
-  auth-service:
-    image: auth-service:latest  
-    build:
-      context: ./AuthService
-      dockerfile: Dockerfile
-    ports:
-      - "8081:8081"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8081
-      - ASPNETCORE_HTTPS_PORTS=8081
-      - ASPNETCORE_URLS=http://*:8081
-      - ConnectionStrings__DefaultConnection=Server=AuthService-db;Port=3306;Database=AuthServiceDb;User=authuser;Password=authuser_password;
-      - DEMO_MODE=${DEMO_MODE:-false}
-    depends_on:
-      AuthService-db:
-        condition: service_healthy
-    networks:
-      - app-network
-
-  AuthService-db:
-    image: mysql:8.0
-    container_name: AuthService-db
-    restart: always    
-    environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: AuthServiceDb
-      MYSQL_USER: authuser
-      MYSQL_PASSWORD: authuser_password
-    ports:
-      - "3307:3306"
-    volumes:
-      - AuthService-data:/var/lib/mysql
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "AuthService-db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   user-service:
     image: user-service:latest
@@ -351,12 +309,8 @@ services:
     build:
       context: . # Changed from ./TestDataGenerator
       dockerfile: ./TestDataGenerator/Dockerfile # Specified Dockerfile path
-    depends_on:
-      - auth-service
     networks:
       - app-network
-    environment:
-      - AUTH_API_URL=http://auth-service:8081
     command: ["dotnet", "TestDataGenerator.dll"]
 
   debug:
@@ -370,7 +324,6 @@ services:
 volumes:
   keycloak-db-data:
   loki-data:
-  AuthService-data:
   UserService-data:
   MatchmakingService-data:
   swipe-service-data:
