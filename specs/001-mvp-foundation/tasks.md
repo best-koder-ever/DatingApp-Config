@@ -57,7 +57,7 @@
 	- **Evidence**: All services use single database engine, migration script exists for transitioning services, `infrastructure/docker-compose.yml` updated
 	- **Rationale**: Currently mixing PostgreSQL (photo, swipe, matchmaking) and MySQL (user, messaging, auth) without clear strategy
 	
-- [ ] T008 [P] [Foundational] Remove deprecated AuthService (complete Keycloak migration for all auth flows, delete AuthService directory, update YARP routes, remove from dev-start.sh)
+- [x] T008 [P] [Foundational] Remove deprecated AuthService (complete Keycloak migration for all auth flows, delete AuthService directory, update YARP routes, remove from dev-start.sh) ✅ **COMPLETE** - AuthService deleted, Keycloak sole auth provider, YARP/dev-start/docker-compose updated (1def06f, cfe6413)
 	- **Estimate**: 3h
 	- **Evidence**: AuthService directory deleted, all services use Keycloak OIDC, YARP routes updated, dev-start.sh no longer references port 8081
 	- **Rationale**: Dual auth system causes confusion, Keycloak is primary per spec
