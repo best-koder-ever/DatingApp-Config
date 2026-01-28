@@ -119,6 +119,9 @@ builder.Services.AddScoped<IPhotoService, PhotoService.Services.PhotoService>();
 builder.Services.AddScoped<IImageProcessingService, ImageProcessingService>();
 builder.Services.AddScoped<IStorageService, LocalStorageService>();
 
+// Background Services - Periodic cleanup and maintenance
+builder.Services.AddHostedService<PhotoCleanupBackgroundService>();
+
 // Add MediatR for CQRS
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
