@@ -54,7 +54,7 @@ jobs:
         cd ${{ matrix.service }}
         dotnet build --no-restore --configuration Release
     
-    - name: Run unit tests
+    - name: Run unit tests with coverage
       run: |
         cd ${{ matrix.service }}
         # Find test projects
@@ -64,17 +64,39 @@ jobs:
             --configuration Release \
             --verbosity normal \
             --collect:"XPlat Code Coverage" \
-            --results-directory ./coverage
+            --results-directory ./coverage \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          
+          echo "📊 Test coverage collected for ${{ matrix.service }}"
         else
           echo "⏭️  No test project found for ${{ matrix.service }}"
         fi
     
-    - name: Upload coverage
+    - name: Generate coverage summary
+      if: success()
+      run: |
+        cd ${{ matrix.service }}
+        if [ -d "coverage" ]; then
+          coverage_file=$(find coverage -name "coverage.cobertura.xml" | head -1)
+          if [ -f "$coverage_file" ]; then
+            line_rate=$(grep -oP 'line-rate="\K[0-9.]+' "$coverage_file" | head -1)
+            branch_rate=$(grep -oP 'branch-rate="\K[0-9.]+' "$coverage_file" | head -1)
+            line_pct=$(echo "$line_rate * 100" | bc -l | xargs printf "%.1f")
+            branch_pct=$(echo "$branch_rate * 100" | bc -l | xargs printf "%.1f")
+            echo "### 📊 ${{ matrix.service }} Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "- Line Coverage: ${line_pct}%" >> $GITHUB_STEP_SUMMARY
+            echo "- Branch Coverage: ${branch_pct}%" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+    
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       if: success()
+      continue-on-error: true
       with:
         files: ./${{ matrix.service }}/coverage/**/coverage.cobertura.xml
         flags: ${{ matrix.service }}
+        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: false
 
   # ===== GATEWAY BUILD =====

@@ -59,3 +59,9 @@ logs/
 package-lock.json
 .old_scaffolds/
 
+
+# Test Coverage
+coverage/
+TestResults/
+*.coverage
+*.coveragexml
