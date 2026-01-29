@@ -188,9 +188,12 @@ graph TB
 - **Status**: Partial (32 skipped tests → 14 passing unit tests, file-serving tests need integration test approach)
 - **Updated**: 2026-01-29
 	- **Dependencies**: T072
-- [ ] T074 [Setup] Implement proper API smoke tests in CI (replace echo placeholder with real API calls, start services in GitHub Actions, verify health endpoints respond)
+- [x] T074 [Setup] Implement proper API smoke tests in CI (replace echo placeholder with real API calls, start services in GitHub Actions, verify health endpoints respond)
 	- **Estimate**: 2h
-	- **Evidence**: Smoke tests make HTTP calls to running services, validate responses
+	- **Evidence**: `smoke-tests.py` (103 lines) tests all 5 microservices health endpoints with intelligent waiting and error handling. `.github/workflows/comprehensive-ci-cd.yml` (280 lines) starts all services on designated ports, runs Python tests, captures logs on failure
+	- **Files**: `smoke-tests.py`, `SMOKE_TESTS.md`, `.github/workflows/comprehensive-ci-cd.yml`
+	- **Services**: UserService:8082, MatchmakingService:8083, SwipeService:8084, PhotoService:8085, MessagingService:8086
+	- **Completed**: 2026-01-29
 	- **Dependencies**: T072
 - [ ] T075 [Setup] Add test coverage reporting (configure Coverlet, add coverage badges per service, set 80% threshold for new code)
 	- **Estimate**: 2h
