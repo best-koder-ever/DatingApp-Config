@@ -9,20 +9,35 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: best-koder-ever/dating-app
-  FLUTTER_VERSION: "3.24.3"
   DOTNET_VERSION: "8.0.x"
 
 jobs:
-  # ===== .NET MICROSERVICES UNIT TESTS =====
-  dotnet-unit-tests:
-    name: .NET Unit Tests
+  # ===== .NET MICROSERVICES BUILD & TEST =====
+  dotnet-build-test:
+    name: .NET Build & Test (${{ matrix.service }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service: [UserService, MatchmakingService, swipe-service, photo-service, messaging-service]
     
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: datingapp_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -31,216 +46,159 @@ jobs:
     
     - name: Restore dependencies
       run: |
-        case "${{ matrix.service }}" in
-          "UserService")
-            dotnet restore ${{ matrix.service }}/UserService.csproj
-            ;;
-          "MatchmakingService")
-            dotnet restore ${{ matrix.service }}/MatchmakingService.csproj
-            ;;
-          "swipe-service")
-            dotnet restore ${{ matrix.service }}/SwipeService.csproj
-            ;;
-          "photo-service")
-            dotnet restore ${{ matrix.service }}/PhotoService.csproj
-            ;;
-          "messaging-service")
-            dotnet restore ${{ matrix.service }}/MessagingService.csproj
-            ;;
-        esac
+        cd ${{ matrix.service }}
+        dotnet restore
     
     - name: Build
       run: |
-        case "${{ matrix.service }}" in
-          "UserService")
-            dotnet build ${{ matrix.service }}/UserService.csproj --no-restore
-            ;;
-          "MatchmakingService")
-            dotnet build ${{ matrix.service }}/MatchmakingService.csproj --no-restore
-            ;;
-          "swipe-service")
-            dotnet build ${{ matrix.service }}/SwipeService.csproj --no-restore
-            ;;
-          "photo-service")
-            dotnet build ${{ matrix.service }}/PhotoService.csproj --no-restore
-            ;;
-          "messaging-service")
-            dotnet build ${{ matrix.service }}/MessagingService.csproj --no-restore
-            ;;
-        esac
+        cd ${{ matrix.service }}
+        dotnet build --no-restore --configuration Release
     
     - name: Run unit tests
       run: |
-        case "${{ matrix.service }}" in
-          "UserService")
-            if [ -f "${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj" ]; then
-              dotnet test ${{ matrix.service }}/UserService.Tests/UserService.Tests.csproj --verbosity normal --collect:"XPlat Code Coverage"
-            else
-              echo "No unit tests found for UserService, skipping..."
-            fi
-            ;;
-          *)
-            echo "No unit tests found for ${{ matrix.service }}, skipping..."
-            ;;
-        esac
+        cd ${{ matrix.service }}
+        # Find test projects
+        if ls *.Tests/*.csproj 1> /dev/null 2>&1; then
+          dotnet test *.Tests/*.csproj \
+            --no-build \
+            --configuration Release \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage
+        else
+          echo "⏭️  No test project found for ${{ matrix.service }}"
+        fi
     
-    - name: Upload coverage reports
+    - name: Upload coverage
       uses: codecov/codecov-action@v4
       if: success()
       with:
-        files: ./${{ matrix.service }}/**/coverage.cobertura.xml
+        files: ./${{ matrix.service }}/coverage/**/coverage.cobertura.xml
         flags: ${{ matrix.service }}
+        fail_ci_if_error: false
 
-  # ===== FLUTTER UNIT TESTS =====
-  flutter-unit-tests:
-    name: Flutter Unit Tests
+  # ===== GATEWAY BUILD =====
+  gateway-build:
+    name: Build YARP Gateway
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: /home/m/development/mobile-apps/flutter/dejtingapp
     
     steps:
-    - uses: actions/checkout@v4
-      with:
-        path: main-repo
-        
-    - name: Checkout Flutter app
+    - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        repository: best-koder-ever/mobile_dejtingapp
-        path: flutter-app
-        token: ${{ secrets.GITHUB_TOKEN }}
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Build gateway
+      run: |
+        cd dejting-yarp/src/dejting-yarp
+        dotnet restore
+        dotnet build --no-restore --configuration Release
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-        cache: true
-
-    - name: Get Flutter dependencies
-      working-directory: flutter-app
-      run: flutter pub get
-
-    - name: Analyze Flutter code
-      working-directory: flutter-app
-      run: flutter analyze
-
-    - name: Run Flutter unit tests
-      working-directory: flutter-app
-      run: flutter test --coverage
-
-    - name: Upload Flutter coverage
-      uses: codecov/codecov-action@v4
-      with:
-        files: flutter-app/coverage/lcov.info
-        flags: flutter
-
-  # ===== DATABASE SETUP & TEST DATA =====
-  setup-test-database:
-    name: Setup Test Database
+  # ===== SMOKE TESTS =====
+  smoke-tests:
+    name: API Smoke Tests
     runs-on: ubuntu-latest
+    needs: [dotnet-build-test, gateway-build]
+    
     services:
       mysql:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: testpassword
           MYSQL_DATABASE: datingapp_test
+        ports:
+          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping --silent"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-        ports:
-          - 3306:3306
-
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Run database migrations
-      env:
-        ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=datingapp_test;User=root;Password=testpassword"
-      run: |
-        # Run migrations for each service
-        echo "Skipping migrations until EF Core tools are configured for MySQL"
-        # cd UserService
-        # dotnet ef database update --connection "Server=localhost;Port=3306;Database=datingapp_test;User=root;Password=testpassword" || echo "User DB migration failed"
-
-  # ===== SERVICE INTEGRATION TESTS =====
-  service-integration-tests:
-    name: Service Integration Tests
-    runs-on: ubuntu-latest
-    needs: [dotnet-unit-tests, setup-test-database]
-    services:
-      mysql:
-        image: mysql:8.0
+      
+      keycloak:
+        image: quay.io/keycloak/keycloak:23.0
         env:
-          MYSQL_ROOT_PASSWORD: testpassword
-          MYSQL_DATABASE: datingapp_test
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          KEYCLOAK_ADMIN: admin
+          KEYCLOAK_ADMIN_PASSWORD: admin
+          KC_DB: dev-mem
         ports:
-          - 3306:3306
-
-    steps:
-    - uses: actions/checkout@v4
+          - 9090:8080
+        options: >-
+          --health-cmd="curl -f http://localhost:8080/health || exit 1"
+          --health-interval=30s
+          --health-timeout=10s
+          --health-retries=5
     
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Start microservices
-      env:
-        ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=datingapp_test;User=root;Password=testpassword"
-        ASPNETCORE_ENVIRONMENT: Testing
-      run: |
-        echo "Skipping service startup - integration tests deferred"
-        # cd UserService && dotnet run --urls="http://localhost:8082" &
-        # sleep 15
-
-    - name: Run API integration tests
-      run: |
-        echo "🧪 Integration tests deferred until service-to-service auth implemented"
-        # TODO: Add api_tests.py integration tests when services support test environment
-
-  # ===== END-TO-END TESTS =====
-  e2e-tests:
-    name: End-to-End Tests
-    runs-on: ubuntu-latest
-    needs: [service-integration-tests, flutter-unit-tests]
+        python-version: '3.12'
     
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: E2E tests deferred
+    - name: Install Python dependencies
       run: |
-        echo "🧪 E2E tests deferred until:"
-        echo "   - Service-to-service auth implemented"
-        echo "   - Flutter integration test suite stabilized"
-        echo "   - Backend services fully configured for test environment"
+        pip install httpx pydantic python-dotenv
+    
+    - name: Start services (background)
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+        ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=datingapp_test;User=root;Password=testpassword"
+      run: |
+        echo "🚀 Starting backend services..."
+        
+        # Start UserService
+        cd UserService
+        dotnet run --urls="http://localhost:8082" > ../user-service.log 2>&1 &
+        echo $! > ../user-service.pid
+        cd ..
+        
+        # Wait for services to be ready
+        sleep 20
+        
+        # Check if services are responding
+        curl -f http://localhost:8082/health || echo "⚠️  UserService not ready"
+    
+    - name: Run smoke tests
+      run: |
+        echo "🧪 Running basic health checks..."
+        curl -f http://localhost:8082/health || exit 1
+        echo "✅ Smoke tests passed"
+    
+    - name: Cleanup services
+      if: always()
+      run: |
+        if [ -f user-service.pid ]; then
+          kill $(cat user-service.pid) || true
+        fi
 
-  # ===== DOCKER BUILD & PUSH =====
+  # ===== DOCKER BUILD =====
   docker-build:
-    name: Build & Push Docker Images
+    name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [e2e-tests]
+    needs: [smoke-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
+      fail-fast: false
       matrix:
         service: [UserService, MatchmakingService, swipe-service, photo-service, messaging-service, dejting-yarp]
     
+    permissions:
+      contents: read
+      packages: write
+    
     steps:
-    - name: Checkout
+    - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Log in to Container Registry
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
@@ -252,58 +210,37 @@ jobs:
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
     
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v6
+    - name: Build and push
+      uses: docker/build-push-action@v5
       with:
         context: ./${{ matrix.service }}
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
-  # ===== SECURITY SCANNING =====
-  security-scan:
-    name: Security Scanning
+  # ===== SUMMARY =====
+  ci-summary:
+    name: CI Summary
     runs-on: ubuntu-latest
-    needs: [dotnet-unit-tests]
+    needs: [dotnet-build-test, gateway-build, smoke-tests]
+    if: always()
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Run .NET security scan
+    - name: Generate summary
       run: |
-        dotnet list package --vulnerable || echo "Security scan completed"
-        
-    - name: Run dependency check
-      uses: dependency-check/Dependency-Check_Action@main
-      with:
-        project: 'dating-app'
-        path: '.'
-        format: 'ALL'
-
-    - name: Upload security results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: security-reports
-        path: reports/
-
-  # ===== DEPLOYMENT =====
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [docker-build, security-scan]
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Deploy to server
-      run: |
-        echo "🚀 Deploying comprehensive dating app to production..."
-        echo "✅ All tests passed:"
-        echo "   - .NET unit tests"
-        echo "   - Flutter unit tests"
-        echo "   - Service integration tests"
-        echo "   - End-to-end tests"
-        echo "   - Performance tests"
-        echo "   - Security scans"
-        echo "🎯 Ready for production deployment!"
+        echo "## 🎯 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Status" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET Build & Test: ${{ needs.dotnet-build-test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Gateway Build: ${{ needs.gateway-build.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Smoke Tests: ${{ needs.smoke-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

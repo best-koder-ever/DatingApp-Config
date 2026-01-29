@@ -17,14 +17,15 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: test123
-          MYSQL_DATABASE: testdb
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: datingapp_test
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=3
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -34,23 +35,39 @@ jobs:
     - name: Run All Service Tests
       run: |
         echo "🧪 Testing all services..."
-        TOTAL_PASS=0
-        TOTAL_FAIL=0
+        TOTAL=0
+        PASSED=0
         
-        for test_proj in $(find . -name "*.Tests.csproj" | grep -v ".old_scaffolds"); do
+        for test_proj in $(find . -name "*.Tests.csproj" | grep -v ".old_scaffolds" | grep -v "/bin/" | grep -v "/obj/"); do
+          TOTAL=$((TOTAL+1))
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Testing: $test_proj"
-          dotnet test "$test_proj" --verbosity minimal || TOTAL_FAIL=$((TOTAL_FAIL+1))
-          TOTAL_PASS=$((TOTAL_PASS+1))
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          if dotnet test "$test_proj" --verbosity minimal --no-build; then
+            PASSED=$((PASSED+1))
+            echo "✅ PASSED: $test_proj"
+          else
+            echo "❌ FAILED: $test_proj"
+          fi
         done
         
-        echo "✅ Passed: $TOTAL_PASS services"
-        exit $TOTAL_FAIL
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📊 Summary: $PASSED/$TOTAL test projects passed"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        
+        if [ $PASSED -lt $TOTAL ]; then
+          exit 1
+        fi
     
     - name: Generate Test Report
       if: always()
       run: |
-        echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
         echo "- **Date**: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Services Tested**: Found test projects" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: Tests complete" >> $GITHUB_STEP_SUMMARY
 
   api-smoke-tests:
@@ -59,7 +76,8 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -67,26 +85,31 @@ jobs:
         python-version: '3.12'
     
     - name: Install dependencies
-      run: |
-        pip install httpx pydantic
+      run: pip install httpx pydantic python-dotenv
     
-    - name: Run API Tests
+    - name: Run API Smoke Tests
       run: |
-        echo "API tests would run here with test environment"
-        echo "✅ Smoke tests passed"
+        echo "🧪 API smoke tests deferred until services can start in CI"
+        echo "⏭️  Requires: Keycloak, MySQL, all services running"
+        echo "✅ Placeholder passed"
 
   build-status:
-    name: Update Build Badge
+    name: Build Status Summary
     needs: [backend-tests, api-smoke-tests]
     if: always()
     runs-on: ubuntu-latest
+    
     steps:
-    - name: Create Badge
+    - name: Summary
       run: |
-        STATUS="passing"
-        COLOR="brightgreen"
-        if [ "${{ needs.backend-tests.result }}" != "success" ]; then
-          STATUS="failing"
-          COLOR="red"
+        echo "## 🎯 Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Backend Tests: ${{ needs.backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- API Smoke Tests: ${{ needs.api-smoke-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.backend-tests.result }}" == "success" ]; then
+          echo "✅ **Build: PASSING**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Build: FAILING**" >> $GITHUB_STEP_SUMMARY
         fi
-        echo "Badge: $STATUS"
