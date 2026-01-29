@@ -181,9 +181,12 @@ graph TB
 	- **Files**: `.github/workflows/auto-test.yml`, `.github/workflows/comprehensive-ci-cd.yml`
 	- **Fixed**: Removed hardcoded `/home/m/development` paths, removed broken Flutter repo checkout, added smoke tests with service startup, improved GitHub Actions summary outputs
 	- **Completed**: 2026-01-29
-- [ ] T073 [Setup] Fix skipped unit tests to pass or implement (unskip tests marked `[Fact(Skip = "Not implemented - T003")]`, implement missing test logic, ensure all services have >50% test coverage)
+- [~] T073 [Setup] Fix skipped unit tests to pass or implement (unskip tests marked `[Fact(Skip = "Not implemented - T003")]`, implement missing test logic, ensure all services have >50% test coverage)
 	- **Estimate**: 4h
 	- **Evidence**: `dotnet test` passes across all services with real assertions
+- **Progress**: photo-service PhotosControllerTests: 14/17 passing (82%), 3 skipped for integration testing
+- **Status**: Partial (32 skipped tests → 14 passing unit tests, file-serving tests need integration test approach)
+- **Updated**: 2026-01-29
 	- **Dependencies**: T072
 - [ ] T074 [Setup] Implement proper API smoke tests in CI (replace echo placeholder with real API calls, start services in GitHub Actions, verify health endpoints respond)
 	- **Estimate**: 2h
