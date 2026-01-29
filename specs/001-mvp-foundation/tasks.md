@@ -215,8 +215,14 @@ graph TB
 	- Evidence: Legacy run `SWIPE_SERVICE_URL=http://localhost:8087 dotnet run --project TestDataGenerator.csproj -- --environment demo --run-scenarios` (MatchId 3) and `python3 api_tests.py` both completed on 2025-10-22 with mutual match confirmation. Superseded by T029 migration away from TestDataGenerator.
 - [x] T013 [P] [Foundational] Harden YARP routing/policies for new safety + messaging endpoints (`dejting-yarp/src/dejting-yarp/appsettings.Development.json`)
 - [x] T014 [P] [Foundational] Refresh Flutter models/services to match new contracts (`mobile-apps/flutter/dejtingapp/lib/services/`)
-- [ ] T015 [Foundational] Document observability expectations and dashboards for MVP flows (`specs/001-mvp-foundation/plan.md`, `logs/README.md`)
-- [ ] T016 [Foundational] Document matchmaking fallback heuristics + daily queue expansion rules (`specs/001-mvp-foundation/plan.md`, `contracts/api-spec.md`)
+- [x] T015 [Foundational] Document observability expectations and dashboards for MVP flows (`specs/001-mvp-foundation/plan.md`, `logs/README.md`)
+	- **Evidence**: `logs/README.md` (510 lines) - Complete observability guide covering Serilog/OpenTelemetry configuration, service-specific logging patterns, 3 recommended dashboards (Service Health, User Journey, Business Metrics), MVP flow observability with expected latencies, tools integration (Seq, Jaeger, Prometheus/Grafana), production recommendations (retention, sampling, PII handling)
+	- **Covered Flows**: Account creation, discovery/matching, messaging with correlation IDs and distributed tracing
+	- **Completed**: 2026-01-29
+- [x] T016 [Foundational] Document matchmaking fallback heuristics + daily queue expansion rules (`specs/001-mvp-foundation/plan.md`, `contracts/api-spec.md`)
+	- **Evidence**: `MATCHMAKING.md` (512 lines) - Comprehensive algorithm documentation with 6 scoring factors (Location, Age, Interests, Education, Lifestyle, Activity), weighted formula, dealbreaker logic, 5-level fallback strategy (relax threshold → expand distance → widen age → recycle swipes → broad discovery), daily queue expansion (free 20/day, premium 100/day with progressive expansion), 24h cache strategy, performance targets
+	- **Covered**: Scoring formulas, candidate selection process, fallback heuristics, queue exhaustion behavior, monitoring metrics, algorithm evolution roadmap
+	- **Completed**: 2026-01-29
 - [ ] T017 [Foundational] Run matchmaking load/perf harness and capture baseline metrics (`monitoring/dashboard/`, `MatchmakingService` logs)
 
 **Checkpoint**: Constitution evidence gates satisfied, unblock user stories.
