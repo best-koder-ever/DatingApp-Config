@@ -9,6 +9,22 @@
             Standardized API response wrapper
             </summary>
         </member>
+        <member name="T:PhotoService.Common.InternalApiKeyAuthFilter">
+            <summary>
+            Authorization filter that validates internal API keys for service-to-service endpoints
+            Apply with [ServiceCollectionExtension.RequireInternalApiKey] attribute
+            </summary>
+        </member>
+        <member name="T:PhotoService.Common.RequireInternalApiKeyAttribute">
+            <summary>
+            Attribute to require internal API key authentication on controller/action
+            </summary>
+        </member>
+        <member name="T:PhotoService.Common.InternalApiKeyAuthHandler">
+            <summary>
+            Delegating handler that adds internal API key to outgoing service-to-service requests
+            </summary>
+        </member>
         <member name="T:PhotoService.Common.Result`1">
             <summary>
             Result pattern for operation outcomes
@@ -19,6 +35,11 @@
             Result pattern for operations without return value
             </summary>
         </member>
+        <member name="M:PhotoService.Controllers.PhotoDeletionController.DeleteUserPhotos(System.Int32)">
+            <summary>
+            Cascade delete all photos for a user (called during account deletion)
+            </summary>
+        </member>
         <member name="T:PhotoService.Controllers.PhotosController">
             <summary>
             Photo Controller - RESTful API for photo management operations
@@ -26,7 +47,7 @@
             Standard REST conventions with comprehensive error handling
             </summary>
         </member>
-        <member name="M:PhotoService.Controllers.PhotosController.#ctor(PhotoService.Services.IPhotoService,Microsoft.Extensions.Logging.ILogger{PhotoService.Controllers.PhotosController})">
+        <member name="M:PhotoService.Controllers.PhotosController.#ctor(PhotoService.Services.IPhotoService,Microsoft.Extensions.Logging.ILogger{PhotoService.Controllers.PhotosController},PhotoService.Services.ISafetyServiceClient,PhotoService.Services.IMatchmakingServiceClient,PhotoService.Data.PhotoContext)">
             <summary>
             Constructor with dependency injection
             Standard controller pattern with service layer integration
@@ -71,6 +92,8 @@
             Serve photo image file
             GET /api/photos/{id}/image?size={size}
             Returns image file with appropriate content type and caching headers
+            Enforces privacy: blocked users cannot access each other's photos
+            MMP Privacy: Non-matched users receive blurred version
             </summary>
             <param name="id">Photo identifier</param>
             <param name="size">Image size (full, medium, thumbnail)</param>
@@ -216,6 +239,15 @@
             <param name="blurIntensity">New blur intensity (0.0 to 1.0)</param>
             <returns>Processing result</returns>
         </member>
+        <member name="M:PhotoService.Controllers.PhotosController.DeleteUserPhotos(System.Int32)">
+            <summary>
+            Delete all photos for a specific user
+            DELETE /api/photos/user/{userProfileId}
+            Used during account deletion to remove all user photos
+            </summary>
+            <param name="userProfileId">User profile ID whose photos should be deleted</param>
+            <returns>Number of photos deleted</returns>
+        </member>
         <member name="T:PhotoService.Controllers.ModerationUpdateRequest">
             <summary>
             Request model for moderation status updates
@@ -234,8 +266,8 @@
         </member>
         <member name="T:PhotoService.Data.PhotoContext">
             <summary>
-            PostgreSQL-optimized Entity Framework context for photo management
-            Designed specifically for PostgreSQL with PostGIS support and modern .NET 8 patterns
+            MySQL-optimized Entity Framework context for photo management
+            Designed for MySQL 8.0 with modern .NET 8 patterns
             </summary>
         </member>
         <member name="M:PhotoService.Data.PhotoContext.SaveChanges">
@@ -801,28 +833,16 @@
             Error message if regeneration failed
             </summary>
         </member>
-        <member name="T:PhotoService.Migrations.InitialPostgreSQLSchema">
+        <member name="T:PhotoService.Migrations.InitialMySQLSchema">
             <inheritdoc />
         </member>
-        <member name="M:PhotoService.Migrations.InitialPostgreSQLSchema.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+        <member name="M:PhotoService.Migrations.InitialMySQLSchema.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
             <inheritdoc />
         </member>
-        <member name="M:PhotoService.Migrations.InitialPostgreSQLSchema.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+        <member name="M:PhotoService.Migrations.InitialMySQLSchema.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
             <inheritdoc />
         </member>
-        <member name="M:PhotoService.Migrations.InitialPostgreSQLSchema.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:PhotoService.Migrations.AddPrivacyFeatures">
-            <inheritdoc />
-        </member>
-        <member name="M:PhotoService.Migrations.AddPrivacyFeatures.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:PhotoService.Migrations.AddPrivacyFeatures.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:PhotoService.Migrations.AddPrivacyFeatures.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+        <member name="M:PhotoService.Migrations.InitialMySQLSchema.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
         <member name="T:PhotoService.Models.Photo">
@@ -1747,6 +1767,12 @@
         <member name="P:PhotoService.Services.StorageStatistics.AverageFileSizeBytes">
             <summary>
             Average file size in bytes
+            </summary>
+        </member>
+        <member name="T:PhotoService.Services.PhotoCleanupBackgroundService">
+            <summary>
+            Background service for cleaning up orphaned photos
+            Runs periodically to remove soft-deleted photos and files without database references
             </summary>
         </member>
         <member name="T:PhotoService.Services.PhotoService">

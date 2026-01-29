@@ -1,8 +1,12 @@
 # DatingApp - Modern Dating Platform
 
+[![Auto Tests](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/auto-test.yml/badge.svg)](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/auto-test.yml)
 [![Comprehensive CI/CD](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/comprehensive-ci-cd.yml/badge.svg)](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/comprehensive-ci-cd.yml)
 
 Modern microservices-based dating platform with .NET 8 backend and Flutter frontend.
+
+**Auto-Testing**: Tests run automatically on every push + every 6 hours  
+**Monitoring**: [View Dashboard](http://localhost:3000) • Run `./start-monitoring.sh`
 
 ## Architecture
 

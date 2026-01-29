@@ -1,0 +1,24 @@
+{
+  "messages": [
+    {
+      "messageId": "msg-1",
+      "matchId": "match-2",
+      "senderId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "receiverId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+      "content": "Hey Charlie! Great profile! Love the fitness vibe 💪",
+      "sentAt": "2026-01-24T16:00:00Z",
+      "isRead": true,
+      "readAt": "2026-01-24T16:15:00Z"
+    },
+    {
+      "messageId": "msg-2",
+      "matchId": "match-2",
+      "senderId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+      "receiverId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "content": "Thanks Bob! Saw you're into music too. What concerts have you been to lately?",
+      "sentAt": "2026-01-24T16:30:00Z",
+      "isRead": true,
+      "readAt": "2026-01-24T16:35:00Z"
+    }
+  ]
+}

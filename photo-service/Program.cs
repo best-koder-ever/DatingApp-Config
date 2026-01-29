@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using PhotoService.Data;
 using PhotoService.Extensions;
 using PhotoService.Services;
+using PhotoService.Common;
+using PhotoService.Common;
 using SixLabors.ImageSharp.Web.DependencyInjection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -173,7 +175,6 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation()
         .AddMeter("PhotoService")
         .AddPrometheusExporter())
     .WithTracing(tracing => tracing

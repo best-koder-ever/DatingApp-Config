@@ -5,6 +5,7 @@ using MessagingService.Extensions;
 using MessagingService.Hubs;
 using MessagingService.Middleware;
 using MessagingService.Services;
+using MessagingService.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -196,7 +197,6 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation()
         .AddMeter("MessagingService")
         .AddPrometheusExporter())
     .WithTracing(tracing => tracing
