@@ -175,6 +175,23 @@ graph TB
 - [x] T001 [P] [Setup] Verify `./infrastructure/start.sh` bootstrap succeeds and refresh Keycloak realm exports (`infrastructure/`)
 - [x] T002 [P] [Setup] Lock demo environment variables for MVP in `environments/` and document defaults in `quickstart.md`
 - [x] T003 [Setup] Update `dev-start.sh` health checks to include messaging hub + report readiness (`dev-start.sh`)
+- [ ] T072 [P] [Setup] Fix CI/CD workflow configuration (move workflow from DatingApp-Config to main repo, fix repository paths, configure proper secrets, ensure services can start in GitHub Actions environment)
+	- **Estimate**: 2h
+	- **Evidence**: GitHub Actions runs pass, badge shows green build status
+	- **Files**: `.github/workflows/auto-test.yml`, move from external repo to main project
+	- **Issue**: Workflow currently in separate repo, can't access source code properly
+- [ ] T073 [Setup] Fix skipped unit tests to pass or implement (unskip tests marked `[Fact(Skip = "Not implemented - T003")]`, implement missing test logic, ensure all services have >50% test coverage)
+	- **Estimate**: 4h
+	- **Evidence**: `dotnet test` passes across all services with real assertions
+	- **Dependencies**: T072
+- [ ] T074 [Setup] Implement proper API smoke tests in CI (replace echo placeholder with real API calls, start services in GitHub Actions, verify health endpoints respond)
+	- **Estimate**: 2h
+	- **Evidence**: Smoke tests make HTTP calls to running services, validate responses
+	- **Dependencies**: T072
+- [ ] T075 [Setup] Add test coverage reporting (configure Coverlet, add coverage badges per service, set 80% threshold for new code)
+	- **Estimate**: 2h
+	- **Evidence**: README shows coverage badges, builds fail if coverage drops below threshold
+	- **Dependencies**: T073
 
 ---
 
