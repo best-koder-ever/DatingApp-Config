@@ -52,6 +52,7 @@ public class MessageService : IMessageService
         var conversationId = GenerateConversationId(userId, otherUserId);
         
         return await _context.Messages
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId && 
                        !m.IsDeleted && 
                        m.ModerationStatus == ModerationStatus.Approved)
@@ -64,6 +65,7 @@ public class MessageService : IMessageService
     public async Task<List<ConversationSummary>> GetConversationsAsync(string userId)
     {
         var conversations = await _context.Messages
+            .AsNoTracking()
             .Where(m => (m.SenderId == userId || m.ReceiverId == userId) && 
                        !m.IsDeleted && 
                        m.ModerationStatus == ModerationStatus.Approved)
@@ -84,6 +86,7 @@ public class MessageService : IMessageService
     public async Task<Message?> GetMessageAsync(int messageId)
     {
         return await _context.Messages
+            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == messageId && !m.IsDeleted);
     }
 
