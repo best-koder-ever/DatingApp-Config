@@ -151,30 +151,64 @@ jobs:
       run: |
         echo "🚀 Starting backend services..."
         
-        # Start UserService
+        # Start UserService (8082)
         cd UserService
         dotnet run --urls="http://localhost:8082" > ../user-service.log 2>&1 &
         echo $! > ../user-service.pid
         cd ..
         
-        # Wait for services to be ready
-        sleep 20
+        # Start MatchmakingService (8083)
+        cd MatchmakingService
+        dotnet run --urls="http://localhost:8083" > ../matchmaking-service.log 2>&1 &
+        echo $! > ../matchmaking-service.pid
+        cd ..
         
-        # Check if services are responding
-        curl -f http://localhost:8082/health || echo "⚠️  UserService not ready"
+        # Start SwipeService (8084)
+        cd swipe-service
+        dotnet run --urls="http://localhost:8084" > ../swipe-service.log 2>&1 &
+        echo $! > ../swipe-service.pid
+        cd ..
+        
+        # Start PhotoService (8085)
+        cd photo-service
+        dotnet run --urls="http://localhost:8085" > ../photo-service.log 2>&1 &
+        echo $! > ../photo-service.pid
+        cd ..
+        
+        # Start MessagingService (8086)
+        cd messaging-service
+        dotnet run --urls="http://localhost:8086" > ../messaging-service.log 2>&1 &
+        echo $! > ../messaging-service.pid
+        cd ..
+        
+        echo "⏳ Services starting in background..."
     
     - name: Run smoke tests
       run: |
-        echo "🧪 Running basic health checks..."
-        curl -f http://localhost:8082/health || exit 1
-        echo "✅ Smoke tests passed"
+        echo "🧪 Running comprehensive API smoke tests..."
+        python3 smoke-tests.py
+    
+    - name: Display service logs on failure
+      if: failure()
+      run: |
+        echo "📋 Service logs:"
+        for log in *.log; do
+          if [ -f "$log" ]; then
+            echo "=== $log ==="
+            tail -50 "$log"
+          fi
+        done
     
     - name: Cleanup services
       if: always()
       run: |
-        if [ -f user-service.pid ]; then
-          kill $(cat user-service.pid) || true
-        fi
+        echo "🛑 Stopping services..."
+        for pidfile in *.pid; do
+          if [ -f "$pidfile" ]; then
+            kill $(cat "$pidfile") 2>/dev/null || true
+            rm "$pidfile"
+          fi
+        done
 
   # ===== DOCKER BUILD =====
   docker-build:
