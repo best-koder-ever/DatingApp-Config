@@ -104,6 +104,7 @@ builder.Services.AddScoped<ISpamDetectionService, SpamDetectionService>();
 builder.Services.AddScoped<IPersonalInfoDetectionService, PersonalInfoDetectionService>();
 builder.Services.AddScoped<IRateLimitingService, RateLimitingService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
+builder.Services.AddScoped<IMatchValidationService, MatchValidationService>();
 builder.Services.AddCorrelationIds();
 
 // Internal API Key Authentication for service-to-service calls
@@ -121,6 +122,14 @@ builder.Services.AddHttpClient<ISafetyServiceClient, SafetyServiceClient>(client
 builder.Services.AddHttpClient<MessageServiceSpec>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Gateway:BaseUrl"] ?? "http://dejting-yarp:8080");
+})
+.AddHttpMessageHandler<InternalApiKeyAuthHandler>();
+
+// Add HttpClient for MatchValidationService (to call SwipeService)
+builder.Services.AddHttpClient("SwipeService", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:8087");
+    client.Timeout = TimeSpan.FromSeconds(5);
 })
 .AddHttpMessageHandler<InternalApiKeyAuthHandler>();
 

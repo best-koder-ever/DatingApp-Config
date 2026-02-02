@@ -1625,3 +1625,30 @@ CREATE TABLE background_jobs (
 ```
 
 **🎯 Impact Assessment**: Adding message queues will significantly improve app responsiveness, reliability, and user experience - especially critical for dating app engagement where fast interactions and reliable notifications are essential for user retention.
+
+---
+
+## AI Helper System (Added Feb 2, 2026)
+
+**CRITICAL**: AI must use these helpers to verify state instantly (no user questions needed)
+
+### Quick Start
+1. **Read first**: [AI_HELPERS_CHEATSHEET.md](AI_HELPERS_CHEATSHEET.md) (60 seconds)
+2. **Parse**: [.ai-context.json](.ai-context.json) (machine-readable context)
+3. **Before any test**: Run `python3 scripts/ai-verify-state.py`
+
+### Key Tools
+- `python3 scripts/ai-verify-state.py` - Check database state (1 sec vs asking user)
+- `TestAssertions.assertFixturesLoaded()` - Include in ALL Flutter tests
+- `TestDatabaseQueries.getFixtureUser('name')` - Get fixture users (alice, bob, charlie, diana, erik)
+- `make test-clean` - Reset environment (1 command vs 6 steps)
+
+### Why This Matters
+- **Before**: AI asks user 15-20 questions per task (slow, annoying)
+- **After**: AI verifies state independently (fast, autonomous)
+- **Impact**: 10x faster AI development
+
+### Full Documentation
+- [AI_HELPER_STRATEGIES.md](AI_HELPER_STRATEGIES.md) - Complete guide
+- [AI_HELPERS_README.md](AI_HELPERS_README.md) - Quick reference
+- [example_ai_helpers_test.dart](mobile-apps/flutter/dejtingapp/integration_test/example_ai_helpers_test.dart) - Working examples

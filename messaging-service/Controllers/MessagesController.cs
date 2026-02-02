@@ -6,6 +6,7 @@ using MessagingService.Commands;
 using MessagingService.Queries;
 using MessagingService.Common;
 using MessagingService.Data;
+using MessagingService.DTOs;
 using MediatR;
 using System.Security.Claims;
 
@@ -25,6 +26,45 @@ public class MessagesController : ControllerBase
         _logger = logger;
         _mediator = mediator;
         _context = context;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SendMessage([FromBody] SendMessageRequestRest request)
+    {
+        _logger.LogInformation("POST /api/messages called. User.Identity.IsAuthenticated: {IsAuth}, Claims count: {ClaimCount}", 
+            User.Identity?.IsAuthenticated, User.Claims.Count());
+        
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _logger.LogInformation("Extracted userId from ClaimTypes.NameIdentifier: {UserId}", userId ?? "NULL");
+        
+        if (string.IsNullOrEmpty(userId))
+        {
+            _logger.LogWarning("Unauthorized: No userId found in claims. Available claims: {Claims}", 
+                string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
+            return Unauthorized();
+        }
+
+        var command = new SendMessageCommand
+        {
+            SenderId = userId,
+            ReceiverId = request.RecipientUserId,
+            Content = request.Text,
+            Type = request.Type ?? Models.MessageType.Text
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (result.IsFailure)
+        {
+            // Return 403 Forbidden for unauthorized access (non-matched users)
+            if (result.Error?.Contains("UNAUTHORIZED") == true || result.Error?.Contains("non-matched") == true)
+            {
+                return Forbid();
+            }
+            return StatusCode(500, ApiResponse<object>.FailureResult(result.Error!));
+        }
+
+        return Created($"/api/messages/{result.Value!.Id}", ApiResponse<object>.SuccessResult(result.Value));
     }
 
     [HttpGet("conversations")]
@@ -48,7 +88,12 @@ public class MessagesController : ControllerBase
     }
 
     [HttpGet("conversation/{otherUserId}")]
-    public async Task<IActionResult> GetConversation(string otherUserId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetConversation(
+        string otherUserId, 
+        [FromQuery] int? page = null,
+        [FromQuery] int? pageSize = null,
+        [FromQuery] int? limit = null, 
+        [FromQuery] int? offset = null)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId))
@@ -56,12 +101,16 @@ public class MessagesController : ControllerBase
             return Unauthorized();
         }
 
+        // Support both page/pageSize and limit/offset parameter styles
+        var actualPageSize = limit ?? pageSize ?? 50;
+        var actualPage = page ?? (offset.HasValue ? (offset.Value / actualPageSize) + 1 : 1);
+
         var query = new GetConversationQuery 
         { 
             UserId = userId, 
             OtherUserId = otherUserId, 
-            Page = page, 
-            PageSize = pageSize 
+            Page = actualPage, 
+            PageSize = actualPageSize 
         };
         var result = await _mediator.Send(query);
 

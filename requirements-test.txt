@@ -17,3 +17,4 @@ locust==2.20.1
 # API Testing
 httpx==0.26.0
 websockets==12.0  # For SignalR testing
+mysql-connector-python

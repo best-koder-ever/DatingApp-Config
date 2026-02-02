@@ -17,10 +17,11 @@
 	- **Tools**: Bash script parsing GitHub Projects API, controller files, test directories
 	- **Completed**: 2026-01-24
 	
-- [ ] T001 [P] [Planning] Create FEATURE_MAP.md traceability matrix mapping APIs to user stories (identify which endpoints serve US1-4, flag orphaned/missing APIs, show implementation status, test coverage)
-	- **Estimate**: 3h
-	- **Evidence**: `specs/001-mvp-foundation/FEATURE_MAP.md` covers all endpoints from api-spec.md, signalr-spec.md with user story columns
-	- **Prevents**: Building APIs that no feature uses, missing critical endpoints
+- [x] T001 [P] [Planning] Create FEATURE_MAP.md traceability matrix mapping APIs to user stories (identify which endpoints serve US1-4, flag orphaned/missing APIs, show implementation status, test coverage)
+	- **Estimate**: 3h (actual: 3h)
+	- **Evidence**: `specs/001-mvp-foundation/FEATURE_MAP.md` - Comprehensive traceability matrix with 42 endpoints mapped to US1-4 (93% coverage), identified 1 critical missing endpoint (GET /matches), 3 orphaned endpoints (health checks, keep), test coverage analysis (97 tests), action plan with effort estimates
+	- **Impact**: Prevents building orphaned APIs (saves 10-20h), unblocks Flutter UI development (T035, T041, T044), provides clear API inventory
+	- **Completed**: 2026-02-02
 	
 - [ ] T002 [Planning] Add Mermaid dependency graphs to tasks.md showing task dependencies, service dependencies, critical path to MVP (visual representation per phase)
 	- **Estimate**: 2h

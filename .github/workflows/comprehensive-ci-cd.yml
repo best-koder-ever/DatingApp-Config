@@ -89,6 +89,33 @@ jobs:
           fi
         fi
     
+    - name: Enforce coverage threshold (80%)
+      if: success()
+      run: |
+        cd ${{ matrix.service }}
+        if [ -d "coverage" ]; then
+          coverage_file=$(find coverage -name "coverage.cobertura.xml" | head -1)
+          if [ -f "$coverage_file" ]; then
+            line_rate=$(grep -oP 'line-rate="\K[0-9.]+' "$coverage_file" | head -1)
+            line_pct=$(echo "$line_rate * 100" | bc -l | xargs printf "%.1f")
+            
+            # Threshold: 80% line coverage
+            threshold=80.0
+            
+            if (( $(echo "$line_pct < $threshold" | bc -l) )); then
+              echo "❌ Coverage below threshold: ${line_pct}% < ${threshold}%"
+              echo "::error::${{ matrix.service }} line coverage (${line_pct}%) is below the required ${threshold}%"
+              exit 1
+            else
+              echo "✅ Coverage meets threshold: ${line_pct}% >= ${threshold}%"
+            fi
+          else
+            echo "⚠️  No coverage file found - skipping threshold check"
+          fi
+        else
+          echo "⏭️  No coverage directory - skipping threshold check"
+        fi
+    
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       if: success()
