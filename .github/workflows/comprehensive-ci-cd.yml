@@ -75,6 +75,15 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
     
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ matrix.service }}-${{ hashFiles(format('{0}/**/*.csproj', matrix.service)) }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-${{ matrix.service }}-
+          ${{ runner.os }}-nuget-
+    
     - name: Restore dependencies
       run: |
         cd ${{ matrix.service }}
@@ -92,6 +101,11 @@ jobs:
         else
           dotnet restore
         fi
+    
+    - name: Check code formatting
+      run: |
+        cd ${{ matrix.service }}
+        dotnet format --verify-no-changes --severity warn || echo "::warning::Code formatting issues detected. Run 'dotnet format' locally."
     
     - name: Build
       run: |
@@ -156,8 +170,8 @@ jobs:
             line_rate=$(grep -oP 'line-rate="\K[0-9.]+' "$coverage_file" | head -1)
             line_pct=$(echo "$line_rate * 100" | bc -l | xargs printf "%.1f")
             
-            # Threshold: 0% line coverage (non-blocking, TODO: Increase gradually to 80%)
-            threshold=0.0
+            # Threshold: 10% line coverage (non-blocking, path to 80%: 10→20→40→60→80)
+            threshold=10.0
             
             if (( $(echo "$line_pct < $threshold" | bc -l) )); then
               echo "⚠️  Coverage below threshold: ${line_pct}% < ${threshold}%"
@@ -186,6 +200,7 @@ jobs:
   gateway-build:
     name: Build YARP Gateway
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
     - name: Checkout main repo
@@ -211,6 +226,7 @@ jobs:
   # ===== SMOKE TESTS =====
   smoke-tests:
     name: API Smoke Tests
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     needs: [dotnet-build-test, gateway-build]
     continue-on-error: true  # Don't fail CI on container timing issues
