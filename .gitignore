@@ -65,3 +65,11 @@ coverage/
 TestResults/
 *.coverage
 *.coveragexml
+
+# Service repositories (separate repos, cloned by CI/CD)
+/UserService/
+/MatchmakingService/
+/swipe-service/
+/photo-service/
+/messaging-service/
+/dejting-yarp/
