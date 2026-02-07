@@ -37,8 +37,17 @@ jobs:
           --health-retries=5
     
     steps:
-    - name: Checkout code
+    - name: Checkout main repo
       uses: actions/checkout@v4
+    
+    - name: Checkout service repositories
+      run: |
+        # Clone each service repo since they're not submodules
+        git clone https://github.com/best-koder-ever/UserService.git UserService
+        git clone https://github.com/best-koder-ever/MatchmakingService.git MatchmakingService
+        git clone https://github.com/best-koder-ever/swipe-service.git swipe-service
+        git clone https://github.com/best-koder-ever/photo-service.git photo-service
+        git clone https://github.com/best-koder-ever/messaging-service.git messaging-service
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -158,8 +167,12 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: Checkout main repo
       uses: actions/checkout@v4
+    
+    - name: Checkout gateway repository
+      run: |
+        git clone https://github.com/best-koder-ever/dejting-yarp.git dejting-yarp
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -169,8 +182,8 @@ jobs:
     - name: Build gateway
       run: |
         cd dejting-yarp/src/dejting-yarp
-        dotnet restore
-        dotnet build --no-restore --configuration Release
+        dotnet restore dejting-yarp.csproj
+        dotnet build dejting-yarp.csproj --no-restore --configuration Release
 
   # ===== SMOKE TESTS =====
   smoke-tests:
