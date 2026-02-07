@@ -48,12 +48,38 @@ jobs:
     - name: Restore dependencies
       run: |
         cd ${{ matrix.service }}
-        dotnet restore
+        # Use explicit .csproj file to avoid ambiguity
+        if [ "${{ matrix.service }}" = "UserService" ]; then
+          dotnet restore UserService.csproj
+        elif [ "${{ matrix.service }}" = "MatchmakingService" ]; then
+          dotnet restore MatchmakingService.csproj
+        elif [ "${{ matrix.service }}" = "swipe-service" ]; then
+          dotnet restore SwipeService.csproj
+        elif [ "${{ matrix.service }}" = "photo-service" ]; then
+          dotnet restore PhotoService.csproj
+        elif [ "${{ matrix.service }}" = "messaging-service" ]; then
+          dotnet restore MessagingService.csproj
+        else
+          dotnet restore
+        fi
     
     - name: Build
       run: |
         cd ${{ matrix.service }}
-        dotnet build --no-restore --configuration Release
+        # Use explicit .csproj file
+        if [ "${{ matrix.service }}" = "UserService" ]; then
+          dotnet build UserService.csproj --no-restore --configuration Release
+        elif [ "${{ matrix.service }}" = "MatchmakingService" ]; then
+          dotnet build MatchmakingService.csproj --no-restore --configuration Release
+        elif [ "${{ matrix.service }}" = "swipe-service" ]; then
+          dotnet build SwipeService.csproj --no-restore --configuration Release
+        elif [ "${{ matrix.service }}" = "photo-service" ]; then
+          dotnet build PhotoService.csproj --no-restore --configuration Release
+        elif [ "${{ matrix.service }}" = "messaging-service" ]; then
+          dotnet build MessagingService.csproj --no-restore --configuration Release
+        else
+          dotnet build --no-restore --configuration Release
+        fi
     
     - name: Run unit tests with coverage
       run: |
@@ -61,7 +87,6 @@ jobs:
         # Find test projects
         if ls *.Tests/*.csproj 1> /dev/null 2>&1; then
           dotnet test *.Tests/*.csproj \
-            --no-build \
             --configuration Release \
             --verbosity normal \
             --collect:"XPlat Code Coverage" \
