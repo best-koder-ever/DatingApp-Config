@@ -41,13 +41,15 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Checkout service repositories
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Clone each service repo since they're not submodules
-        git clone https://github.com/best-koder-ever/UserService.git UserService
-        git clone https://github.com/best-koder-ever/MatchmakingService.git MatchmakingService
-        git clone https://github.com/best-koder-ever/swipe-service.git swipe-service
-        git clone https://github.com/best-koder-ever/photo-service.git photo-service
-        git clone https://github.com/best-koder-ever/messaging-service.git messaging-service
+        # Clone each service repo with authentication
+        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/UserService.git UserService
+        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/MatchmakingService.git MatchmakingService
+        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/swipe-service.git swipe-service
+        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/photo-service.git photo-service
+        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/messaging-service.git messaging-service
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -171,8 +173,10 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Checkout gateway repository
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        git clone https://github.com/best-koder-ever/dejting-yarp.git dejting-yarp
+        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/dejting-yarp.git dejting-yarp
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
