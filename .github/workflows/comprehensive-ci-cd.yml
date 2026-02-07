@@ -40,16 +40,40 @@ jobs:
     - name: Checkout main repo
       uses: actions/checkout@v4
     
-    - name: Checkout service repositories
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # Clone each service repo with authentication
-        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/UserService.git UserService
-        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/MatchmakingService.git MatchmakingService
-        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/swipe-service.git swipe-service
-        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/photo-service.git photo-service
-        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/messaging-service.git messaging-service
+    - name: Checkout UserService
+      uses: actions/checkout@v4
+      with:
+        repository: best-koder-ever/UserService
+        path: UserService
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Checkout MatchmakingService
+      uses: actions/checkout@v4
+      with:
+        repository: best-koder-ever/MatchmakingService
+        path: MatchmakingService
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Checkout swipe-service
+      uses: actions/checkout@v4
+      with:
+        repository: best-koder-ever/swipe-service
+        path: swipe-service
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Checkout photo-service
+      uses: actions/checkout@v4
+      with:
+        repository: best-koder-ever/photo-service
+        path: photo-service
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Checkout messaging-service
+      uses: actions/checkout@v4
+      with:
+        repository: best-koder-ever/messaging-service
+        path: messaging-service
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -172,11 +196,12 @@ jobs:
     - name: Checkout main repo
       uses: actions/checkout@v4
     
-    - name: Checkout gateway repository
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git clone https://x-access-token:${GH_TOKEN}@github.com/best-koder-ever/dejting-yarp.git dejting-yarp
+    - name: Checkout dejting-yarp
+      uses: actions/checkout@v4
+      with:
+        repository: best-koder-ever/dejting-yarp
+        path: dejting-yarp
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
