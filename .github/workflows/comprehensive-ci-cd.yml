@@ -45,35 +45,30 @@ jobs:
       with:
         repository: best-koder-ever/UserService
         path: UserService
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Checkout MatchmakingService
       uses: actions/checkout@v4
       with:
         repository: best-koder-ever/MatchmakingService
         path: MatchmakingService
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Checkout swipe-service
       uses: actions/checkout@v4
       with:
         repository: best-koder-ever/swipe-service
         path: swipe-service
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Checkout photo-service
       uses: actions/checkout@v4
       with:
         repository: best-koder-ever/photo-service
         path: photo-service
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Checkout messaging-service
       uses: actions/checkout@v4
       with:
         repository: best-koder-ever/messaging-service
         path: messaging-service
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -201,7 +196,6 @@ jobs:
       with:
         repository: best-koder-ever/dejting-yarp
         path: dejting-yarp
-        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
