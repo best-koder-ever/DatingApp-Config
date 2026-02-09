@@ -2466,3 +2466,89 @@ graph TB
 - **Option B**: Run Phase 13.1-13.2 (fixtures + contract tests) immediately, defer bots to Week 3
 - **Option C (Not Recommended)**: Defer entire Phase 13 until after MVP → high rework risk
 
+
+---
+
+## Phase DX-2: Onboarding — Auth, Verification & Profile Completeness
+
+**Input**: `ONBOARDING_ROADMAP.md`, user feedback sessions, Tinder reference
+**Prerequisites**: Sprint 1 onboarding screens (DONE), wizard screens T035+
+**Branch base**: `001-mvp-foundation` (backend) / `main` (Flutter)
+
+### Firebase SMS Authentication
+
+- [ ] T151 [P0] [Flutter] Add Firebase Auth + wire SMS verification
+        - **Estimate**: 6h
+        - **Repo**: `best-koder-org/mobile_dejtingapp`
+        - **Description**: Add `firebase_core`, `firebase_auth` to pubspec. Create `lib/services/firebase_auth_service.dart` wrapping `PhoneAuthProvider.verifyPhoneNumber()`. Wire `sms_code_screen.dart` to use real Firebase verification (auto-fill code from SMS on Android via Retriever API, iOS via textContentType). Keep DevMode skip button. Add test phone numbers in Firebase Console config. Budget cap: $10/month.
+        - **Acceptance**: `flutter analyze` passes, SMS code screen calls Firebase, auto-fill works on Android emulator with test numbers.
+        - **Dependencies**: Firebase project must be created first (manual setup)
+
+- [ ] T152 [P0] [Flutter] Android SMS auto-fill verification
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/mobile_dejtingapp`
+        - **Description**: After T151, verify Firebase Auth auto-reads SMS on Android via SMS Retriever API. If it doesn't work reliably, add `smart_auth` package as fallback (`smartAuth.getSmsWithRetrieverApi()`). Add `smartAuth.requestPhoneNumberHint()` to phone_entry_screen.dart to auto-suggest SIM phone number. Test both auto-fill and manual entry paths.
+        - **Acceptance**: On Android, SMS code auto-fills without user manually typing. Phone entry suggests SIM number.
+        - **Dependencies**: T151
+
+### Profile Completeness — Living Score
+
+- [ ] T153 [P1] [Backend] Implement living profile completeness calculation in UserService
+        - **Estimate**: 4h
+        - **Repo**: `best-koder-org/UserService`
+        - **Description**: The DTOs exist in `Services/ProfileCompletenessService.cs` but no calculation logic. Implement `IProfileCompletenessService` with 3-tier weighted formula: Required (name, birthday, gender, 2+ photos) = 40%, Encouraged (bio 50+ chars, 5+ interests, height) = 35%, Optional (job, education, smoking, exercise, pets, religion, politics, languages, love language, communication style, 4+ photos, verification badge) = 25%. Add `ProfileCompleteness` float field to `UserProfile` model. Recalculate on every profile update. Include `NextSuggestion` field that returns the highest-impact missing field. Expose via existing GET profile endpoint.
+        - **Acceptance**: `dotnet build` passes, `dotnet test` passes, profile response includes completeness percentage and suggestions.
+        - **Dependencies**: None
+
+- [ ] T154 [P1] [Flutter] Profile completeness display with progress ring
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/mobile_dejtingapp`
+        - **Description**: Add circular progress ring on profile page showing completeness %. Show per-field nudges below ("Add a bio to get 15% more matches!", "Add more photos"). Color-code: <50% red, 50-80% amber, >80% green. Pull data from UserService GET profile endpoint's `profileCompleteness` field.
+        - **Acceptance**: `flutter analyze` passes, profile page shows live completeness ring with nudge messages.
+        - **Dependencies**: T153
+
+### Self-Hosted Verification Badge (DeepFace)
+
+- [ ] T155 [P2] [Infra] Deploy DeepFace Docker container for face verification
+        - **Estimate**: 4h
+        - **Repo**: `best-koder-ever/DatingApp-Config`
+        - **Description**: Add DeepFace container to `infrastructure/docker-compose.yml` using `serengil/deepface` image on port 5005. Configure Facenet512 model with `anti_spoofing=True`. Add health check endpoint. Create `infrastructure/deepface/` config folder. Add to `infrastructure/start.sh`. Document API: POST `/verify` with img1_path + img2_path returns `{verified: bool, distance: float, threshold: float}`. Test with sample images.
+        - **Acceptance**: `docker compose up -d deepface` starts container, health check passes, `/verify` endpoint responds.
+        - **Dependencies**: None
+
+- [ ] T156 [P2] [Backend] photo-service face verification endpoint
+        - **Estimate**: 6h
+        - **Repo**: `best-koder-org/photo-service`
+        - **Description**: Add `POST /api/verification/submit` endpoint. Flow: (1) Accept selfie image upload, (2) Forward selfie + user's current profile photo to DeepFace container at `http://deepface:5005/verify`, (3) Parse response — cosine similarity >0.40 = Verified, 0.30-0.40 = Pending review, <0.30 = Rejected. Add `VerificationAttempt` entity (UserId, SelfiePhotoId, LivenessScore, SimilarityScore, ProfilePhotoId, Result, RejectionReason, CreatedAt). Add to User model: IsVerified bool, VerifiedAt datetime, VerificationAttemptCount int. Rate limit: max 3 attempts per 24h. Notify UserService to update badge status via HTTP.
+        - **Acceptance**: `dotnet build` passes, endpoint accepts selfie and returns verification result.
+        - **Dependencies**: T155
+
+- [ ] T157 [P2] [Flutter] On-device liveness detection for verification
+        - **Estimate**: 5h
+        - **Repo**: `best-koder-org/mobile_dejtingapp`
+        - **Description**: Add `google_mlkit_face_detection` package. Create `lib/screens/verification/` folder with: explanation_screen.dart (what verification is), camera_screen.dart (live camera with challenge-response), processing_screen.dart (spinner), result_screen.dart (success/failure). Challenge-response: random sequence of 3 actions from [blink, turn left, turn right, smile, nod]. Use ML Kit's `face.headEulerAngleY` for turns, `face.smilingProbability` for smiles, `face.eyeOpenProbability` for blinks. Capture selfie after all challenges pass. Send to photo-service T156 endpoint.
+        - **Acceptance**: `flutter analyze` passes, camera opens, detects face, runs 3 random challenges, captures selfie on success.
+        - **Dependencies**: T156
+
+- [ ] T158 [P2] [Flutter] Verification badge display on profile cards
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/mobile_dejtingapp`
+        - **Description**: Add blue checkmark badge (✓) overlay on profile cards in discovery feed for verified users. Show badge on user's own profile page. Add "Get Verified" button in profile settings that navigates to verification flow (T157). Show "Verified" label in match/chat list next to verified users. Pull `isVerified` from user profile API response.
+        - **Acceptance**: `flutter analyze` passes, verified users show blue badge on cards, own profile shows verification CTA.
+        - **Dependencies**: T157
+
+### Verification Hardening
+
+- [ ] T159 [P3] [Backend] Verification admin panel + edge cases
+        - **Estimate**: 5h
+        - **Repo**: `best-koder-org/photo-service`
+        - **Description**: Manual review queue for borderline cases (similarity 0.30-0.40). Admin endpoint: GET `/api/verification/pending` lists all pending reviews. POST `/api/verification/{id}/review` with approve/reject. Re-verification trigger: require new verification after profile photo change or every 6 months. Store face embeddings as float[] in PostgreSQL for faster re-verification (skip re-download). Multiple profile photo comparison (verify against ALL photos, best similarity wins). Add logging/analytics: track verification rates, rejection reasons, average similarity scores.
+        - **Acceptance**: `dotnet build` passes, admin endpoints work, re-verification triggers on photo change.
+        - **Dependencies**: T156
+
+- [ ] T160 [P3] [Flutter] Verification flow polish + re-verification prompts
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/mobile_dejtingapp`
+        - **Description**: Show re-verification prompt when user changes profile photo ("Your verification badge will be removed. Re-verify?"). Add verification status to settings page (Verified since date, Next re-verification date). Improve camera_screen UX: add animated face outline, progress dots for challenges completed, encouraging text. Handle edge cases: camera permission denied, face not detected timeout, poor lighting warning.
+        - **Acceptance**: `flutter analyze` passes, re-verification prompt shows on photo change, camera UX polished.
+        - **Dependencies**: T158, T159
