@@ -289,10 +289,12 @@ graph LR
 	- **Completion**: 2026-01-25
 	- **Files**: UserService/Models/OnboardingStatus.cs, UserService/Migrations/20260125102401_AddOnboardingStatus.cs, UserService/Commands/UpdateWizardStepHandler.cs (lines 73-82)
 - [x] T026 [US1] Implement Flutter onboarding UI updates (guided wizard, photo privacy toggles, resumable steps, "add later" modules with analytics) (`mobile-apps/flutter/dejtingapp/lib/screens/`)
-	- **Status**: ✅ COMPLETE
-	- **Evidence**: Full 3-step wizard with BasicInfo → Preferences → Photos, privacy controls (PUBLIC/PRIVATE/MATCH_ONLY/VIP + blur slider), resumable navigation, exit confirmation, analytics placeholders
-	- **Completion**: 2026-01-25
-	- **Files**: mobile-apps/flutter/dejtingapp/lib/models/wizard_models.dart (DTOs + WizardProgress state), mobile-apps/flutter/dejtingapp/lib/screens/onboarding_wizard_screen.dart (main orchestrator), mobile-apps/flutter/dejtingapp/lib/screens/wizard_steps/basic_info_step.dart (step 1), mobile-apps/flutter/dejtingapp/lib/screens/wizard_steps/preferences_step.dart (step 2), mobile-apps/flutter/dejtingapp/lib/screens/wizard_steps/photos_step.dart (step 3 with privacy UI)
+	- **Status**: ✅ COMPLETE (Superseded 2026-02-09 — unified single-screen-per-route wizard replaced old 3-step PageView)
+	- **Evidence**: 7-screen Tinder-style onboarding flow (phone → guidelines → name → birthday → gender → orientation → photos), DevMode skip buttons on all screens, named route navigation, progress indicators, compile-time feature flag
+	- **Completion**: 2026-01-25 (initial), **2026-02-09** (rewrite — commit 5ccb780)
+	- **Files**: lib/screens/wizard/phone_entry_screen.dart, community_guidelines_screen.dart, first_name_screen.dart, birthday_screen.dart, gender_screen.dart, orientation_screen.dart, photos_screen.dart (NEW), lib/config/dev_mode.dart (NEW), lib/widgets/dev_mode_banner.dart (NEW), lib/main.dart (route registrations)
+	- **Deleted**: onboarding_wizard_screen.dart, wizard_steps/ (basic_info_step, preferences_step, photos_step) — replaced by individual route screens
+	- **4-Layer Doc**: See ONBOARDING_WIZARD_4LAYER.md
 - [x] T027 [US1] Add telemetry + audit logs for signup + photo moderation (`AuthService`, `photo-service` logging configuration)
 	- **Status**: ✅ COMPLETE
 	- **Evidence**: Structured logging with [OnboardingFunnel] category for wizard steps (demographic data, preference settings, completion time), [PhotoModeration] audit logs (safety scores, detected issues, moderation decisions), [PhotoUpload] performance telemetry (processing time, quality score, file size metrics)
