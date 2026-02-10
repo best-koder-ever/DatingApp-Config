@@ -406,7 +406,12 @@ graph TB
 - **Completion**: 2026-01-26
 - **Files**: MatchmakingService/Hubs/MatchmakingHub.cs (new), Services/NotificationService.cs (enhanced), Program.cs (SignalR config), dejting-yarp/appsettings.Development.json (route)
 - **Build**: No errors, 4 warnings (unrelated async)
-- [ ] T037 [P] [US2] Finalize Flutter offline cache strategy for swipe queue + pending actions and integrate with retry logic (`lib/services/`, caching layer)
+- [x] T037 [P] [US2] Finalize Flutter offline cache strategy for swipe queue + pending actions and integrate with retry logic (`lib/services/`, caching layer)
+    - **Status**: ✅ COMPLETE
+    - **Evidence**: SwipeCacheService (450+ lines) implements 5 responsibilities: (1) Cache candidates to SharedPreferences for offline browsing with 1h TTL, (2) Queue failed swipes with idempotency keys for later delivery, (3) Periodic drain timer (30s) + on-connectivity-restored trigger, (4) Swiped-user dedup set prevents re-showing cards, (5) Batch drain processing (10/batch) with max 5 retries per swipe. HomeScreen integrated: cache fallback on load failure, auto-cache on fetch/prefetch, pending-swipe count indicator (orange badge), match-discovered-from-queue snackbar.
+    - **Completion**: 2026-02-10
+    - **Files**: lib/services/swipe_cache_service.dart (new, 450+ lines), lib/screens/home_screen.dart (updated)
+    - **Analysis**: flutter analyze — 0 issues
 
 **Checkpoint**: Mutual matches create records, notifications fire, and queue gracefully handles exhaustion.
 
@@ -473,7 +478,12 @@ graph TB
 ### Implementation
 - [x] T042 [P] [US3] [MMP] Finalize SignalR hub contracts per spec - BASIC only (send/receive messages, no typing indicators) (`messaging-service/Hubs/MessagingHub.cs`, `contracts/signalr-spec.md`)
 - [x] T043 [P] [US3] [MMP] Add message persistence (NO read receipts initially) - COMPLETE: MessageService & MessageServiceSpec persist to MessagingDbContext. ReadAt tracked internally but not exposed in MessageDto (always null). Conversation history via GET /api/messages/conversation/{otherUserId} with pagination.
-- [ ] T044 [P] [US3] [MMP] Implement offline queue + reconnection handling in Flutter messaging service (`lib/services/messaging_service.dart`)
+- [x] T044 [P] [US3] [MMP] Implement offline queue + reconnection handling in Flutter messaging service (`lib/services/messaging_service.dart`)
+    - **Status**: ✅ COMPLETE
+    - **Evidence**: UnifiedMessagingService (781 lines) implements SignalR primary → REST fallback → offline queue pattern. PendingMessage queue persisted to SharedPreferences. Exponential backoff reconnection (max 5 attempts). Connection states: disconnected/connecting/connected/reconnecting. REST polling fallback when SignalR unavailable. Queue drains automatically on reconnect.
+    - **Completion**: 2026-02-08
+    - **Commit**: 83c564b (mobile_dejtingapp)
+    - **Files**: lib/services/messaging_service.dart (781 lines, new)
 - [x] T045 [P] [US3] [MMP] Ensure YARP websockets + auth pipeline pass through tokens - COMPLETE: YARP enables WebSockets middleware, bypasses gateway auth for /messagingHub & /hubs/* paths. Services handle JWT via OnMessageReceived query string extraction. Fixed messagingHubRoute path from /hubs/messages to /messagingHub.
 - [ ] T046 [US3] [Deferred to Phase 2] Update audit logging + moderation hooks for flagged messages - manual moderation OK for MMP beta (`messaging-service/Services/`)
 
