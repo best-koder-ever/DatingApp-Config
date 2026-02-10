@@ -387,7 +387,13 @@ graph TB
   - Backend: swipe-service/Commands/RecordSwipeHandler.cs (idempotency already implemented)
   - Flutter: lib/services/swipe_service.dart (new), lib/api_services.dart (updated to use SwipeService)
 - **Analysis**: flutter analyze - No issues found
-- [ ] T035 [US2] Update Flutter Discover UI for compatibility indicators + empty-state messaging (`lib/screens/swipe_screen.dart`)
+- [x] T035 [US2] Update Flutter Discover UI for compatibility indicators + empty-state messaging (`lib/screens/home_screen.dart`)
+    - **Status**: ✅ COMPLETE
+    - **Evidence**: Full rewrite of HomeScreen (887 lines, +786/-286). Real backend integration via matchmakingApi.getCandidates() + matchmakingApi.swipe(). Compatibility badge (purple gradient %, fire icon), real distance formatting, shared interest chips, occupation display. Drag-to-swipe with LIKE/NOPE overlay, card stack peek animation. Match celebration dialog with "Send a Message" / "Keep Swiping". Loading, error, empty states. Prefetch at ≤3 remaining. CachedNetworkImage for photos. All withOpacity→withValues. flutter analyze: 0 issues.
+    - **Completion**: 2026-02-10
+    - **Commit**: 993e941 (mobile_dejtingapp)
+    - **Files**: lib/screens/home_screen.dart (rewritten)
+    - **Documentation**: specs/001-mvp-foundation/features/discover-screen.md (4-layer)
 - [x] T036 [US2] Emit notifications + YARP route for match creation (`MatchmakingService`, `dejting-yarp/appsettings*.json`)
 - **Estimate**: 3h
 - **Evidence**:
