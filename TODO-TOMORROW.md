@@ -1,4 +1,543 @@
-# TODO-TOMORROW.md - February 2, 2026
+# TODO-TOMORROW.md - February 7, 2026
+
+## ✅ YESTERDAY'S PROGRESS (February 6, 2026 - Full Day Session)
+
+### 🎯 Session: Tinder Onboarding Competitive Analysis - COMPLETE!
+
+**What We Built:**
+1. ✅ **TINDER_ONBOARDING_ANALYSIS.md** (78KB strategic analysis)
+   - Documented all 16 Tinder onboarding screens with pixel-perfect detail
+   - Gap analysis: Found 11 missing screens vs our current implementation
+   - 6-week implementation roadmap with 5 phases
+   - Cost estimates (professional tier: $39K total)
+   - Database schema updates (15+ new fields, 7 new tables)
+   - Technology recommendations (Twilio, hCaptcha, AWS Rekognition, etc.)
+   - Success metrics and KPIs
+
+2. ✅ **ONBOARDING_IMPLEMENTATION_TASKS.md** (260 detailed tasks)
+   - Granular task breakdown: 260 tasks across 8 phases
+   - Time estimates: 591 hours (70 working days)
+   - Sprint-by-sprint execution plan (14 weeks to launch)
+   - File-level specifications (which files to create/modify)
+   - Testing requirements per task
+   - Critical path identification
+
+### 💰 COST REALITY CHECK - DIY vs Professional Tiers
+
+**Original $39K estimate was PROFESSIONAL TIER (hiring developer):**
+- $500/day developer rate × 70 days = $35,000
+- Legal attorney review: $2,500
+- Premium services (AWS, Twilio commercial): $1,500/year
+- **Total: $39,000 first year**
+
+**DIY TIER (You building it yourself - ACTUAL realistic costs):**
+- 💵 **Your time**: $0 (FREE if building yourself!)
+- 💵 **Server**: $20/month Hetzner VPS = $240/year
+- 💵 **SMS**: Twilio free tier then $0.0075/SMS (~$10/month with users) = $120/year
+- 💵 **Storage**: MinIO self-hosted (FREE) or S3 free tier
+- 💵 **NSFW detection**: NudeNet open source model (FREE)
+- 💵 **Face detection**: OpenCV (FREE, open source)
+- 💵 **CAPTCHA**: hCaptcha (FREE forever)
+- 💵 **Push notifications**: Firebase FCM (FREE)
+- 💵 **Legal docs**: Termly.io templates ($0-27/year)
+- 💵 **Database**: PostgreSQL + PostGIS (FREE, self-hosted)
+- **💰 TOTAL FIRST YEAR: ~$400-500** (not $39,000!)
+
+**The expensive part isn't services - it's LABOR:**
+- If YOU build it = Your time (FREE in $$$, but ~70 days of work)
+- If you HIRE = $35K for 70 days of professional development
+- The 70 days is for BUILDING features, not buying services!
+
+### 🚀 What Actually Takes Time
+
+**Not the third-party tools - it's the ENGINEERING:**
+
+1. **Phone Auth Flow (15 days total)**: 
+   - Building UI (6 screens with animations)
+   - Validation logic (phone format, international codes)
+   - Error handling (20+ error states)
+   - Security (rate limiting, attempt tracking)
+   - Testing (happy path + edge cases)
+
+2. **Photo Upload System (7 days)**:
+   - Crop/zoom/rotate editor UI
+   - Drag-drop reordering
+   - Client-side compression
+   - Upload with progress
+   - Content moderation integration
+   - Manual review queue
+
+3. **Profile Wizard (12 days)**:
+   - Creating 7 separate screens
+   - Building reference data (50 genders, 100+ interests)
+   - Multi-select UI components
+   - Privacy toggles
+   - Database schema design
+
+**Time = Writing Code + Testing + Polish, NOT buying services!**
+
+### 🎯 LEAN MVP Alternative (Faster, Cheaper)
+
+**If you want 4-5 weeks instead of 12:**
+
+**Skip These for V1:**
+- ❌ Apple Sign-In (just Google + Phone for now)
+- ❌ 50 gender options (start with Man/Woman/Non-binary)
+- ❌ Interests tags (add in v2)
+- ❌ Photo editor (just upload as-is, add editor later)
+- ❌ Advanced AI moderation (manual review only)
+- ❌ Push notifications (build core features first)
+
+**This cuts timeline to ~4-5 weeks and keeps DIY costs under $200.**
+
+### 📚 Documents Created:
+1. **TINDER_ONBOARDING_ANALYSIS.md** (78KB) - Strategic competitive analysis
+2. **ONBOARDING_IMPLEMENTATION_TASKS.md** (260 tasks) - Detailed task breakdown
+3. **COST_REALITY_CHECK.md** (NEW!) - DIY vs Professional cost comparison
+
+### 🎯 Key Decisions for Next Session:
+
+**Need to Choose Path:**
+1. **LEAN MVP** (4-5 weeks, $200 cost, core features only) ← RECOMMENDED
+2. **COMPLETE** (12 weeks, $400 cost, full Tinder parity)
+3. **HYBRID** (Start lean, add features based on user feedback)
+
+**If Going LEAN, Implementation Order:**
+- Week 1: Phone auth + CAPTCHA (security foundation)
+- Week 2: Basic profile (name, age, gender, 2+ photos)
+- Week 3: Swipe matching + location
+- Week 4: Basic messaging
+- Week 5: Legal docs + polish + beta test
+
+**Service Setup (All FREE or cheap):**
+- ✅ Firebase Auth (FREE - includes phone + Google OAuth)
+- ✅ hCaptcha (FREE - bot protection)
+- ✅ MinIO self-hosted (FREE - photo storage)
+- ✅ NudeNet model (FREE - NSFW detection)
+- ✅ Termly.io templates (FREE - legal docs)
+- ✅ Your existing VPS ($20-40/month - already have)
+
+---
+
+## 🎯 TOMORROW'S START POINT (February 7, 2026)
+
+**Review Documents:**
+- Read [COST_REALITY_CHECK.md](../mobile-apps/flutter/dejtingapp/COST_REALITY_CHECK.md)
+- Decide: LEAN vs COMPLETE vs HYBRID path
+
+**If Going LEAN (Recommended):**
+1. Set up Firebase Auth project (30 min)
+2. Add hCaptcha account (10 min)
+3. Start implementing phone auth screens (6-8 hours)
+
+**If Going COMPLETE:**
+1. Review full 260-task list in ONBOARDING_IMPLEMENTATION_TASKS.md
+2. Start Sprint 1 (Week 1-2): Authentication Foundation
+3. Set up Twilio account for SMS
+
+**Questions to Answer:**
+- How fast do you want to validate the idea?
+- Are you building for launch or for learning?
+- Do you have 25 days or 70 days available?
+
+---
+
+## 📈 Overall Project Status
+
+### Phases Complete:
+- ✅ Phase 0: Planning & Tracking (47%)
+- ✅ Backend Services (US1-4 APIs complete)
+- ✅ Test Infrastructure (fixtures, automation)
+- ✅ Competitive Analysis (Tinder benchmarking)
+
+### Current Focus:
+- 🎯 **Onboarding Strategy**: LEAN vs COMPLETE decision
+- 🎯 **Flutter UI**: Ready to start (backend is done)
+- 🎯 **Legal Blocker**: Templates available, need to implement
+
+### Critical Path to Launch:
+1. ⏳ Choose implementation path (LEAN/COMPLETE)
+2. ⏳ Build onboarding screens (4-12 weeks)
+3. ⏳ Legal documents (1-2 days with templates)
+4. ⏳ Beta testing (1 week with 20-50 users)
+5. ⏳ App Store submission (wait time: 1-3 days)
+
+---
+
+## 💡 Bottom Line Insight
+
+**The $39K wasn't for services like Twilio or AWS.**
+
+**It was salary for 70 days of professional development work.**
+
+**If YOU build it: $300/year in services, YOUR time for labor.**
+
+**The expensive part is the ENGINEERING, not the tools!**
+
+---
+
+## ✅ TODAY'S PROGRESS (February 6, 2026 - Evening Session)
+
+### 🎯 Session Goal: Review all 15 Stitch screens for backend changes
+**Status**: 2/15 screens reviewed + 1 NEW screen discovered (13%)
+
+### ✅ Completed:
+1. **Screen 1: Welcome Screen** ✅
+   - Reviewed Stitch design variant-01
+   - Documented all changes needed
+   - Generated NEW variant-02-multiauth with Stitch AI
+   - **Implemented in Flutter**: `lib/screens/welcome_screen.dart`
+   - Tested running app (Linux desktop)
+   - Changes: Google OAuth, Phone auth, App Store links, dark modal overlay
+   - Backend: Keycloak OAuth, SMS provider, multi-auth callbacks
+
+2. **Screen 1.5: Account Consent (NEW!)** ✅
+   - Discovered missing screen (between Welcome and Wizard)
+   - Based on Tinder's OAuth consent pattern
+   - **Implemented in Flutter**: `lib/screens/account_consent_screen.dart`
+   - Features: Account display, language selector (SV/EN), legal links
+   - Bilingual support (Swedish primary, English fallback)
+   - Backend: OAuth callback handling, I18N, language preference storage
+
+3. **Legal Requirements Discovery** 🚨
+   - Discovered CRITICAL blocker: Privacy Policy, Terms, Cookie Policy
+   - Created comprehensive documentation (4 files):
+     - `LEGAL_REQUIREMENTS.md` (complete guide)
+     - `specs/001-mvp-foundation/LEGAL_COMPLIANCE_TASK.md` (formal task)
+     - Updated `TODO-TOMORROW.md` (top blocker warning)
+     - Added TODO comments in Flutter code
+   - Budget: €1200-1950 (templates + legal review)
+   - Timeline: 10-15 hours + 1-2 weeks lawyer review
+   - **BLOCKS**: App Store submission, public launch
+
+### 📊 Screen Review Progress:
+- ✅ **1/15** Welcome Screen (variant-02 generated, Flutter implemented)
+- ✅ **NEW** Account Consent Screen (Flutter implemented)
+- ⏳ **2/15** Wizard: Basic Info (next to review)
+- ⏳ **3-15** Remaining 13 screens
+
+### 📁 Files Created Today:
+1. `lib/screens/welcome_screen.dart` (380 lines)
+2. `lib/screens/account_consent_screen.dart` (335 lines)
+3. `lib/main_welcome_test.dart` (test harness)
+4. `LEGAL_REQUIREMENTS.md` (comprehensive guide)
+5. `specs/001-mvp-foundation/LEGAL_COMPLIANCE_TASK.md` (formal spec)
+6. `design-explorations/stitch-designs/welcome-screen/variant-02-multiauth/`
+   - preview.png
+   - design.html
+   - metadata.yaml
+7. `design-explorations/stitch-designs/account-consent/metadata.yaml`
+
+### 🔑 Key Decisions Made:
+1. **Design workflow**: Document changes only (don't regenerate all Stitch screens)
+2. **Flutter-first**: Implement directly in Flutter for full control
+3. **Bilingual MVP**: Swedish + English (add more languages later)
+4. **Legal blocker**: Must complete before ANY launch/submission
+
+### 🎯 Next Session Priorities:
+1. Continue screen review: Wizard Basic Info (Screen 2/15)
+2. Review remaining 13 screens systematically
+3. Document all changes by user story
+4. Organize changes by impact (UI only vs Backend vs Database)
+5. Create prioritized implementation task list
+
+### 📈 Overall MVP Status:
+- **Phase 0**: 47% complete (7/15 tasks)
+- **Phase 4 (US2)**: Backend complete, UI starting
+- **Design System**: 15/15 Stitch screens generated (Feb 4)
+- **Screen Review**: 13% complete (2/15 + 1 new)
+- **Legal Compliance**: 0% (critical blocker identified)
+
+---
+
+## 🚨 CRITICAL LEGAL REQUIREMENTS - PRE-LAUNCH BLOCKER
+
+**DISCOVERED**: 2026-02-06 during Welcome Screen review  
+**PRIORITY**: 🔴 BLOCKING - Cannot submit to App Store without these
+
+### ⚠️ MANDATORY Legal Documents Needed:
+1. **Privacy Policy** (GDPR compliant) - BLOCKS: App Store submission, GDPR compliance
+2. **Terms of Service** - BLOCKS: App Store submission, legal protection
+3. **Cookie Policy** - BLOCKS: EU compliance
+
+**Action Required**:
+- [ ] Read [LEGAL_REQUIREMENTS.md](LEGAL_REQUIREMENTS.md) - Complete guide created
+- [ ] Generate initial drafts using Termly/Iubenda (2-3 hours)
+- [ ] Budget €1000-1500 for legal review before launch
+- [ ] Implement clickable links in Welcome Screen
+- [ ] Add "I agree to Terms" checkbox in registration flow
+
+**Impact**: Without these, app will be **100% rejected** by Apple and Google Play.
+
+**See**: `LEGAL_REQUIREMENTS.md` for full details, templates, and implementation tasks.
+
+---
+
+# TODO-TOMORROW.md - February 4, 2026
+
+## 🎉 STITCH UI GENERATION - ALL SCREENS COMPLETE! (Feb 4, 2026)
+
+### ✅ Session Complete: 15/15 Screens Generated
+
+**Achievement**: Generated complete UI design system for entire dating app covering all 4 user stories using Google Stitch MCP AI.
+
+**Status**: 
+- ✅ All 15 screens designed (100% coverage)
+- ✅ Design consistency maintained (coral/purple theme)
+- ✅ 3 comprehensive documentation files created
+- ⏳ **NEXT**: Review each screen for backend changes needed
+
+### 📊 Generation Summary
+
+**Screens Completed**:
+- **US1 - Profile Creation**: 5/5 screens ✅
+  - Welcome Screen, Wizard (Basic Info, Preferences, Photos), Profile Complete
+- **US2 - Discovery**: 3/3 screens ✅
+  - Discover Feed, Match Celebration v2 (improved!), Matches List
+- **US3 - Messaging**: 2/2 screens ✅
+  - Conversation List, Ice Breaker Library (6 unique gradients!)
+- **US4 - Safety**: 3/3 screens ✅
+  - Privacy Settings, Block/Report Modal, Blocked Users List
+- **BONUS**: 2/2 screens ✅
+  - Profile Detail View, Account Settings
+
+**Generation Stats**:
+- Total time: ~2.5 hours
+- Success rate: 100% (15/15 screens)
+- API errors: 2 (both recovered)
+- Design system consistency: 100%
+- File size: ~1.2 MB (20 variants including Feb 3 explorations)
+
+**Documentation Created**:
+1. `STITCH_SCREEN_PLAN.md` - Updated to 15/15 complete
+2. `SCREEN_MAP.md` - NEW! Comprehensive screen catalog with flow diagrams
+3. `COMPLETION_SUMMARY.md` - NEW! Detailed breakdown with metrics & learnings
+
+**Location**: `/home/m/development/mobile-apps/flutter/dejtingapp/design-explorations/`
+
+### 🔍 NEXT SESSION: Screen Review for Backend Changes
+
+**Current State**: All designs complete, ready to review for implementation changes
+
+**User Request**: "I have things I want to change in almost every screen, that will affect the backend"
+
+**Planned Approach** (HYBRID):
+
+**Phase 1: Capture All Changes** (Screen by Screen)
+- Go through each screen systematically
+- User describes desired changes
+- Document changes + flag backend impacts
+- Estimated: ~15-20 minutes per user story
+
+**Phase 2: Organize by Impact** (User Story Grouping)
+- Group changes by user story (US1-US4)
+- Categorize by:
+  - ✅ Pure UI changes (Flutter only)
+  - 🔧 API endpoint changes (backend + Flutter)
+  - 💾 Data model changes (database + backend + Flutter)
+  - 🔄 Existing service modifications
+
+**Phase 3: Create Prioritized Tasks**
+- Tasks structured as: `US1-T001: [BACKEND] Add photo visibility enum`
+- Include effort estimates and dependencies
+- Organize by implementation order
+
+**Why This Works**:
+- User story grouping = complete features deliverable
+- Screen-by-screen capture = systematic, nothing missed
+- Backend changes often align with user stories
+- Easier testing and demos
+
+**Where to Start**: 
+- **Recommended**: US1 (Profile Creation) - foundation screens
+- **Alternative**: Any user story user prefers (US2 Discovery, US3 Messaging, US4 Safety)
+
+**For Each Screen, Capture**:
+- What you want changed/added
+- Any concerns about current design
+- Features to emphasize
+- Backend impacts (data model, API, services)
+
+**Session Start Point**:
+```
+User says: "Ready to review screens"
+→ Ask: "Start with US1 Profile Creation (5 screens)?"
+→ For each screen:
+  1. Show preview path
+  2. User describes changes
+  3. Document + categorize (UI vs Backend vs Both)
+  4. Flag critical changes
+→ After capturing all changes:
+  - Organize by user story + impact type
+  - Create task list with estimates
+  - Prioritize implementation order
+```
+
+---
+
+## 🎨 DESIGN EXPLORATION SESSION (Feb 3, 2026)
+
+### ✅ Stitch MCP Integration Complete
+
+**Achievement**: Tested Google Stitch AI for professional UI/UX design generation. Created systematic variant tracking with metadata.
+
+**Stitch Project**:
+- Name: "DatingApp UI Components"
+- ID: 8469203751545122197  
+- URL: https://stitch.withgoogle.com/projects/8469203751545122197
+
+### 🎯 Designs Generated (4 variants)
+
+#### 1. ProfileCard (variant-01-coral) ✅ IMPLEMENTED
+- Path: `design-explorations/stitch-designs/profile-card/variant-01-coral/`
+- Status: Already in production Flutter code
+- Features: Gradient overlay, match badge (92%), 3 action buttons
+- User stories: US1, US2, US4
+
+#### 2. Match Celebration (variant-01-coral) 😐
+- Path: `design-explorations/stitch-designs/match-celebration/variant-01-coral/`
+- Status: Exploring (feedback: "ok but so boring")
+- Needs: More excitement, animation concepts
+
+#### 3. Chat Interface (variant-01-coral) 📱
+- Path: `design-explorations/stitch-designs/chat-interface/variant-01-coral/`
+- Status: Exploring
+- Style: Traditional, clean chat bubbles
+
+#### 4. Chat Interface (variant-02-futuristic) ✨
+- Path: `design-explorations/stitch-designs/chat-interface/variant-02-futuristic/`
+- Status: Exploring
+- Features: Glassmorphism, AI suggestions, voice waveforms, floating reactions
+- Style: Experimental, cutting-edge UX (2026-2027 trends)
+
+#### 5. Chat Interface (variant-03-mutual-prompts) ⭐ BREAKTHROUGH!
+- Path: `design-explorations/stitch-designs/chat-interface/variant-03-mutual-prompts/`
+- Status: Exploring
+- **KEY INNOVATION**: Mutual conversation starter cards
+
+**The Breakthrough Idea** 💡:
+Both users answer the SAME ice-breaker question together to break "hello how are you" conversations.
+
+**How It Works**:
+1. Card appears naturally in chat thread (doesn't interrupt flow)
+2. Question shown: "What's your go-to comfort food?"
+3. Side-by-side answers:
+   - Sophia: "Homemade Ramen 🍜" ✓
+   - You: "Authentic Tacos 🌮" ✓  
+4. "Next Question ➡️" button loads more prompts
+5. Regular messages flow above and below card
+
+**Why This Solves Real Problem**:
+- ✅ COLLABORATIVE not one-sided (both participate equally)
+- ✅ Breaks "hello how are you" ice naturally  
+- ✅ Structured prompts easier than freeform (reduces pressure)
+- ✅ Answers build connection and shared knowledge
+- ✅ Feels playful and game-like (not forced)
+- ✅ Creates conversation topics organically
+- ✅ Great for introverts or shy users
+
+**Design Features**:
+- Soft purple-tinted card with glowing border
+- ✨ Sparkle icon + "💭 Ice Breaker Question" header
+- Equal visual weight (symmetric, not competitive)
+- Green checkmarks when both answered
+- Card has subtle elevation/shadow
+- Flows in conversation - doesn't block or interrupt
+
+### 🔧 Organization System Created
+
+**Phase DX Specification** ✅:
+- File: `specs/001-mvp-foundation/PHASE-DX-design-exploration.md`
+- Component-based folder structure with variant numbering
+- metadata.yaml tracking system (user stories, status, design decisions)
+- Templates for SCREEN_MAP.md, automation scripts
+- 5-phase implementation plan (4-6 hours total)
+
+**Folder Structure**:
+```
+design-explorations/
+  README.md (quick start guide)
+  stitch-designs/
+    {component}/
+      variant-{NN}-{theme}/
+        preview.png (screenshot)
+        design.html (if available)
+        metadata.yaml (tracking)
+```
+
+**Metadata System**:
+- Component name, variant, theme
+- Status (exploring/approved/implemented)  
+- User stories (US1-4 cross-references)
+- Implementation tracking (Flutter widget paths)
+- Design decisions, strengths, concerns
+- Alternative variants to explore
+
+### 📊 Session Summary
+
+**Files Created**:
+- 5 design variants with previews
+- 4 metadata.yaml files  
+- Phase DX specification (comprehensive planning doc)
+- design-explorations/README.md (workflow guide)
+- SESSION_2026-02-03_stitch-exploration.md (session notes)
+
+**Design Workflow Proven**:
+- User feedback loop working ("boring" → generated more interesting variants)
+- Variant system enables side-by-side comparison
+- Metadata tracks why each variant exists
+- Stitch generates professional designs in seconds
+
+### 🚀 Next Steps (Stitch Recommendations)
+
+**Stitch AI Suggested**:
+1. "Ice Breaker Library" screen - browse question categories
+2. "Shared Moments" gallery - view all answered prompts  
+3. "Quick Response" menu for ice breaker cards
+
+**Implementation Options**:
+- **Option A**: Generate Ice Breaker Library screen (continue exploring)
+- **Option B**: Try futuristic variants for ProfileCard + Match Celebration  
+- **Option C**: Pick favorite chat variant and implement in Flutter
+- **Option D**: Generate more theme variants (purple, dark mode, minimal)
+
+### 💡 Key Innovation to Consider
+
+The **mutual conversation prompts** idea addresses a critical UX problem:
+- Dating app conversations often die in "hello how are you" small talk
+- One-sided AI suggestions feel pushy/asymmetric  
+- Users need structured help without feeling forced
+
+**Implementation Considerations**:
+- Need prompt database (50+ diverse questions)
+- Categories: Light & Fun, Travel, Personality, Deeper topics
+- Timing triggers: Manual button vs auto-suggest after 5 messages
+- Gamification: "You've answered 10 prompts together! 🎉"
+- Privacy: Are answers saved/shareable beyond this chat?
+
+**Potential Impact**:
+- Differentiating feature (not in Tinder/Bumble/Hinge)
+- Reduces anxiety for shy users
+- Creates natural talking points
+- Builds connection faster than freeform chat
+
+### 📋 Status for Tomorrow
+
+**Design Exploration Status**: 
+- Systematic organization: ✅ Complete
+- Variant comparison working: ✅ Proven  
+- Breakthrough feature discovered: ✅ Mutual prompts
+- Ready for implementation: ⏳ Need to choose variant
+
+**Decision Needed**: 
+Which chat interface to implement?
+1. variant-01-coral: Traditional, simple (fast to build)
+2. variant-03-mutual-prompts: Innovative, differentiating (medium complexity)
+3. variant-02-futuristic: Experimental, complex (high effort)
+
+**Recommendation**: Start with variant-01-coral for MVP, prototype variant-03-mutual-prompts in parallel as differentiating feature experiment.
+
+---
 
 ## 📊 PHASE 0 STATUS SYNC (Feb 2, 2026)
 

@@ -36,7 +36,12 @@
 		"github.copilot.chat.anthropic.tools.websearch.enabled": true,
 		"chat.tools.terminal.autoApprove": {
 			"./gita-workflow.sh": true,
-			"cp": true
-		}
+			"cp": true,
+			"/^python3 /tmp/chat_send_patch\\.py$/": {
+				"approve": true,
+				"matchCommandLine": true
+			}
+		},
+		"makefile.configureOnOpen": false
 	}
 }

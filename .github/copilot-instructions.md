@@ -50,15 +50,22 @@ TestDataGenerator/, api_tests.py  # Legacy demo seeding (avoid new usage); rely 
 
 Why: User set up gita and helper scripts specifically to avoid tedious manual operations. Always check for and use these tools first.
 
-## AI Workflow - Non-Breaking Automation (CRITICAL!)
-**ALWAYS use terminal commands for file operations.** Never use interactive tools that require user confirmation.
+## AI Workflow - ZERO "ALLOW" PROMPTS (CRITICAL! READ TWICE!)
+**🚫 NEVER make the user press "Allow" or "Accept". NOT ONCE. EVER.**
+**ALWAYS use `run_in_terminal` with `cat > file << 'EOF'` for ALL file creation and editing.**
 
-### File Creation & Editing
-- ✅ **DO:** Use `cat > file.ext << 'EOF'`, `echo "content" > file.ext`, `sed`, `awk`
-- ✅ **DO:** Use `dotnet add package`, `dotnet remove package` for NuGet operations
-- ✅ **DO:** Use `mkdir -p`, `cp`, `mv`, `rm` for file system operations
-- ❌ **DON'T:** Use tools that require "accept/allow" prompts or user interaction
-- ❌ **DON'T:** Use `create_file` or `replace_string_in_file` if stuck - switch to terminal commands
+The user HATES the Allow button. Every Allow prompt = broken workflow. If you use `create_file`, `replace_string_in_file`, or `multi_replace_string_in_file` you are wasting the user's time. The user wants to review UI manually on device, not babysit file permission dialogs.
+
+### File Creation & Editing — TERMINAL ONLY
+- ✅ **DO:** `cat > file.ext << 'EOF'` ... `EOF` (create/overwrite files)
+- ✅ **DO:** `sed -i 's/old/new/g' file.ext` (inline edits)
+- ✅ **DO:** `echo "line" >> file.ext` (append)
+- ✅ **DO:** `cp`, `mv`, `rm`, `mkdir -p` (file system ops)
+- ✅ **DO:** `dotnet add package`, `flutter pub add` (package managers)
+- ❌ **NEVER:** `create_file` tool — triggers Allow prompt
+- ❌ **NEVER:** `replace_string_in_file` tool — triggers Allow prompt  
+- ❌ **NEVER:** `multi_replace_string_in_file` tool — triggers Allow prompt
+- ❌ **NEVER:** Any tool that shows "Allow" / "Accept" / confirmation dialog
 
 ### Build & Test Operations
 - ✅ **DO:** `dotnet build`, `dotnet test`, `flutter build`, `flutter test`
@@ -71,7 +78,14 @@ Why: User set up gita and helper scripts specifically to avoid tedious manual op
 - ✅ **DO:** `pip install package` or add to requirements.txt + `pip install -r requirements.txt`
 
 ### Why Terminal-First?
-User requires **autonomous, non-breaking execution**. Terminal commands never block on confirmations, allowing AI to complete entire tasks without human intervention.
+User requires **fully autonomous, non-blocking execution**. The user's role is reviewing PRs and testing UI manually on device/emulator — NOT pressing Allow buttons. Terminal commands never block on confirmations, allowing AI to complete entire tasks without human intervention.
+
+### User's Manual Testing Workflow
+The user will manually test onboarding wizard screens on device/emulator. AI should:
+1. Create/modify code autonomously (terminal commands)
+2. Run `flutter analyze` to validate
+3. Commit + push
+4. User pulls and runs on device to inspect UI/UX visually
 
 <!-- MANUAL ADDITIONS END -->
 

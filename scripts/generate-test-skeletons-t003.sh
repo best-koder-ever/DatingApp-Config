@@ -2,7 +2,7 @@
 # T003: Generate test skeletons for all controller actions
 # Scans controllers, creates failing xUnit tests marked with [Fact(Skip = "Not implemented")]
 
-set -euo pipefail
+set -uo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
@@ -15,7 +15,17 @@ generate_controller_tests() {
     local SERVICE_DIR=$1
     local CONTROLLER_FILE=$2
     local CONTROLLER_NAME=$(basename "$CONTROLLER_FILE" .cs)
-    local TEST_DIR="$SERVICE_DIR.Tests"
+    # Find the actual test project directory (handles nested structures)
+    local TEST_DIR=""
+    for candidate in "$SERVICE_DIR/${SERVICE_DIR##*/}.Tests" "$SERVICE_DIR/$(echo $SERVICE_DIR | sed 's/-service/Service/;s/^./\U&/')Service.Tests" "$SERVICE_DIR/$(ls $SERVICE_DIR 2>/dev/null | grep '\.Tests$' | head -1)"; do
+        if [ -d "$candidate" ] 2>/dev/null; then TEST_DIR="$candidate"; break; fi
+    done
+    # Fallback: find .Tests.csproj and use its directory
+    if [ -z "$TEST_DIR" ]; then
+        TEST_DIR=$(find "$SERVICE_DIR" -maxdepth 2 -name '*.Tests.csproj' -printf '%h
+' 2>/dev/null | head -1)
+    fi
+    if [ -z "$TEST_DIR" ]; then echo "    ⚠️  No .Tests dir found for $SERVICE_DIR"; return; fi
     local TEST_FILE="$TEST_DIR/${CONTROLLER_NAME}Tests.cs"
     
     mkdir -p "$TEST_DIR"
@@ -60,7 +70,7 @@ namespace ${NAMESPACE}.Tests
 }
 EOFTEST
         echo "  ✅ Created $TEST_FILE ($ACTIONS actions)"
-        ((TESTS_CREATED++))
+        TESTS_CREATED=$((TESTS_CREATED+1))
     fi
 }
 

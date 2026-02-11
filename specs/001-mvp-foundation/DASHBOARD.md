@@ -1,6 +1,6 @@
 # MVP Foundation Dashboard
 
-**Last Updated**: 2026-01-24 23:00 UTC  
+**Last Updated**: 2026-02-11 11:34 UTC  
 **Project**: [001-mvp-foundation](https://github.com/users/best-koder-ever/projects/2)  
 **Auto-generated**: `./scripts/generate_dashboard.sh`
 
@@ -8,7 +8,7 @@
 
 ## 📊 Overall Progress
 
-**0% Complete** (0/47 tasks)
+**0% Complete** (0/58 tasks)
 
 ```
 Progress: █░░░░░░░░░░░░░░░░░░░░ 0%
@@ -18,7 +18,7 @@ Progress: █░░░░░░░░░░░░░░░░░░░░ 0%
 |--------|-------|------------|
 | ✅ Closed | 0 | 0% |
 | 🔄 Open | 0 | 0% |
-| **Total** | **47** | **100%** |
+| **Total** | **58** | **100%** |
 
 ---
 
@@ -31,11 +31,11 @@ Progress: █░░░░░░░░░░░░░░░░░░░░ 0%
 
 | Service | Controllers | Test Files | Coverage Est. |
 |---------|-------------|------------|---------------|
-| UserService | 2 | 0 | 🔴 0% |
-| MatchmakingService | 1 | 0 | 🔴 0% |
-| swipe-service | 2 | 0 | 🔴 0% |
-| photo-service | 1 | 0 | 🔴 0% |
-| messaging-service | 2 | 0 | 🔴 0% |
+| UserService | 8 | 8 | 🔴 20% |
+| MatchmakingService | 6 | 4 | 🔴 13% |
+| swipe-service | 5 | 5 | 🔴 20% |
+| photo-service | 4 | 4 | 🔴 20% |
+| messaging-service | 5 | 4 | 🔴 16% |
 
 ---
 
@@ -108,7 +108,11 @@ python3 api_tests.py
 
 ## 📝 Recent Activity
 
-
+- ✅ [#69](null) T071 – [P] Automate safety report acknowledgement timing + moderation SLA documentation (SC-005) (`docs/operations/mvp-safety.md`, `photo-service`/`messaging-service` logs) - Closed 2026-01-29
+- ✅ [#68](null) T070 – [P] Track messaging delivery/recency metrics with SignalR + REST fallbacks (SC-004) (`messaging-service`, `monitoring/`) - Closed 2026-01-29
+- ✅ [#67](null) T069 – [P] Capture matchmaking latency + mutual match conversion metrics (SC-002 & SC-003) (`MatchmakingService`, `monitoring/dashboard/`) - Closed 2026-01-29
+- ✅ [#66](null) T068 – [P] Instrument onboarding completion funnel metrics to satisfy SC-001 (`AuthService`, `UserService`, dashboards/`onboarding.json`) - Closed 2026-01-29
+- ✅ [#63](null) T065 – [Backlog] Plan removal of `TestDataGenerator` console app and migrate any remaining demo seeding references (`dev-start.sh`, docs/, CI workflows) ✅ **COMPLETE** - TestDataGenerator directory deleted, all script references removed, docker-compose.yml cleaned - Closed 2026-01-28
 
 ---
 
