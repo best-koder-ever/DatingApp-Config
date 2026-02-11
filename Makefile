@@ -120,10 +120,10 @@ health-check:
 .PHONY: ai-state ai-state-verbose ai-verify-fixtures
 
 ai-state: ## Quick state check (AI debugging)
-@python3 scripts/ai-verify-state.py
+	@python3 scripts/ai-verify-state.py
 
 ai-state-verbose: ## Detailed state dump (AI debugging)
-@python3 scripts/ai-verify-state.py --verbose
+	@python3 scripts/ai-verify-state.py --verbose
 
 ai-verify-fixtures: ## Assert minimal fixtures loaded (AI testing)
-@python3 scripts/ai-verify-state.py --assert-minimal
+	@python3 scripts/ai-verify-state.py --assert-minimal
