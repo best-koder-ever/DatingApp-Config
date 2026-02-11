@@ -1,0 +1,89 @@
+{
+  "dashboard": {
+    "title": "Dating App - MVP Overview",
+    "tags": ["mvp", "overview"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "🏃 Service Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=~\"userservice|matchmaking|swipe|photo|messaging\"}"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "📊 API Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "⏱️ API Response Time (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 4,
+        "title": "👤 Active Users (24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(active_users_total)"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 4}
+      },
+      {
+        "id": 5,
+        "title": "💘 Matches Created (24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(matches_created_total[24h]))"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "💬 Messages Sent (hourly)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(messages_sent_total[1h])"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 7,
+        "title": "🚨 Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m])"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 36,
+    "version": 1
+  }
+}

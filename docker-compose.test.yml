@@ -1,0 +1,80 @@
+# Docker Compose Test Profile
+# Usage: docker-compose --profile test up
+# 
+# This profile automatically:
+# - Starts all services
+# - Waits for health checks
+# - Seeds test fixtures
+# - Ready for automated testing
+
+version: '3.8'
+
+services:
+  # Test fixture loader service
+  fixture-loader:
+    profiles: ["test"]
+    image: python:3.12-slim
+    container_name: fixture-loader
+    working_dir: /app
+    volumes:
+      - ./scripts:/app/scripts
+      - ./infrastructure/test-fixtures:/app/infrastructure/test-fixtures
+      - ./.venv:/app/.venv
+    environment:
+      - KEYCLOAK_URL=http://keycloak:8080
+      - USER_SERVICE_URL=http://user-service:8082
+      - SWIPE_SERVICE_URL=http://swipe-service:8087
+      - MATCHMAKING_URL=http://matchmaking-service:8083
+      - MESSAGING_URL=http://messaging-service:8086
+    command: >
+      bash -c "
+        pip install requests mysql-connector-python &&
+        echo 'Waiting for services...' &&
+        sleep 20 &&
+        echo 'Loading minimal fixtures...' &&
+        python scripts/fixture_loader.py minimal &&
+        echo 'Fixtures loaded! Test environment ready.' &&
+        tail -f /dev/null
+      "
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      swipe-service:
+        condition: service_started
+      matchmaking-service:
+        condition: service_started
+      messaging-service:
+        condition: service_started
+    networks:
+      - dating-app-network
+
+  # Health check service (test profile)
+  healthcheck:
+    profiles: ["test"]
+    image: curlimages/curl:latest
+    container_name: healthcheck
+    command: >
+      sh -c "
+        echo 'Waiting for all services to be healthy...' &&
+        until curl -sf http://keycloak:8080/health; do sleep 2; done &&
+        until curl -sf http://user-service:8082/health; do sleep 2; done &&
+        until curl -sf http://swipe-service:8087/health; do sleep 2; done &&
+        until curl -sf http://matchmaking-service:8083/health; do sleep 2; done &&
+        until curl -sf http://messaging-service:8086/health; do sleep 2; done &&
+        echo '✅ All services healthy! Test environment ready.' &&
+        tail -f /dev/null
+      "
+    depends_on:
+      - keycloak
+      - user-service
+      - swipe-service
+      - matchmaking-service
+      - messaging-service
+    networks:
+      - dating-app-network
+
+networks:
+  dating-app-network:
+    external: true

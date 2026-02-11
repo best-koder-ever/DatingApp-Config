@@ -1,41 +1,115 @@
-![act-logo](https://raw.githubusercontent.com/wiki/nektos/act/img/logo-150.png)
+# DatingApp - Modern Dating Platform
 
-# Overview [![push](https://github.com/nektos/act/workflows/push/badge.svg?branch=master&event=push)](https://github.com/nektos/act/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/nektos/act)](https://goreportcard.com/report/github.com/nektos/act) [![awesome-runners](https://img.shields.io/badge/listed%20on-awesome--runners-blue.svg)](https://github.com/jonico/awesome-runners)
+[![Auto Tests](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/auto-test.yml/badge.svg)](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/auto-test.yml)
+[![Comprehensive CI/CD](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/comprehensive-ci-cd.yml/badge.svg)](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/comprehensive-ci-cd.yml)
 
-> "Think globally, `act` locally"
+Modern microservices-based dating platform with .NET 8 backend and Flutter frontend.
 
-Run your [GitHub Actions](https://developer.github.com/actions/) locally! Why would you want to do this? Two reasons:
+**Auto-Testing**: Tests run automatically on every push + every 6 hours  
+**Monitoring**: [View Dashboard](http://localhost:3000) • Run `./start-monitoring.sh`
 
-- **Fast Feedback** - Rather than having to commit/push every time you want to test out the changes you are making to your `.github/workflows/` files (or for any changes to embedded GitHub actions), you can use `act` to run the actions locally. The [environment variables](https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables) and [filesystem](https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#filesystems-on-github-hosted-runners) are all configured to match what GitHub provides.
-- **Local Task Runner** - I love [make](<https://en.wikipedia.org/wiki/Make_(software)>). However, I also hate repeating myself. With `act`, you can use the GitHub Actions defined in your `.github/workflows/` to replace your `Makefile`!
+## Architecture
 
-> [!TIP]
-> **Now Manage and Run Act Directly From VS Code!**<br/>
-> Check out the [GitHub Local Actions](https://sanjulaganepola.github.io/github-local-actions-docs/) Visual Studio Code extension which allows you to leverage the power of `act` to run and test workflows locally without leaving your editor.
+### Backend Services
+- **UserService** - User profile management, preferences, bio
+- **MatchmakingService** - ML-powered candidate scoring & matching
+- **SwipeService** - Swipe processing, match verification
+- **PhotoService** - Photo storage, moderation, privacy enforcement
+- **MessagingService** - Real-time messaging via SignalR
+- **dejting-yarp** - API Gateway (YARP reverse proxy)
 
-# How Does It Work?
+### Frontend
+- **Flutter App** - Cross-platform mobile (iOS/Android) + web client
 
-When you run `act` it reads in your GitHub Actions from `.github/workflows/` and determines the set of actions that need to be run. It uses the Docker API to either pull or build the necessary images, as defined in your workflow files and finally determines the execution path based on the dependencies that were defined. Once it has the execution path, it then uses the Docker API to run containers for each action based on the images prepared earlier. The [environment variables](https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables) and [filesystem](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#file-systems) are all configured to match what GitHub provides.
+### Infrastructure
+- **Keycloak** - OIDC authentication (port 9090)
+- **MySQL 8.0** - All service databases
+- **Seq** - Structured logging (port 5380)
+- **Grafana** - Metrics & dashboards (port 3030)
 
-Let's see it in action with a [sample repo](https://github.com/cplee/github-actions-demo)!
+## Quick Start
 
-![Demo](https://raw.githubusercontent.com/wiki/nektos/act/quickstart/act-quickstart-2.gif)
+```bash
+# Start infrastructure (Keycloak, MySQL, Seq, Grafana)
+./infrastructure/start.sh
 
-# Act User Guide
+# Start all backend services
+./dev-start.sh
 
-Please look at the [act user guide](https://nektosact.com) for more documentation.
+# Run backend API tests
+python3 api_tests.py
 
-# Support
+# Run Flutter app (development)
+cd /home/m/development/mobile-apps/flutter/dejtingapp
+flutter run -d chrome
+```
 
-Need help? Ask in [discussions](https://github.com/nektos/act/discussions)!
+**Detailed setup:** See [specs/001-mvp-foundation/quickstart.md](specs/001-mvp-foundation/quickstart.md)
 
-# Contributing
+## Development
 
-Want to contribute to act? Awesome! Check out the [contributing guidelines](CONTRIBUTING.md) to get involved.
+### Technologies
+- .NET 8 + ASP.NET Core + Entity Framework Core 8
+- SignalR (real-time messaging)
+- Keycloak OIDC (authentication)
+- ImageSharp (photo processing)
+- ML.NET (matchmaking scoring)
+- Flutter 3.32.1 + Dart 3.5 (client)
+- MySQL 8.0 (Pomelo EF Core provider)
+- Python 3.12 (tooling & API tests)
 
-## Manually building from source
+### Code Style
+- Follow .NET 8 conventions with analyzers enabled
+- Flutter: `analysis_options.yaml` (pedantic + lint)
+- Python: `ruff` defaults
 
-- Install Go tools 1.20+ - (<https://golang.org/doc/install>)
-- Clone this repo `git clone git@github.com:nektos/act.git`
-- Run unit tests with `make test`
-- Build and install: `make install`
+### Multi-Repo Workflow
+This project uses 8+ Git repositories. **Always use helper scripts:**
+- **Commits/pushes:** `./gita-workflow.sh` or `./ai-commit-helper.sh`
+- **GitHub operations:** `./gh-multi-repo.sh`
+
+**Never manually iterate repos** - scripts exist to automate this.
+
+## CI/CD
+
+CI/CD pipeline runs on every push to `main`/`develop` branches:
+
+- .NET unit tests (all services)
+- Flutter unit & integration tests
+- Service builds (Docker images)
+- Security scanning (dependency checks)
+- ~~Integration tests~~ (deferred pending service-to-service auth)
+- ~~E2E tests~~ (deferred pending Flutter stabilization)
+
+**Workflow:** [.github/workflows/comprehensive-ci-cd.yml](.github/workflows/comprehensive-ci-cd.yml)
+
+## Project Status
+
+**Current Focus:** Backend Solidification - Week 1 (001-mvp-foundation)
+
+Recent completions:
+- ✅ T052: PhotoService privacy enforcement (match verification)
+- ✅ T007: Database consolidation (MySQL 8.0 standardization)
+- ✅ T008: Remove AuthService (Keycloak sole auth)
+- ✅ T065: Remove TestDataGenerator (api_tests.py automation)
+- 🔨 T004: CI/CD green builds (in progress)
+
+**Next priorities:**
+- T004: Enable CI/CD green builds with coverage gates
+- Service-to-service authentication (internal API keys)
+- Performance & observability improvements
+- Launch prep (Week 3)
+
+**Roadmap:** See [specs/001-mvp-foundation/tasks.md](specs/001-mvp-foundation/tasks.md)
+
+## Documentation
+
+- **Quickstart:** [specs/001-mvp-foundation/quickstart.md](specs/001-mvp-foundation/quickstart.md)
+- **Architecture:** [specs/001-mvp-foundation/guide.md](specs/001-mvp-foundation/guide.md)
+- **Tasks:** [specs/001-mvp-foundation/tasks.md](specs/001-mvp-foundation/tasks.md)
+- **API Contracts:** [specs/001-mvp-foundation/contracts/](specs/001-mvp-foundation/contracts/)
+- **AI Collaboration:** [AI_COLLABORATION_GUIDE.md](AI_COLLABORATION_GUIDE.md)
+
+## License
+
+Proprietary - All rights reserved

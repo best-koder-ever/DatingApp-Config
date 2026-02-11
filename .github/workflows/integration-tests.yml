@@ -1,0 +1,96 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: 'stable'
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements-test.txt
+      
+      - name: Start infrastructure (Keycloak + databases)
+        run: |
+          ./infrastructure/start.sh
+      
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for Keycloak..."
+          timeout 60 bash -c 'until curl -sf http://localhost:8090/health; do sleep 2; done'
+          echo "Keycloak is ready!"
+      
+      - name: Build and start services
+        run: |
+          # Build all .NET services
+          dotnet build UserService/UserService.csproj
+          dotnet build swipe-service/SwipeService.csproj
+          dotnet build MatchmakingService/MatchmakingService.csproj
+          dotnet build messaging-service/MessagingService.csproj
+          
+          # Start services in background
+          cd UserService && dotnet run &
+          cd swipe-service && dotnet run &
+          cd MatchmakingService && dotnet run &
+          cd messaging-service && dotnet run &
+          
+          # Wait for services to start
+          sleep 15
+      
+      - name: Seed test data (minimal fixtures)
+        run: |
+          ./scripts/seed-test-data.sh minimal
+      
+      - name: Run Flutter integration tests
+        working-directory: mobile-apps/flutter/dejtingapp
+        run: |
+          flutter pub get
+          flutter test integration_test/
+      
+      - name: Run API smoke tests
+        run: |
+          python3 api_tests.py
+      
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          mkdir -p test-logs
+          cp logs/*.log test-logs/ || true
+          docker logs keycloak > test-logs/keycloak.log 2>&1 || true
+      
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs
+          path: test-logs/
+      
+      - name: Stop services and cleanup
+        if: always()
+        run: |
+          ./infrastructure/stop.sh
+          docker volume prune -f
