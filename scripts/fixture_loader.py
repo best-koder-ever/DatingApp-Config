@@ -51,7 +51,7 @@ class ServiceConfig:
                 keycloak_admin_user=os.getenv("KEYCLOAK_ADMIN_USER", "admin"),
                 keycloak_admin_password=os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin"),
                 user_service_url=os.getenv("USER_SERVICE_URL", "http://localhost:8082"),
-                photo_service_url=os.getenv("PHOTO_SERVICE_URL", "http://localhost:8084"),
+                photo_service_url=os.getenv("PHOTO_SERVICE_URL", "http://localhost:8085"),
                 swipe_service_url=os.getenv("SWIPE_SERVICE_URL", "http://localhost:8087"),
                 matchmaking_service_url=os.getenv("MATCHMAKING_SERVICE_URL", "http://localhost:8083"),
                 messaging_service_url=os.getenv("MESSAGING_SERVICE_URL", "http://localhost:8086"),

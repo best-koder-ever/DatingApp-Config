@@ -115,11 +115,6 @@ mkdir -p /home/m/development/DatingApp/logs
 echo "⏳ Waiting for services to initialize..."
 sleep 8
 
-# Always run demo seeder for development
-echo "🌱 Seeding demo data..."
-cd /home/m/development/mobile-apps/flutter/dejtingapp
-python3 smart_demo_seeder_fixed.py
-cd /home/m/development/DatingApp
 
 # Health checks
 echo "🏥 Performing health checks..."
@@ -202,11 +197,3 @@ echo "🎯 Complete Dating App Backend Running!"
 
 echo "💡 All services: 8080(Gateway), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe), 8088(Safety)"
 
-# Automatically start Flutter app on Chrome for development
-echo "📱 Launching Flutter app on Chrome..."
-# Kill all Chrome instances to ensure only one is running
-pkill -f "chrome" 2>/dev/null || true
-sleep 2
-cd /home/m/development/mobile-apps/flutter/dejtingapp
-./start_flutter.sh &
-cd /home/m/development/DatingApp
