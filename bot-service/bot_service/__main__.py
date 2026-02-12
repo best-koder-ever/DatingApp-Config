@@ -1,4 +1,4 @@
-"""🤖 DatingApp Bot Dashboard — NiceGUI web UI on port 9090."""
+"""🤖 DatingApp Bot Dashboard — NiceGUI web UI."""
 import asyncio
 
 from nicegui import ui, app
@@ -96,22 +96,43 @@ def dashboard():
         with ui.tab_panel(tab_sim):
             sim_log = ui.log(max_lines=300).classes("w-full h-64")
 
-            # Startup phase banner (visible during service bring-up)
-            startup_banner = ui.label("").classes(
-                "w-full text-center text-lg font-semibold text-orange-600 py-2"
-            )
-            startup_banner.set_visibility(False)
+            # ── Startup progress area ──
+            with ui.row().classes("w-full items-center gap-4 mt-2") as startup_row:
+                startup_icon = ui.icon("hourglass_empty", size="sm").classes("text-orange-500")
+                startup_label = ui.label("").classes("text-orange-600 font-semibold")
+                startup_counter = ui.label("").classes("text-sm text-gray-500")
+                startup_progress = ui.linear_progress(value=0, show_value=False).classes("flex-grow")
 
-            def update_startup_phase():
+            startup_row.set_visibility(False)
+
+            def update_startup_ui():
                 phase = sim_state.startup_phase
                 if phase:
-                    startup_banner.text = f"⏳ {phase}"
-                    startup_banner.set_visibility(True)
+                    startup_row.set_visibility(True)
+                    startup_label.text = phase
+                    total = sim_state.services_total
+                    up = sim_state.services_up
+                    startup_counter.text = f"{up}/{total} services"
+                    startup_progress.set_value(up / total if total > 0 else 0)
+                    # Change icon based on phase
+                    if "❌" in phase:
+                        startup_icon.name = "error"
+                        startup_icon.classes(replace="text-red-500")
+                    elif "Waiting" in phase or "Checking" in phase:
+                        startup_icon.name = "hourglass_empty"
+                        startup_icon.classes(replace="text-orange-500")
+                    elif "Starting" in phase:
+                        startup_icon.name = "rocket_launch"
+                        startup_icon.classes(replace="text-blue-500")
+                    else:
+                        startup_icon.name = "check_circle"
+                        startup_icon.classes(replace="text-green-500")
                 else:
-                    startup_banner.set_visibility(False)
+                    startup_row.set_visibility(False)
 
-            ui.timer(0.5, update_startup_phase)
+            ui.timer(0.5, update_startup_ui)
 
+            # ── Controls ──
             with ui.row().classes("w-full items-end gap-4 mt-4"):
                 sim_mode = ui.select(
                     ["live", "dry-run"],
@@ -132,6 +153,7 @@ def dashboard():
                     if sim_state.running:
                         sim_log.push("⚠️  Simulator already running!")
                         return
+                    sim_state.reset()
                     sim_log.push("─" * 50)
                     _sim_task = asyncio.create_task(
                         run_simulation(
@@ -143,22 +165,25 @@ def dashboard():
 
                 def on_stop_sim():
                     stop_simulation()
-                    sim_log.push("⛔ Stopping simulation...")
+                    sim_log.push("⛔ Stopping...")
 
                 def on_reset_sim():
                     stop_simulation()
                     sim_state.reset()
-                    sim_log.push("🧹 Simulator state reset")
+                    sim_log.push("🧹 Reset")
 
                 ui.button("▶️ Start", on_click=on_start_sim, color="green")
                 ui.button("⏹️ Stop", on_click=on_stop_sim, color="orange")
                 ui.button("🔄 Reset", on_click=on_reset_sim, color="red")
 
-            # Live stats
+            # ── Live stats cards ──
             with ui.row().classes("w-full gap-8 mt-4"):
                 with ui.card().classes("p-4"):
                     ui.label("Active Bots").classes("text-sm text-gray-500")
                     stat_bots = ui.label("0").classes("text-3xl font-bold text-indigo-600")
+                with ui.card().classes("p-4"):
+                    ui.label("Services Up").classes("text-sm text-gray-500")
+                    stat_services = ui.label("0/7").classes("text-3xl font-bold text-cyan-600")
                 with ui.card().classes("p-4"):
                     ui.label("Swipes").classes("text-sm text-gray-500")
                     stat_swipes = ui.label("0").classes("text-3xl font-bold text-blue-600")
@@ -174,6 +199,9 @@ def dashboard():
 
             def update_sim_stats():
                 stat_bots.text = str(sim_state.active_bots)
+                up = sim_state.services_up
+                total = sim_state.services_total
+                stat_services.text = f"{up}/{total}"
                 stat_swipes.text = str(sim_state.swipes)
                 stat_matches.text = str(sim_state.matches)
                 stat_msgs.text = str(sim_state.messages_sent)
@@ -230,7 +258,7 @@ def dashboard():
 
     # ── Footer ──
     with ui.footer().classes("bg-gray-100 text-gray-600 text-sm"):
-        ui.label(f"Bot Dashboard v1.0 • Services: Gateway {config.GATEWAY_URL} • Keycloak {config.KEYCLOAK_URL}")
+        ui.label(f"Bot Dashboard v1.0 • Gateway {config.GATEWAY_URL} • Keycloak {config.KEYCLOAK_URL}")
 
 
 # ─── Entry Point ─────────────────────────────────────────────────────────────

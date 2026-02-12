@@ -31,6 +31,8 @@ class SimulatorState:
         self.speed = 1.0  # multiplier (0.1 = fast, 5.0 = slow)
         self.errors = 0
         self.startup_phase = ""  # shown in UI during service bring-up
+        self.services_up = 0
+        self.services_total = len(config.SERVICES)
 
 
 state = SimulatorState()
@@ -48,7 +50,6 @@ def _load_conversations():
         with open(conv_file) as f:
             _conversations = json.load(f)
     else:
-        # Fallback — simple messages
         _conversations = [
             ["Hej! Hur mår du? 😊", "Hej! Jag mår bra, tack! Själv? 🙂", "Bra tack! Vad gör du idag?"],
             ["Tjena! Gillade din profil 😄", "Tack, samma här! Vad har du för intressen?", "Jag älskar att vara ute i naturen!"],
@@ -65,9 +66,25 @@ def _load_conversations():
 
 # ─── Health Check & Auto-Start ──────────────────────────────────────────────
 
+# Human-readable labels for each service
+_SERVICE_LABELS = {
+    "Keycloak":           "Keycloak (auth, :8090)",
+    "YARP Gateway":       "YARP Gateway (:8080)",
+    "UserService":        "UserService (:8082)",
+    "MatchmakingService": "MatchmakingService (:8083)",
+    "PhotoService":       "PhotoService (:8085)",
+    "MessagingService":   "MessagingService (:8086)",
+    "SwipeService":       "SwipeService (:8087)",
+}
+
+# Which services are "infrastructure" (docker containers) vs ".NET services"
+_INFRA_SERVICES = {"Keycloak"}
+_DOTNET_SERVICES = {"YARP Gateway", "UserService", "MatchmakingService",
+                    "PhotoService", "MessagingService", "SwipeService"}
+
 
 async def _check_service(client: httpx.AsyncClient, name: str, url: str) -> bool:
-    """Ping a single service health endpoint. Returns True if healthy."""
+    """Ping a single service health endpoint."""
     try:
         resp = await client.get(url, timeout=3)
         return resp.status_code < 500
@@ -75,186 +92,228 @@ async def _check_service(client: httpx.AsyncClient, name: str, url: str) -> bool
         return False
 
 
-async def _check_all_services(
-    client: httpx.AsyncClient,
+async def _check_all_services(client: httpx.AsyncClient) -> dict[str, bool]:
+    """Check all services concurrently. Returns {name: is_healthy}."""
+    async def _check(name: str, url: str) -> tuple[str, bool]:
+        ok = await _check_service(client, name, url)
+        return name, ok
+
+    tasks = [_check(n, info["health"]) for n, info in config.SERVICES.items()]
+    pairs = await asyncio.gather(*tasks)
+    return dict(pairs)
+
+
+def _log_status_table(
+    status: dict[str, bool],
     log: Callable[[str], None],
-) -> dict[str, bool]:
-    """Check all services in parallel. Returns {name: is_healthy}."""
-    results: dict[str, bool] = {}
-    tasks = {}
-    for name, info in config.SERVICES.items():
-        tasks[name] = _check_service(client, name, info["health"])
+) -> tuple[list[str], list[str]]:
+    """Log a status line per service, return (up_list, down_list)."""
+    up, down = [], []
+    for name in config.SERVICES:
+        label = _SERVICE_LABELS.get(name, name)
+        if status.get(name):
+            log(f"   ✅ {label}")
+            up.append(name)
+        else:
+            log(f"   ❌ {label}")
+            down.append(name)
+    state.services_up = len(up)
+    return up, down
 
-    for name, coro in tasks.items():
-        results[name] = await coro
 
-    return results
-
-
-def _start_infrastructure(log: Callable[[str], None]) -> bool:
-    """Run infrastructure/start.sh (Keycloak + DBs). Returns True on success."""
-    script = config.INFRASTRUCTURE_SCRIPT
+def _run_script(
+    script: str,
+    label: str,
+    log: Callable[[str], None],
+    timeout: int = 180,
+) -> bool:
+    """Run a shell script, stream last few lines of output on failure."""
     if not os.path.isfile(script):
-        log(f"❌ Infrastructure script not found: {script}")
+        log(f"❌ Script not found: {script}")
         return False
-    log("🐳 Starting infrastructure (Keycloak + databases)...")
+    log(f"⚙️  Running {label}...")
     try:
         result = subprocess.run(
             ["bash", script],
             cwd=config.DATINGAPP_ROOT,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=timeout,
         )
         if result.returncode == 0:
-            log("✅ Infrastructure started")
+            log(f"✅ {label} completed")
             return True
         else:
-            # Show last few lines of stderr
-            err_lines = (result.stderr or result.stdout or "").strip().splitlines()
-            for line in err_lines[-5:]:
+            for line in (result.stderr or result.stdout or "").strip().splitlines()[-8:]:
                 log(f"   {line}")
-            log("❌ Infrastructure script failed")
+            log(f"❌ {label} failed (exit code {result.returncode})")
             return False
     except subprocess.TimeoutExpired:
-        log("❌ Infrastructure script timed out (120s)")
+        log(f"❌ {label} timed out ({timeout}s)")
         return False
     except Exception as e:
-        log(f"❌ Infrastructure error: {e}")
+        log(f"❌ {label} error: {e}")
         return False
 
 
-def _start_services(log: Callable[[str], None]) -> bool:
-    """Run dev-start.sh (all .NET services). Returns True on success."""
-    script = config.DEV_START_SCRIPT
-    if not os.path.isfile(script):
-        log(f"❌ Dev-start script not found: {script}")
-        return False
-    log("🚀 Starting backend services (dotnet run)...")
-    try:
-        result = subprocess.run(
-            ["bash", script],
-            cwd=config.DATINGAPP_ROOT,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        if result.returncode == 0:
-            log("✅ Services started")
-            return True
-        else:
-            err_lines = (result.stderr or result.stdout or "").strip().splitlines()
-            for line in err_lines[-5:]:
-                log(f"   {line}")
-            log("❌ Dev-start script failed")
-            return False
-    except subprocess.TimeoutExpired:
-        log("❌ Dev-start script timed out (120s)")
-        return False
-    except Exception as e:
-        log(f"❌ Dev-start error: {e}")
-        return False
+async def _wait_for_services(
+    names: set[str],
+    log: Callable[[str], None],
+    max_seconds: int = 60,
+    poll_interval: int = 3,
+) -> bool:
+    """
+    Poll until all services in `names` are healthy.
+    Logs progress like "3/6 services ready...".
+    Returns True when all healthy, False on timeout or cancel.
+    """
+    total = len(names)
+    attempts = max_seconds // poll_interval
+
+    async with httpx.AsyncClient() as client:
+        for attempt in range(attempts):
+            if state.cancelled:
+                return False
+
+            status = await _check_all_services(client)
+            ready = [n for n in names if status.get(n)]
+            not_ready = [n for n in names if not status.get(n)]
+            state.services_up = sum(1 for v in status.values() if v)
+
+            if not not_ready:
+                log(f"   ✅ {total}/{total} services ready!")
+                return True
+
+            # Show which ones are still missing
+            ready_names = ", ".join(_SERVICE_LABELS.get(n, n) for n in ready) if ready else "none yet"
+            waiting_names = ", ".join(_SERVICE_LABELS.get(n, n) for n in not_ready)
+            elapsed = attempt * poll_interval
+            log(f"   ⏳ {len(ready)}/{total} ready ({elapsed}s) — waiting for: {waiting_names}")
+            state.startup_phase = f"{len(ready)}/{total} services ready..."
+
+            await asyncio.sleep(poll_interval)
+
+    # Final report on what didn't come up
+    log(f"❌ Timeout after {max_seconds}s — these services never became healthy:")
+    for n in not_ready:
+        log(f"   ❌ {_SERVICE_LABELS.get(n, n)}")
+    return False
 
 
 async def _ensure_services_running(
     log: Callable[[str], None],
 ) -> bool:
     """
-    Check services, auto-start if needed. Returns True when all critical
-    services are healthy and simulation can proceed.
+    Check all services, auto-start what's missing. Returns True when ready.
 
     Flow:
-      1. Ping all services
-      2. If Keycloak is down → run infrastructure/start.sh, wait, re-check
-      3. If any .NET service is down → run dev-start.sh, wait, re-check
-      4. Final verification — all must be healthy
+      1. Health-check all 7 services
+      2. If Keycloak is down → run infrastructure/start.sh (docker compose)
+      3. If any .NET services are down → run dev-start.sh (dotnet run)
+      4. Wait with progress counter until everything is healthy
     """
-    state.startup_phase = "Checking services..."
-    log("🔍 Checking service health...")
+    total = len(config.SERVICES)
+    state.startup_phase = f"Checking {total} services..."
+    log(f"🔍 Checking {total} services...")
 
     async with httpx.AsyncClient() as client:
-        status = await _check_all_services(client, log)
+        status = await _check_all_services(client)
 
-    # Report initial status
-    up = [n for n, ok in status.items() if ok]
-    down = [n for n, ok in status.items() if not ok]
-
-    for name in up:
-        log(f"   ✅ {name}")
-    for name in down:
-        log(f"   ❌ {name}")
+    up, down = _log_status_table(status, log)
 
     if not down:
-        log("✅ All services healthy — ready to simulate")
+        log(f"✅ All {total} services healthy — ready to simulate!")
         state.startup_phase = ""
         return True
 
-    # ── Step 1: Infrastructure (Keycloak + DBs) ──
-    if "Keycloak" in down:
-        state.startup_phase = "Starting infrastructure..."
+    log(f"")
+    log(f"📊 {len(up)}/{total} services up, {len(down)} need starting")
+
+    # ── Step 1: Infrastructure (Keycloak + databases via docker compose) ──
+    infra_down = [n for n in down if n in _INFRA_SERVICES]
+    dotnet_down = [n for n in down if n in _DOTNET_SERVICES]
+
+    if infra_down:
+        state.startup_phase = "Starting Keycloak + databases..."
+        log("")
+        log("🐳 Step 1/2: Starting infrastructure (Keycloak + databases)...")
         ok = await asyncio.get_event_loop().run_in_executor(
-            None, _start_infrastructure, log
+            None,
+            _run_script,
+            config.INFRASTRUCTURE_SCRIPT,
+            "infrastructure/start.sh",
+            log,
+            180,
         )
         if not ok:
-            state.startup_phase = "Infrastructure failed"
+            state.startup_phase = "❌ Infrastructure failed"
             return False
 
-        # Wait for Keycloak to become ready (it takes a while after container start)
-        log("⏳ Waiting for Keycloak to become ready...")
+        # Wait specifically for Keycloak
+        log("⏳ Waiting for Keycloak to become ready (can take 30-60s)...")
         state.startup_phase = "Waiting for Keycloak..."
-        async with httpx.AsyncClient() as client:
-            for attempt in range(30):
-                if state.cancelled:
-                    return False
-                if await _check_service(client, "Keycloak", config.SERVICES["Keycloak"]["health"]):
-                    log("   ✅ Keycloak is ready")
-                    break
-                await asyncio.sleep(2)
-            else:
-                log("❌ Keycloak did not become ready in 60s")
-                state.startup_phase = "Keycloak timeout"
-                return False
-
-    # ── Step 2: .NET backend services ──
-    # Re-check which services are still down (Keycloak may be up now)
-    async with httpx.AsyncClient() as client:
-        status = await _check_all_services(client, log)
-    down = [n for n, ok in status.items() if not ok]
-
-    if down:
-        state.startup_phase = "Starting backend services..."
-        ok = await asyncio.get_event_loop().run_in_executor(
-            None, _start_services, log
+        keycloak_ok = await _wait_for_services(
+            {"Keycloak"}, log, max_seconds=90, poll_interval=3
         )
-        if not ok:
-            state.startup_phase = "Service start failed"
+        if not keycloak_ok:
+            state.startup_phase = "❌ Keycloak didn't start"
+            log("❌ Keycloak failed to become ready")
             return False
 
-        # dev-start.sh already waits ~8s and does health checks,
-        # but give a bit more time and verify ourselves
-        log("⏳ Waiting for services to become ready...")
-        state.startup_phase = "Waiting for services..."
-        async with httpx.AsyncClient() as client:
-            for attempt in range(15):
-                if state.cancelled:
-                    return False
-                await asyncio.sleep(2)
-                status = await _check_all_services(client, log)
-                still_down = [n for n, ok in status.items() if not ok]
-                if not still_down:
-                    break
-            else:
-                # Final report
-                for name in still_down:
-                    log(f"   ❌ {name} still not responding")
-                log("❌ Some services failed to start — cannot simulate")
-                state.startup_phase = "Services unhealthy"
-                return False
+        log("✅ Keycloak is ready")
+    else:
+        log("")
+        log("✅ Step 1/2: Infrastructure already running (Keycloak ✅)")
 
-    # ── Final verification ──
-    log("✅ All services are up — starting simulation")
-    state.startup_phase = ""
-    return True
+    # ── Step 2: .NET services via dev-start.sh ──
+    if dotnet_down:
+        state.startup_phase = f"Starting {len(dotnet_down)} .NET services..."
+        log("")
+        svc_names = ", ".join(_SERVICE_LABELS.get(n, n) for n in dotnet_down)
+        log(f"🚀 Step 2/2: Starting .NET services ({svc_names})...")
+        log(f"   Running dev-start.sh — this starts all services with 'dotnet run'")
+        ok = await asyncio.get_event_loop().run_in_executor(
+            None,
+            _run_script,
+            config.DEV_START_SCRIPT,
+            "dev-start.sh",
+            log,
+            180,
+        )
+        if not ok:
+            state.startup_phase = "❌ dev-start.sh failed"
+            return False
+
+        # Wait for all .NET services
+        log(f"⏳ Waiting for {len(dotnet_down)} .NET services to become healthy...")
+        state.startup_phase = f"Waiting for .NET services..."
+        all_ok = await _wait_for_services(
+            set(dotnet_down), log, max_seconds=60, poll_interval=3
+        )
+        if not all_ok:
+            state.startup_phase = "❌ Some services didn't start"
+            return False
+    else:
+        log("")
+        log("✅ Step 2/2: All .NET services already running")
+
+    # ── Final check ──
+    log("")
+    async with httpx.AsyncClient() as client:
+        final_status = await _check_all_services(client)
+    final_up = sum(1 for v in final_status.values() if v)
+    state.services_up = final_up
+
+    if final_up == total:
+        state.startup_phase = ""
+        log(f"🎉 All {total}/{total} services healthy — starting simulation!")
+        return True
+    else:
+        still_down = [n for n, ok in final_status.items() if not ok]
+        labels = ", ".join(_SERVICE_LABELS.get(n, n) for n in still_down)
+        state.startup_phase = f"❌ {len(still_down)} services still down"
+        log(f"❌ {final_up}/{total} up — still down: {labels}")
+        return False
 
 
 # ─── API Helpers ─────────────────────────────────────────────────────────────
@@ -279,9 +338,7 @@ async def _get_user_token(client: httpx.AsyncClient, username: str) -> str | Non
         return None
 
 
-async def _get_candidates(
-    client: httpx.AsyncClient, token: str
-) -> list[dict]:
+async def _get_candidates(client: httpx.AsyncClient, token: str) -> list[dict]:
     """Fetch swipe candidates for a bot user."""
     try:
         resp = await client.get(
@@ -296,9 +353,7 @@ async def _get_candidates(
         return []
 
 
-async def _swipe(
-    client: httpx.AsyncClient, token: str, target_user_id: str, direction: str
-) -> dict | None:
+async def _swipe(client: httpx.AsyncClient, token: str, target_user_id: str, direction: str) -> dict | None:
     """Perform a swipe action."""
     try:
         resp = await client.post(
@@ -313,9 +368,7 @@ async def _swipe(
         return None
 
 
-async def _send_message(
-    client: httpx.AsyncClient, token: str, match_id: str, content: str
-) -> bool:
+async def _send_message(client: httpx.AsyncClient, token: str, match_id: str, content: str) -> bool:
     """Send a message via the messaging service."""
     try:
         resp = await client.post(
@@ -331,9 +384,7 @@ async def _send_message(
 # ─── Bot Simulation Loop ────────────────────────────────────────────────────
 
 
-async def _simulate_bot(
-    client: httpx.AsyncClient, bot: dict, log: Callable[[str], None]
-):
+async def _simulate_bot(client: httpx.AsyncClient, bot: dict, log: Callable[[str], None]):
     """Simulate one bot's behavior for one cycle."""
     username = bot.get("username")
     display = bot.get("display_name", username)
@@ -343,12 +394,10 @@ async def _simulate_bot(
         state.errors += 1
         return
 
-    # Get candidates
     candidates = await _get_candidates(client, token)
     if not candidates:
         return
 
-    # Swipe on a few candidates
     swipe_count = random.randint(1, min(5, len(candidates)))
     for candidate in candidates[:swipe_count]:
         if state.cancelled:
@@ -366,7 +415,6 @@ async def _simulate_bot(
             match_id = result.get("matchId") or result.get("match_id", "")
             log(f"💕 {display} matched with someone!")
 
-            # Send a conversation
             _load_conversations()
             if _conversations and match_id:
                 convo = random.choice(_conversations)
@@ -385,14 +433,14 @@ async def _simulate_bot(
 async def run_simulation(
     log_callback: Callable[[str], None] | None = None,
     mode: str = "live",
-    cycles: int = 0,  # 0 = infinite
+    cycles: int = 0,
 ):
     """
     Run the behavior simulation.
 
     Modes:
-      - "live": Make real API calls to running services
-      - "dry-run": Simulate without API calls (just log what would happen)
+      - "live": Real API calls — auto-starts services if needed
+      - "dry-run": Simulated activity without calling any APIs
 
     Cycles:
       - 0: Run forever until stopped
@@ -405,27 +453,31 @@ async def run_simulation(
 
     bots = seeder_state.bot_users
     if not bots:
-        log("⚠️  No bot users found — run the seeder first!")
+        log("⚠️  No bot users found — go to 🌱 Seed tab and seed some bots first!")
         return
 
     state.running = True
     state.cancelled = False
     state.active_bots = len(bots)
 
-    # ── Live mode: ensure services are running, start them if not ──
+    # ── Live mode: check + auto-start services ──
     if mode == "live":
-        log(f"🔎 Live mode selected — verifying {len(config.SERVICES)} services...")
+        total = len(config.SERVICES)
+        log(f"🔎 Live mode — checking {total} services before starting...")
+        log("")
         ok = await _ensure_services_running(log)
         if not ok:
-            log("❌ Cannot start live simulation — services are not available")
+            log("")
+            log("❌ Cannot start simulation — fix the services above and try again")
             state.running = False
             return
         if state.cancelled:
             log("⛔ Cancelled during startup")
             state.running = False
             return
+        log("")
 
-    log(f"🚀 Starting simulation with {len(bots)} bots (mode: {mode})")
+    log(f"🚀 Simulation started — {len(bots)} bots, mode: {mode}")
 
     cycle = 0
     async with httpx.AsyncClient(timeout=30) as client:
@@ -438,12 +490,10 @@ async def run_simulation(
                 f" — Swipes: {state.swipes} | Matches: {state.matches} | Msgs: {state.messages_sent}")
 
             if mode == "live":
-                # Pick a random subset of bots to be active this cycle
                 active = random.sample(bots, k=min(random.randint(3, 10), len(bots)))
                 tasks = [_simulate_bot(client, bot, log) for bot in active]
                 await asyncio.gather(*tasks, return_exceptions=True)
             else:
-                # Dry-run: just pretend
                 for bot in random.sample(bots, k=min(5, len(bots))):
                     display = bot.get("display_name", bot.get("username", "?"))
                     state.swipes += random.randint(1, 5)
@@ -453,13 +503,12 @@ async def run_simulation(
                         log(f"💕 [dry-run] {display} matched!")
                     await asyncio.sleep(0.1)
 
-            # Wait between cycles
             delay = config.SWIPE_DELAY_SEC * state.speed * 3
             await asyncio.sleep(delay)
 
     state.running = False
     state.startup_phase = ""
-    log(f"🏁 Simulation stopped — {state.swipes} swipes, {state.matches} matches, {state.messages_sent} messages")
+    log(f"🏁 Simulation done — {state.swipes} swipes, {state.matches} matches, {state.messages_sent} messages")
 
 
 def stop_simulation():
