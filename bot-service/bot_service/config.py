@@ -1,7 +1,7 @@
 """Configuration for bot-service."""
 import os
 
-# Service URLs (match docker-compose.yml ports)
+# Service URLs (match dev-start.sh ports for local development)
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://localhost:8090")
 KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "DatingApp")
 KEYCLOAK_ADMIN_USER = os.getenv("KEYCLOAK_ADMIN_USER", "admin")
@@ -10,22 +10,39 @@ KEYCLOAK_ADMIN_PASS = os.getenv("KEYCLOAK_ADMIN_PASS", "admin")
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:8080")
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://localhost:8082")
 MATCHMAKING_URL = os.getenv("MATCHMAKING_URL", "http://localhost:8083")
-SWIPE_SERVICE_URL = os.getenv("SWIPE_SERVICE_URL", "http://localhost:8086")
-MESSAGING_URL = os.getenv("MESSAGING_URL", "http://localhost:8084")
 PHOTO_SERVICE_URL = os.getenv("PHOTO_SERVICE_URL", "http://localhost:8085")
+MESSAGING_URL = os.getenv("MESSAGING_URL", "http://localhost:8086")
+SWIPE_SERVICE_URL = os.getenv("SWIPE_SERVICE_URL", "http://localhost:8087")
 
 # Bot defaults
 DEFAULT_BOT_COUNT = 50
-DEFAULT_SWIPE_RIGHT_PROBABILITY = 0.30
-DEFAULT_SWIPE_DELAY_SECONDS = 2.0
-DEFAULT_MESSAGE_DELAY_SECONDS = 5.0
+SWIPE_RIGHT_PROBABILITY = 0.30
+SWIPE_DELAY_SEC = 2.0
+MESSAGE_DELAY_SEC = 5.0
 DEFAULT_BOT_PASSWORD = "BotPass123!"
-
-# randomuser.me
 
 # Dashboard
 DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "9091"))
 DASHBOARD_TITLE = "🤖 DatingApp Bot Dashboard"
+
+# Paths to startup scripts (relative to DatingApp root)
+DATINGAPP_ROOT = os.getenv(
+    "DATINGAPP_ROOT",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
+)
+INFRASTRUCTURE_SCRIPT = os.path.join(DATINGAPP_ROOT, "infrastructure", "start.sh")
+DEV_START_SCRIPT = os.path.join(DATINGAPP_ROOT, "dev-start.sh")
+
+# Service health-check map — name, url, health endpoint
+SERVICES = {
+    "Keycloak": {"url": KEYCLOAK_URL, "health": f"{KEYCLOAK_URL}/realms/master"},
+    "YARP Gateway": {"url": GATEWAY_URL, "health": f"{GATEWAY_URL}/health"},
+    "UserService": {"url": USER_SERVICE_URL, "health": f"{USER_SERVICE_URL}/health"},
+    "MatchmakingService": {"url": MATCHMAKING_URL, "health": f"{MATCHMAKING_URL}/health"},
+    "PhotoService": {"url": PHOTO_SERVICE_URL, "health": f"{PHOTO_SERVICE_URL}/health"},
+    "MessagingService": {"url": MESSAGING_URL, "health": f"{MESSAGING_URL}/health"},
+    "SwipeService": {"url": SWIPE_SERVICE_URL, "health": f"{SWIPE_SERVICE_URL}/health"},
+}
 
 # Curated data for realistic Swedish dating profiles
 INTERESTS_POOL = [

@@ -96,6 +96,22 @@ def dashboard():
         with ui.tab_panel(tab_sim):
             sim_log = ui.log(max_lines=300).classes("w-full h-64")
 
+            # Startup phase banner (visible during service bring-up)
+            startup_banner = ui.label("").classes(
+                "w-full text-center text-lg font-semibold text-orange-600 py-2"
+            )
+            startup_banner.set_visibility(False)
+
+            def update_startup_phase():
+                phase = sim_state.startup_phase
+                if phase:
+                    startup_banner.text = f"⏳ {phase}"
+                    startup_banner.set_visibility(True)
+                else:
+                    startup_banner.set_visibility(False)
+
+            ui.timer(0.5, update_startup_phase)
+
             with ui.row().classes("w-full items-end gap-4 mt-4"):
                 sim_mode = ui.select(
                     ["live", "dry-run"],
