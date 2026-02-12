@@ -1,8 +1,10 @@
-"""Profile seeder — creates bot users via randomuser.me + Keycloak + UserService APIs."""
+"""Profile seeder — loads pre-bundled Swedish users and builds enriched profiles instantly."""
 import asyncio
+import json
 import random
 import uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Callable
 
 import httpx
@@ -11,6 +13,8 @@ from faker import Faker
 from . import config
 
 fake = Faker("sv_SE")
+DATA_DIR = Path(__file__).parent / "data"
+SEED_USERS_FILE = DATA_DIR / "seed_users.json"
 
 
 class SeederState:
@@ -35,106 +39,16 @@ class SeederState:
 state = SeederState()
 
 
-async def _get_keycloak_admin_token(client: httpx.AsyncClient) -> str | None:
-    """Get Keycloak admin access token."""
-    try:
-        resp = await client.post(
-            f"{config.KEYCLOAK_URL}/realms/master/protocol/openid-connect/token",
-            data={
-                "grant_type": "client_credentials",
-                "client_id": "admin-cli",
-                "username": config.KEYCLOAK_ADMIN_USER,
-                "password": config.KEYCLOAK_ADMIN_PASS,
-            },
-        )
-        if resp.status_code == 200:
-            return resp.json()["access_token"]
-        # Try password grant as fallback
-        resp = await client.post(
-            f"{config.KEYCLOAK_URL}/realms/master/protocol/openid-connect/token",
-            data={
-                "grant_type": "password",
-                "client_id": "admin-cli",
-                "username": config.KEYCLOAK_ADMIN_USER,
-                "password": config.KEYCLOAK_ADMIN_PASS,
-            },
-        )
-        if resp.status_code == 200:
-            return resp.json()["access_token"]
-        return None
-    except Exception:
-        return None
-
-
-async def _create_keycloak_user(
-    client: httpx.AsyncClient, token: str, user_data: dict
-) -> str | None:
-    """Create a user in Keycloak and return their ID."""
-    try:
-        resp = await client.post(
-            f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users",
-            headers={"Authorization": f"Bearer {token}"},
-            json={
-                "username": user_data["username"],
-                "email": user_data["email"],
-                "firstName": user_data["first_name"],
-                "lastName": user_data["last_name"],
-                "enabled": True,
-                "emailVerified": True,
-                "credentials": [
-                    {
-                        "type": "password",
-                        "value": config.DEFAULT_BOT_PASSWORD,
-                        "temporary": False,
-                    }
-                ],
-                "attributes": {"bot": ["true"]},
-            },
-        )
-        if resp.status_code == 201:
-            location = resp.headers.get("location", "")
-            return location.split("/")[-1]  # Extract user ID from location header
-        return None
-    except Exception:
-        return None
-
-
-async def _get_user_token(client: httpx.AsyncClient, username: str) -> str | None:
-    """Get an access token for a bot user."""
-    try:
-        resp = await client.post(
-            f"{config.KEYCLOAK_URL}/realms/{config.KEYCLOAK_REALM}/protocol/openid-connect/token",
-            data={
-                "grant_type": "password",
-                "client_id": "datingapp-backend",
-                "username": username,
-                "password": config.DEFAULT_BOT_PASSWORD,
-            },
-        )
-        if resp.status_code == 200:
-            return resp.json()["access_token"]
-        return None
-    except Exception:
-        return None
-
-
-async def _create_user_profile(
-    client: httpx.AsyncClient, token: str, profile: dict
-) -> bool:
-    """Create/update a user profile in UserService."""
-    try:
-        resp = await client.put(
-            f"{config.USER_SERVICE_URL}/api/profile/me",
-            headers={"Authorization": f"Bearer {token}"},
-            json=profile,
-        )
-        return resp.status_code in (200, 201, 204)
-    except Exception:
-        return False
+def _load_seed_users() -> list[dict]:
+    """Load pre-bundled user templates from seed_users.json."""
+    if SEED_USERS_FILE.exists():
+        with open(SEED_USERS_FILE) as f:
+            return json.load(f)
+    return []
 
 
 def _build_profile(raw_user: dict) -> dict:
-    """Build a full DatingApp profile from randomuser.me data + faker enrichment."""
+    """Build a full DatingApp profile from seed data + faker enrichment."""
     gender = raw_user.get("gender", random.choice(["male", "female"]))
     dob = raw_user.get("dob", {})
     age = dob.get("age", random.randint(22, 45))
@@ -161,7 +75,6 @@ def _build_profile(raw_user: dict) -> dict:
         city=city,
     )
 
-    # Build prompt answers
     prompts = []
     selected_questions = random.sample(config.PROMPT_QUESTIONS, k=random.randint(2, 4))
     for q in selected_questions:
@@ -195,7 +108,7 @@ def _build_profile(raw_user: dict) -> dict:
         "prompts": prompts,
         "relationship_goal": random.choice(config.RELATIONSHIP_GOALS),
         "is_bot": True,
-        "is_verified": random.random() > 0.3,  # 70% verified
+        "is_verified": random.random() > 0.3,
         "is_online": random.random() > 0.5,
         "preference": {
             "distance_km": random.choice([10, 25, 50, 100]),
@@ -208,45 +121,99 @@ def _build_profile(raw_user: dict) -> dict:
     }
 
 
-async def _fetch_random_users(client: httpx.AsyncClient, count: int) -> list[dict]:
-    """Fetch random users from randomuser.me API."""
-    try:
-        batch_size = min(count, 100)  # API max is 5000 but be nice
-        users = []
-        while len(users) < count:
-            fetch = min(batch_size, count - len(users))
-            resp = await client.get(
-                config.RANDOMUSER_API,
-                params={
-                    "results": fetch,
-                    "nat": config.RANDOMUSER_NATIONALITIES,
-                    "inc": "name,email,login,dob,gender,location,picture",
-                },
-                timeout=30,
-            )
-            if resp.status_code == 200:
-                users.extend(resp.json().get("results", []))
-            else:
-                # Fallback: generate locally with faker
-                for _ in range(fetch):
-                    users.append({})  # Empty dict triggers faker fallback in _build_profile
-            await asyncio.sleep(0.5)  # Be nice to the API
-        return users[:count]
-    except Exception:
-        return [{} for _ in range(count)]  # All faker fallback
+# ── Keycloak helpers (only used in keycloak mode) ───────────────────────────
 
+async def _get_keycloak_admin_token(client: httpx.AsyncClient) -> str | None:
+    try:
+        resp = await client.post(
+            f"{config.KEYCLOAK_URL}/realms/master/protocol/openid-connect/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": "admin-cli",
+                "username": config.KEYCLOAK_ADMIN_USER,
+                "password": config.KEYCLOAK_ADMIN_PASS,
+            },
+        )
+        if resp.status_code == 200:
+            return resp.json()["access_token"]
+        resp = await client.post(
+            f"{config.KEYCLOAK_URL}/realms/master/protocol/openid-connect/token",
+            data={
+                "grant_type": "password",
+                "client_id": "admin-cli",
+                "username": config.KEYCLOAK_ADMIN_USER,
+                "password": config.KEYCLOAK_ADMIN_PASS,
+            },
+        )
+        if resp.status_code == 200:
+            return resp.json()["access_token"]
+        return None
+    except Exception:
+        return None
+
+
+async def _create_keycloak_user(client: httpx.AsyncClient, token: str, user_data: dict) -> str | None:
+    try:
+        resp = await client.post(
+            f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "username": user_data["username"],
+                "email": user_data["email"],
+                "firstName": user_data["first_name"],
+                "lastName": user_data["last_name"],
+                "enabled": True,
+                "emailVerified": True,
+                "credentials": [{"type": "password", "value": config.DEFAULT_BOT_PASSWORD, "temporary": False}],
+                "attributes": {"bot": ["true"]},
+            },
+        )
+        if resp.status_code == 201:
+            return resp.headers.get("location", "").split("/")[-1]
+        return None
+    except Exception:
+        return None
+
+
+async def _get_user_token(client: httpx.AsyncClient, username: str) -> str | None:
+    try:
+        resp = await client.post(
+            f"{config.KEYCLOAK_URL}/realms/{config.KEYCLOAK_REALM}/protocol/openid-connect/token",
+            data={"grant_type": "password", "client_id": "datingapp-backend",
+                  "username": username, "password": config.DEFAULT_BOT_PASSWORD},
+        )
+        if resp.status_code == 200:
+            return resp.json()["access_token"]
+        return None
+    except Exception:
+        return None
+
+
+async def _create_user_profile(client: httpx.AsyncClient, token: str, profile: dict) -> bool:
+    try:
+        resp = await client.put(
+            f"{config.USER_SERVICE_URL}/api/profile/me",
+            headers={"Authorization": f"Bearer {token}"},
+            json=profile,
+        )
+        return resp.status_code in (200, 201, 204)
+    except Exception:
+        return False
+
+
+# ── Main seeder ──────────────────────────────────────────────────────────────
 
 async def seed_bots(
     count: int = 50,
     log_callback: Callable[[str], None] | None = None,
-    mode: str = "keycloak",
+    mode: str = "local",
 ) -> list[dict]:
     """
     Seed bot profiles.
 
     Modes:
-      - "keycloak": Create real Keycloak users + UserService profiles (requires services running)
-      - "local": Generate profiles as JSON only (no API calls, works offline)
+      - "local": Load bundled seed_users.json, build profiles instantly (no network)
+      - "keycloak": Also push to Keycloak + UserService (requires services running)
     """
 
     def log(msg: str):
@@ -259,34 +226,41 @@ async def seed_bots(
 
     log(f"🚀 Starting seeder — creating {count} bot profiles (mode: {mode})")
 
+    # Step 1: Load pre-bundled user templates
+    raw_users = _load_seed_users()
+    if not raw_users:
+        log("⚠️  seed_users.json not found — generating with Faker only")
+        raw_users = [{} for _ in range(count)]
+    else:
+        log(f"📦 Loaded {len(raw_users)} pre-bundled user templates")
+
+    # If asked for more than we have, cycle through them
+    while len(raw_users) < count:
+        raw_users.extend(_load_seed_users())
+    raw_users = raw_users[:count]
+
+    # Step 2: Build enriched profiles (instant, no network)
+    profiles = [_build_profile(u) for u in raw_users]
+    state.created = len(profiles)
+    state.bot_users = profiles
+    log(f"✅ Built {len(profiles)} enriched profiles instantly")
+
+    if mode == "local":
+        state.running = False
+        log(f"🏁 Done! {len(profiles)} bot profiles ready (local mode)")
+        return profiles
+
+    # Step 3: Keycloak mode — push to services
+    log("🔑 Connecting to Keycloak...")
     async with httpx.AsyncClient(timeout=30) as client:
-        # Step 1: Fetch random user data
-        log(f"📡 Fetching {count} random users from randomuser.me...")
-        raw_users = await _fetch_random_users(client, count)
-        log(f"✅ Got {len(raw_users)} user templates")
-
-        # Step 2: Build profiles
-        profiles = [_build_profile(u) for u in raw_users]
-        log(f"🔨 Built {len(profiles)} enriched profiles")
-
-        if mode == "local":
-            # Just store locally, no API calls
-            state.bot_users = profiles
-            state.created = len(profiles)
-            state.running = False
-            log(f"✅ Generated {len(profiles)} profiles (local mode — no API calls)")
-            return profiles
-
-        # Step 3: Keycloak mode — create real users
         admin_token = await _get_keycloak_admin_token(client)
         if not admin_token:
-            log("⚠️  Could not get Keycloak admin token — falling back to local mode")
-            state.bot_users = profiles
-            state.created = len(profiles)
+            log("⚠️  Could not get Keycloak admin token — profiles built locally only")
             state.running = False
             return profiles
 
-        log("🔑 Got Keycloak admin token")
+        log("🔑 Got Keycloak admin token — pushing users...")
+        state.created = 0  # Reset for accurate push count
 
         for i, profile in enumerate(profiles):
             if state.cancelled:
@@ -295,18 +269,13 @@ async def seed_bots(
 
             username = profile["username"]
             try:
-                # Create Keycloak user
                 kc_id = await _create_keycloak_user(client, admin_token, profile)
                 if kc_id:
                     profile["keycloak_id"] = kc_id
-
-                    # Get user token and create profile
                     user_token = await _get_user_token(client, username)
                     if user_token:
                         await _create_user_profile(client, user_token, profile)
-
                     state.created += 1
-                    state.bot_users.append(profile)
                     if (i + 1) % 10 == 0 or i == 0:
                         log(f"👤 [{state.created}/{count}] Created: {profile['display_name']}, {profile['age']}, {profile['city']}")
                 else:
@@ -316,8 +285,7 @@ async def seed_bots(
                 state.failed += 1
                 log(f"❌ Error creating {username}: {e}")
 
-            # Small delay to not overwhelm services
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
     state.running = False
     log(f"🏁 Seeding complete: {state.created} created, {state.failed} failed")
@@ -325,7 +293,7 @@ async def seed_bots(
 
 
 async def reset_bots(log_callback: Callable[[str], None] | None = None):
-    """Delete all bot users from Keycloak."""
+    """Delete all bot users from Keycloak and clear local state."""
 
     def log(msg: str):
         if log_callback:
@@ -339,7 +307,6 @@ async def reset_bots(log_callback: Callable[[str], None] | None = None):
             state.reset()
             return
 
-        # Find bot users
         try:
             resp = await client.get(
                 f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users",

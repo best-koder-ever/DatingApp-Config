@@ -22,8 +22,6 @@ DEFAULT_MESSAGE_DELAY_SECONDS = 5.0
 DEFAULT_BOT_PASSWORD = "BotPass123!"
 
 # randomuser.me
-RANDOMUSER_API = "https://randomuser.me/api/"
-RANDOMUSER_NATIONALITIES = "se,no,dk,fi"
 
 # Dashboard
 DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "9091"))
