@@ -126,3 +126,39 @@ setUpAll(() async {
 
 **Impact**: 10x faster AI development - no guessing, no asking user for basic info!
 
+
+## Anti-Busywork Gate (CRITICAL — READ BEFORE EXECUTING ANY TASK!)
+**🚫 Do NOT blindly execute tasks from queues, spec-kits, or backlogs.**
+
+### Before starting ANY task, answer these 3 questions:
+1. **WHO calls this?** — Is the code/script/file imported, wired into CI, called by a Makefile target, or used by a running service? If **nobody** → STOP and flag to user.
+2. **WHAT breaks if we skip it?** — Does skipping this task cause a test failure, build error, or user-facing bug? If **nothing** → STOP and flag to user.
+3. **Does it produce RUNNABLE output?** — Will this result in code that runs in production, gets tested in CI, or is exercised by an existing test suite? If **no** → STOP and flag to user.
+
+### If any answer is "nobody / nothing / no":
+```
+⚠️ Task [X] looks low-value:
+- Called by: nobody
+- Breaks if skipped: nothing
+- Suggest: skip, or wire it into [Makefile/CI/startup] first
+Skip it? (y/n)
+```
+**Do NOT auto-execute. Ask the user.**
+
+### Examples of WASTE (never do without asking):
+- Enhancing scripts nobody calls
+- Writing docs that duplicate `flutter test` or `dotnet test` output
+- Refactoring files with zero imports/usages
+- Creating "infrastructure" that isn't wired into any pipeline
+- Polishing unused config files
+
+### Examples of REAL WORK (always do):
+- Code that a running service imports and executes
+- Tests that run in `flutter test` or `dotnet test`
+- Bug fixes for failing tests or broken builds
+- UI screens the user will see on their device
+- API endpoints that the Flutter client calls
+
+### The Conveyor Belt Rule:
+A task queue is NOT a permission slip. Every task must pass the 3-question gate.
+An AI that ships 10 useless tasks is worse than one that ships 1 real fix.
