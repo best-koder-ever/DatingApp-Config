@@ -1,8 +1,5 @@
-🌙 Overnight Build Started: 2026-02-11 12:34:16
+🌙 Overnight Build Started: 2026-02-11 19:55:17
 =================================
-
-📊 Updating dashboard...
-  ✅ Dashboard updated
 
 🏗️  Building & testing all .NET services...
 
@@ -11,58 +8,33 @@
     🧪 Tests: ✅
 
   📦 MatchmakingService
-    🔨 Build: ✅
-    🧪 Tests: ✅
-
+    🔨 Build: ❌ (see logs/MatchmakingService-build.log)
   📦 photo-service
-    🔨 Build: ✅
-    🧪 Tests: ✅
-
+    🔨 Build: ❌ (see logs/photo-service-build.log)
   📦 swipe-service
-    🔨 Build: ✅
-    🧪 Tests: ✅
-
+    🔨 Build: ❌ (see logs/swipe-service-build.log)
   📦 messaging-service
-    🔨 Build: ✅
-    🧪 Tests: ✅
-
+    🔨 Build: ❌ (see logs/messaging-service-build.log)
   📦 dejting-yarp
     🔨 Build: ✅
     🧪 Tests: ✅
 
 🦋 Flutter App...
-  📦 dejtingapp (/home/m/development/DatingApp/../mobile-apps/flutter/dejtingapp)
-    🔍 Analyze: ❌ (0
-? errors — see logs/flutter-analyze.log)
-    🧪 Tests: ✅
-
-✨ Running code formatters...
-  ✅ Code formatting complete
-
-🔒 Security scan...
-  ⚠️  dotnet-outdated not installed, skipping
-
-🧬 Generating missing test skeletons...
-  ✅ Test skeletons generated (1 new files)
+  📦 dejtingapp (/home/m/development/mobile-apps/flutter/dejtingapp)
+    🔍 Analyze: ✅ (0 errors)
+    🧪 Tests: ⚠️  (see logs/flutter-test.log)
 
 🔀 Open Pull Requests...
-  📌 UserService: 1 open PR(s)
-    #7: feat: Rich demo profiles with photos, prompts & voice — ✅ 1/1 checks
-  📌 MatchmakingService: 1 open PR(s)
-    #4: feat: Route profiles through demo endpoint for rich data — ✅ 1/1 checks
-  📌 mobile_dejtingapp: 1 open PR(s)
-    #12: feat: Hinge-style Discover screen + unified salmon theme — ✅ 3/3 checks
 
 =================================
 📈 EVAL SUMMARY
 =================================
 
-  🔨 Builds:  6 passed / 0 failed (of 6 services)
-  🧪 Tests:   6 passed / 0 failed / 0 skipped
+  🔨 Builds:  2 passed / 4 failed (of 6 services)
+  🧪 Tests:   2 passed / 0 failed / 0 skipped
 
-  🏆 Overall Score: 100% (12/12 checks passing)
+  🏆 Overall Score: 50% (4/8 checks passing)
 
-  📋 Grade: 🟢 A — Ship it!
+  📋 Grade: 🟡 C — Needs attention
 
-🌅 Overnight Build Completed: 2026-02-11 12:40:49
-
+🌅 Overnight Build Completed: 2026-02-11 19:58:03
