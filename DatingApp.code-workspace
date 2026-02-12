@@ -22,9 +22,6 @@
 			"path": "messaging-service"
 		},
 		{
-			"path": "TestDataGenerator"
-		},
-		{
 			"path": "../mobile-apps/flutter/dejtingapp"
 		},
 		{
