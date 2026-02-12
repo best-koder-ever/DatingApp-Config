@@ -26,6 +26,10 @@
 		},
 		{
 			"path": "../mobile-apps/flutter/dejtingapp"
+		},
+		{
+			"path": "../DatingAppController",
+			"name": "DatingAppController"
 		}
 	],
 	"settings": {
