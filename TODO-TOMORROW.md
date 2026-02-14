@@ -9,12 +9,12 @@ Anti-busywork gate added to copilot-instructions.md (3-question filter: WHO call
 | Layer | Tests | Status |
 |-------|-------|--------|
 | Flutter App | 289 | ✅ All pass, 0 warnings |
-| UserService | 139 | ✅ All pass |
-| MatchmakingService | ~4 | ✅ Pass |
-| swipe-service | ~5 | ✅ Pass |
-| photo-service | 36 (33+3 skip) | ✅ Pass |
-| messaging-service | 36 | ✅ Pass |
-| **Total** | **~509** | **All green** |
+| UserService | 173 | ✅ All pass |
+| MatchmakingService | 132 | ✅ All pass |
+| swipe-service | 103 | ✅ All pass |
+| photo-service | 63 (60+3 skip) | ✅ All pass |
+| messaging-service | 90 | ✅ All pass |
+| **Total** | **~750** | **All green** |
 
 ### MVP Progress: 43% (25/58 tasks)
 - US1 Profile Onboarding: **70%** — 16 wizard screens, coordinator, l10n, backend endpoints
@@ -53,11 +53,11 @@ Anti-busywork gate added to copilot-instructions.md (3-question filter: WHO call
 | **photo-service** (4) | Photo, Moderation, Privacy, FaceVerification | Upload/fetch, ML moderation, privacy blur, DeepFace verify |
 | **messaging-service** (5) | Messaging, Conversation, PresenceTracking, MessageRead, Notification | SignalR hub, conversations, read receipts, presence |
 
-- **UserService** is the most mature (139 tests, 10 controllers)
+- **UserService** is the most mature (173 tests, 10 controllers)
 - **photo-service** has face verification via DeepFace (T156)
 - **messaging-service** SignalR hub path fixed to `/hubs/messages`
 - **YARP gateway** routes all services, has diagnostics controller + rate limiting
-- **NOT done**: Message persistence layer in messaging-service, matchmaking scoring tests
+- **NOT done**: Message persistence layer in messaging-service
 
 ### Layer 3: Infrastructure
 - **Keycloak** — OIDC provider, runs via `infrastructure/start.sh`

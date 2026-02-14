@@ -26,6 +26,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.14.11] - 2026-02-14
+
+### Added
+- Comprehensive test coverage audit + 154 new tests across 4 services
+  - SwipeService: 43 new tests (60 → 103) — RecordSwipeHandler (17),
+    UnmatchUsersHandler (4), GetMatchesForUserHandler (5),
+    GetSwipesByUserHandler (8), RateLimitService (10)
+  - MessagingService: 54 new tests (36 → 90) — ContentModerationService (11),
+    PersonalInfoDetection (11), SpamDetection (7), InMemoryPresenceTracker (10),
+    ReportingService (7), RateLimitingService (4)
+  - PhotoService: 30 new tests (33 → 63) — ImageProcessingService statics (24),
+    Result pattern (6), InternalsVisibleTo + private→internal for testability
+  - UserService: 27 new tests (126 → 173) — CreateUserProfileHandler (7),
+    CreateUserProfileValidator FluentValidation (20)
+
+### Technical
+- Total test count across all services: 561 (was 387)
+- All tests passing: 0 failures across all 6 service test suites
+- MatchmakingService 132, UserService 173, SwipeService 103, MessagingService 90,
+  PhotoService 63 (60 active + 3 skipped)
+
+---
+
 ## [0.14.10] - 2026-02-14
 
 ### Added
