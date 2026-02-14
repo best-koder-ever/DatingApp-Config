@@ -105,7 +105,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"user-service\"}[1m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"user-service\"}[1m])",
           "legendFormat": "User Service",
           "refId": "A"
         },
@@ -114,7 +114,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"matchmaking-service\"}[1m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"matchmaking-service\"}[1m])",
           "legendFormat": "Matchmaking Service",
           "refId": "B"
         },
@@ -123,7 +123,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"swipe-service\"}[1m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"swipe-service\"}[1m])",
           "legendFormat": "Swipe Service",
           "refId": "C"
         },
@@ -132,7 +132,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"photo-service\"}[1m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"photo-service\"}[1m])",
           "legendFormat": "Photo Service",
           "refId": "D"
         },
@@ -141,7 +141,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"messaging-service\"}[1m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"messaging-service\"}[1m])",
           "legendFormat": "Messaging Service",
           "refId": "E"
         }
@@ -330,7 +330,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"user-service\"}[5m]))",
+          "expr": "histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket{job=\"user-service\"}[5m]))",
           "legendFormat": "User Service P95",
           "refId": "A"
         },
@@ -339,7 +339,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"matchmaking-service\"}[5m]))",
+          "expr": "histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket{job=\"matchmaking-service\"}[5m]))",
           "legendFormat": "Matchmaking P95",
           "refId": "B"
         },
@@ -348,7 +348,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"swipe-service\"}[5m]))",
+          "expr": "histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket{job=\"swipe-service\"}[5m]))",
           "legendFormat": "Swipe P95",
           "refId": "C"
         },
@@ -357,7 +357,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"photo-service\"}[5m]))",
+          "expr": "histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket{job=\"photo-service\"}[5m]))",
           "legendFormat": "Photo P95",
           "refId": "D"
         },
@@ -366,7 +366,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"messaging-service\"}[5m]))",
+          "expr": "histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket{job=\"messaging-service\"}[5m]))",
           "legendFormat": "Messaging P95",
           "refId": "E"
         }
@@ -457,7 +457,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"user-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_request_duration_seconds_count{job=\"user-service\"}[5m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"user-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_server_request_duration_seconds_count{job=\"user-service\"}[5m])",
           "legendFormat": "User Service",
           "refId": "A"
         },
@@ -466,7 +466,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"matchmaking-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_request_duration_seconds_count{job=\"matchmaking-service\"}[5m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"matchmaking-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_server_request_duration_seconds_count{job=\"matchmaking-service\"}[5m])",
           "legendFormat": "Matchmaking",
           "refId": "B"
         },
@@ -475,7 +475,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"swipe-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_request_duration_seconds_count{job=\"swipe-service\"}[5m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"swipe-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_server_request_duration_seconds_count{job=\"swipe-service\"}[5m])",
           "legendFormat": "Swipe",
           "refId": "C"
         },
@@ -484,7 +484,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"photo-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_request_duration_seconds_count{job=\"photo-service\"}[5m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"photo-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_server_request_duration_seconds_count{job=\"photo-service\"}[5m])",
           "legendFormat": "Photo",
           "refId": "D"
         },
@@ -493,7 +493,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_request_duration_seconds_count{job=\"messaging-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_request_duration_seconds_count{job=\"messaging-service\"}[5m])",
+          "expr": "rate(http_server_request_duration_seconds_count{job=\"messaging-service\",http_response_status_code=~\"5..\"}[5m]) / rate(http_server_request_duration_seconds_count{job=\"messaging-service\"}[5m])",
           "legendFormat": "Messaging",
           "refId": "E"
         }

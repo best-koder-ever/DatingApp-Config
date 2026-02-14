@@ -7,6 +7,8 @@ KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "DatingApp")
 KEYCLOAK_ADMIN_USER = os.getenv("KEYCLOAK_ADMIN_USER", "admin")
 KEYCLOAK_ADMIN_PASS = os.getenv("KEYCLOAK_ADMIN_PASS", "admin")
 
+KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "dejtingapp-flutter")
+
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:8080")
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://localhost:8082")
 MATCHMAKING_URL = os.getenv("MATCHMAKING_URL", "http://localhost:8083")
@@ -16,9 +18,9 @@ SWIPE_SERVICE_URL = os.getenv("SWIPE_SERVICE_URL", "http://localhost:8087")
 
 # Bot defaults
 DEFAULT_BOT_COUNT = 50
-SWIPE_RIGHT_PROBABILITY = 0.30
-SWIPE_DELAY_SEC = 2.0
-MESSAGE_DELAY_SEC = 5.0
+SWIPE_RIGHT_PROBABILITY = 0.85
+SWIPE_DELAY_SEC = 0.3
+MESSAGE_DELAY_SEC = 1.0
 DEFAULT_BOT_PASSWORD = "BotPass123!"
 
 # Dashboard

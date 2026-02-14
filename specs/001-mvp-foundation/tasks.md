@@ -2568,3 +2568,891 @@ graph TB
         - **Description**: Show re-verification prompt when user changes profile photo ("Your verification badge will be removed. Re-verify?"). Add verification status to settings page (Verified since date, Next re-verification date). Improve camera_screen UX: add animated face outline, progress dots for challenges completed, encouraging text. Handle edge cases: camera permission denied, face not detected timeout, poor lighting warning.
         - **Acceptance**: `flutter analyze` passes, re-verification prompt shows on photo change, camera UX polished.
         - **Dependencies**: T158, T159
+
+---
+
+## Phase 14: Strategy-Based Candidate Delivery System (Priority: P0)
+
+**Goal**: Transform MatchmakingService from a dumb proxy into a flexible, strategy-based candidate delivery engine with pluggable filters, pre-computed scoring, and industry-standard dating-app features — all without breaking the Flutter client.
+
+**Rationale**: Currently `ProfilesController` fetches ALL profiles from UserService via `/api/demo/search`, returns them unscored, unranked, unpaginated. The scoring engine (`AdvancedMatchingService`) exists but is unreachable from the Flutter app. `GetSwipedUserIdsAsync` is a stub returning empty. Activity scores always return 75.0. `ScoringConfiguration` is registered but never injected. This phase fixes all of that AND future-proofs the system with a strategy pattern that scales from 100 to 500K users without code changes — only config.
+
+**Research basis**: Tinder ELO/desirability scoring, Hinge "Most Compatible" (Gale-Shapley), Bumble proximity + recently-active weighting, cognitive science (max 9 profiles without choice paralysis). See `specs/001-mvp-foundation/features/candidate-system-research.md`.
+
+**Flutter impact**: ZERO — `GET /api/matchmaking/profiles/{userId}` keeps the same response shape. Backend returns better data through the same pipe.
+
+**Architecture overview**:
+```
+Flutter → GET /profiles/{userId} → ProfilesController
+           ↓
+    StrategyResolver (picks strategy from config)
+           ↓
+    ┌──────────────────────────────────┐
+    │     ICandidateStrategy           │
+    │  ┌────────┬────────┬──────────┐  │
+    │  │ Live   │PreComp │DailyPick │  │
+    │  │Scoring │uted    │          │  │
+    │  └────────┴────────┴──────────┘  │
+    └──────────────────────────────────┘
+           ↓ (all strategies use)
+    CandidateFilterPipeline
+    ┌─────────────────────────────────────┐
+    │ Gender → Age → Distance → Swiped → │
+    │ Blocked → RecentlyActive → Custom   │
+    └─────────────────────────────────────┘
+           ↓
+    Scored + Ranked + Paginated Response
+```
+
+**Prerequisites**: Phase DX-2 (T151-T160), working MatchmakingService deployed
+**Branch base**: `001-mvp-foundation`
+**Estimated total**: ~65h across 23 tasks
+
+```mermaid
+graph TD
+    subgraph "14.1 Fix Critical Bugs"
+        T161[T161: Fix GetSwipedUserIdsAsync stub]
+        T162[T162: Wire ScoringConfiguration]
+        T163[T163: Fix ActivityScore stub]
+    end
+
+    subgraph "14.2 Data Model"
+        T164[T164: Add missing UserProfile fields]
+        T165[T165: Composite query indexes]
+        T166[T166: LastActiveAt sync endpoint]
+    end
+
+    subgraph "14.3 Filter Pipeline"
+        T167[T167: ICandidateFilter interface]
+        T168[T168: Core filter implementations]
+        T169[T169: CandidateFilterPipeline]
+        T170[T170: Filter unit tests]
+    end
+
+    subgraph "14.4 Strategy Pattern"
+        T171[T171: ICandidateStrategy interface]
+        T172[T172: LiveScoringStrategy]
+        T173[T173: PreComputedStrategy]
+        T174[T174: DailyPickStrategy]
+        T175[T175: StrategyResolver]
+    end
+
+    subgraph "14.5 Background Services"
+        T176[T176: ScoreRefreshBackgroundService]
+        T177[T177: Adaptive scheduling]
+        T178[T178: DailyPick generation job]
+    end
+
+    subgraph "14.6 Controller Rewire"
+        T179[T179: Rewire ProfilesController]
+        T180[T180: Query params + pagination]
+    end
+
+    subgraph "14.7 Config & Observability"
+        T181[T181: CandidateOptions config]
+        T182[T182: Prometheus metrics]
+    end
+
+    subgraph "14.8 Scale & Intelligence"
+        T183[T183: Desirability/ELO score]
+    end
+
+    T161 --> T168
+    T162 --> T172
+    T163 --> T172
+    T164 --> T165
+    T164 --> T166
+    T164 --> T168
+    T165 --> T169
+    T167 --> T168
+    T168 --> T169
+    T168 --> T170
+    T169 --> T172
+    T171 --> T172
+    T171 --> T173
+    T171 --> T174
+    T172 --> T175
+    T173 --> T175
+    T174 --> T175
+    T175 --> T179
+    T176 --> T177
+    T173 --> T176
+    T174 --> T178
+    T179 --> T180
+    T181 --> T175
+    T181 --> T176
+    T182 --> T179
+    T183 --> T176
+```
+
+**Critical path**: T161 → T168 → T169 → T172 → T175 → T179 (Fix stub → Filters → Live strategy → Resolver → Controller)
+**Quick win path**: T161 + T162 + T163 alone improve scoring quality in <6h without architecture changes
+
+---
+
+### Phase 14.1: Fix Critical Bugs — Broken Scoring Foundation
+
+**Why first**: Three stubs/bugs mean the existing scoring engine produces garbage results. No point building a strategy layer on a broken foundation. These are surgical fixes, low risk, high impact.
+
+- [ ] T161 [P0] [Backend] Fix GetSwipedUserIdsAsync stub — query UserInteractions table
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: `Services/AdvancedMatchingService.cs` (line ~269)
+        - **Description**: The method currently returns `new HashSet<int>()` with a TODO comment. Replace with actual EF Core query against the `UserInteractions` DbSet: `SELECT TargetUserId FROM UserInteractions WHERE UserId = @userId`. This means users who were already swiped (LIKE or PASS) will finally be excluded from future candidate lists. Add an index on `UserInteractions(UserId, TargetUserId)` if not already present. Include both LIKE and PASS interactions — users should not see profiles they already acted on regardless of direction.
+        - **Current code** (stub):
+          ```csharp
+          private async Task<HashSet<int>> GetSwipedUserIdsAsync(int userId)
+          {
+              // This would call the SwipeService to get swiped users
+              // For now, return empty set
+              return new HashSet<int>();
+          }
+          ```
+        - **Target code** (real):
+          ```csharp
+          private async Task<HashSet<int>> GetSwipedUserIdsAsync(int userId)
+          {
+              var swipedIds = await _context.UserInteractions
+                  .Where(ui => ui.UserId == userId)
+                  .Select(ui => ui.TargetUserId)
+                  .ToListAsync();
+              return swipedIds.ToHashSet();
+          }
+          ```
+        - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: seed 3 UserInteractions for userId=1, call method, assert returns exactly those 3 target IDs, (3) Integration: swiped users no longer appear in candidate list.
+        - **Risk**: Low — replacing empty HashSet with real query. Only risk is UserInteractions table being empty for users who swiped via SwipeService (data lives in SwipeServiceDb). See note below.
+        - **Open question**: UserInteractions in MatchmakingDb vs Swipes in SwipeServiceDb — are they synced? If not, T161 needs to also add a cross-service sync mechanism or query SwipeService via HTTP. Verify before implementing.
+        - **Dependencies**: None
+
+- [ ] T162 [P0] [Backend] Wire ScoringConfiguration into AdvancedMatchingService
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: `Services/AdvancedMatchingService.cs`, `Models/ScoringConfiguration.cs`
+        - **Description**: `ScoringConfiguration` is already registered as a singleton in `Program.cs` (bound from `appsettings.json` → `Scoring` section) but **never injected** into `AdvancedMatchingService`. The service uses hardcoded values like `penalty = 30` for children mismatch instead of `_config.ChildrenMismatchPenalty`. Fix: (1) Add `ScoringConfiguration` to `AdvancedMatchingService` constructor via DI, (2) Replace ALL hardcoded weights and penalties with config values, (3) Use `IOptionsMonitor<ScoringConfiguration>` instead of plain singleton so config changes are picked up without restart.
+        - **Hardcoded values to replace** (audit list):
+          - `CalculateLifestyleScore`: children penalty (30), smoking penalty (20), drinking penalty (15), religion penalty (10)
+          - `CalculateCompatibilityScoreAsync`: weight defaults (1.0, 1.0, 1.0, 0.5, 0.7) should fallback to config defaults
+          - `MinimumCompatibilityThreshold` in `FindMatchesAsync` (if hardcoded)
+          - `MaxDistance` default (50.0)
+          - `ScoreCacheHours` (24)
+        - **Acceptance**: (1) `dotnet build` passes, (2) Change `ChildrenMismatchPenalty` in appsettings.json from 30 to 50, verify scoring output changes without recompile, (3) No hardcoded scoring numbers remain in AdvancedMatchingService.cs.
+        - **Dependencies**: None
+
+- [ ] T163 [P0] [Backend] Fix CalculateActivityScore stub — use real activity data
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: `Services/AdvancedMatchingService.cs`
+        - **Description**: `CalculateActivityScore` currently returns hardcoded `75.0` for all users. Replace with decay-based calculation using `UserProfile.UpdatedAt` (and future `LastActiveAt` from T164). Formula: `score = 100 * exp(-lambda * daysSinceActive)` where `lambda = ln(2) / halfLifeDays` and `halfLifeDays` is configurable (default: 7 days). This means users active today score ~100, users inactive for 7 days score ~50, users inactive for 30 days score ~6. Add `ActivityScoreHalfLifeDays` to `ScoringConfiguration`. This single change dramatically improves match quality — research shows "recently active" is the #1 predictor of response rate on dating apps.
+        - **Formula reference**: Exponential decay is standard in recommendation systems. Tinder, Hinge, and Bumble all heavily weight recency. Half-life of 7 days is conservative; Tinder reportedly uses 3 days.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: user active today → score ≥90, user inactive 7 days → score ~50, user inactive 30 days → score <10, (3) `ActivityScoreHalfLifeDays` configurable in appsettings.json.
+        - **Dependencies**: T162 (needs ScoringConfiguration wired for the halfLife config)
+
+---
+
+### Phase 14.2: Data Model Enrichment — Missing Fields & Indexes
+
+**Why**: UserProfile already has Height, Religion, Ethnicity, SmokingStatus, DrinkingStatus, WantsChildren, HasChildren (discovered in research — they DO exist). But `LastActiveAt`, `LookingFor`, and `IsVerified` are missing. These are critical for filtering and ranking. Also need better composite indexes for the filter pipeline queries.
+
+- [ ] T164 [P0] [Backend] Add LastActiveAt, LookingFor, IsVerified, DesirabilityScore to UserProfile
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: `Models/UserProfile.cs`, `Data/MatchmakingDbContext.cs`
+        - **Description**: Add four fields to `UserProfile`:
+          1. `LastActiveAt` (`DateTime`, default `UtcNow`) — tracks when user last opened app. Updated via sync endpoint (T166). Used by activity score (T163) and recently-active filter (T168).
+          2. `LookingFor` (`string`, default `""`) — relationship intent enum stored as string: "Relationship", "Casual", "Friendship", "NotSure". Critical dealbreaker filter — someone wanting a relationship shouldn't see someone wanting casual unless both are flexible.
+          3. `IsVerified` (`bool`, default `false`) — verified via photo verification (T155-T158). Used as ranking boost (verified profiles score higher) and optional filter ("only show verified").
+          4. `DesirabilityScore` (`double`, default `50.0`) — ELO-inspired attractiveness metric calculated from swipe-right ratio (T183). Range 0-100. Used as tiebreaker in ranking and for balanced matching (show users profiles of similar desirability to increase mutual match probability).
+        - **Migration**: Generate via `dotnet ef migrations add AddCandidateSystemFields`. All fields have safe defaults so existing data is unaffected.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Migration applies cleanly to existing DB with data, (3) All four fields queryable via EF Core.
+        - **Dependencies**: None
+
+- [ ] T165 [P1] [Backend] Add composite query indexes for filter pipeline performance
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: `Data/MatchmakingDbContext.cs`
+        - **Description**: The filter pipeline (T169) will chain WHERE clauses on `IsActive`, `Gender`, `Age`, `LastActiveAt`. Without composite indexes, MySQL will do full table scans. Add:
+          1. `IX_UserProfile_ActiveSearch` → (`IsActive`, `Gender`, `Age`, `LastActiveAt` DESC) — covers the most common filter chain: active users of preferred gender in age range, sorted by recency.
+          2. `IX_UserProfile_Location` → already exists on (`Latitude`, `Longitude`) — sufficient for Haversine WHERE clause.
+          3. `IX_UserInteraction_UserLookup` → (`UserId`, `TargetUserId`) on `UserInteractions` — for fast swiped-user exclusion (T161).
+          4. `IX_UserProfile_Desirability` → (`IsActive`, `DesirabilityScore` DESC) — for balanced matching queries.
+        - **Performance target**: Filter pipeline query for 100K users should complete in <50ms with these indexes (verified via EXPLAIN ANALYZE in acceptance).
+        - **Acceptance**: (1) `dotnet build` passes, (2) Migration applies, (3) `EXPLAIN ANALYZE` on a representative filter query shows index usage (no full table scan), (4) Query time <50ms on test dataset.
+        - **Dependencies**: T164 (needs new fields to index)
+
+- [ ] T166 [P1] [Backend] LastActiveAt sync endpoint + UserService heartbeat integration
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/MatchmakingService` + `best-koder-org/UserService`
+        - **Files**: `Controllers/ProfilesController.cs` (or new `SyncController.cs`), UserService event publisher
+        - **Description**: Two parts:
+          1. **MatchmakingService**: Add internal endpoint `POST /api/internal/matchmaking/activity-ping` accepting `{ userId: int, lastActiveAt: DateTime }`. Protected by internal API key (already have `InternalApiKeyAuthFilter`). Updates `UserProfile.LastActiveAt` for the given user. Batch variant: `POST /api/internal/matchmaking/activity-ping/batch` accepting array of pings.
+          2. **UserService**: On every authenticated API call, publish a lightweight activity ping to MatchmakingService (fire-and-forget HTTP via `IHttpClientFactory`, no blocking). Debounce: max 1 ping per user per 5 minutes to avoid flooding. Store last-ping-time in `IMemoryCache`.
+        - **Why not events/queue**: We don't have a message broker yet. HTTP fire-and-forget is pragmatic for MVP. When we add RabbitMQ/Kafka later, replace with event-driven. The internal endpoint stays the same — only the caller changes.
+        - **Acceptance**: (1) Both services build, (2) Calling UserService API triggers activity ping, (3) MatchmakingService `LastActiveAt` updates within 5 minutes of user activity, (4) Internal API key required (401 without it).
+        - **Dependencies**: T164 (needs `LastActiveAt` field)
+        - **Future**: Replace HTTP ping with domain event via message broker (Phase 15+)
+
+---
+
+### Phase 14.3: Candidate Filter Pipeline — Pluggable Query Composition
+
+**Why**: Currently `GetPotentialMatchesQuery` is a single monolithic LINQ query with hardcoded filters. We need a pipeline where each filter is an independent, testable, injectable unit. New filters (e.g., "hide profiles without photos", "only verified", "same religion") can be added without touching existing code. Open/Closed Principle.
+
+**Design**: Each filter implements `ICandidateFilter` with a single method. The pipeline chains them as `IQueryable<UserProfile>` transformations, meaning ALL filtering happens at the database level (single SQL query), not in memory. Filters are registered in DI and resolved as `IEnumerable<ICandidateFilter>`, so adding a new filter = add class + register in DI. No existing code changes.
+
+- [ ] T167 [P0] [Backend] Define ICandidateFilter interface and filter contracts
+        - **Estimate**: 1.5h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Filters/ICandidateFilter.cs`, `Filters/FilterContext.cs`
+        - **Description**: Create the filter abstraction:
+          ```csharp
+          public interface ICandidateFilter
+          {
+              /// <summary>Display name for logging/metrics</summary>
+              string Name { get; }
+              
+              /// <summary>Execution order (lower = first). Cheapest filters first.</summary>
+              int Order { get; }
+              
+              /// <summary>Whether this filter is a hard exclusion (dealbreaker) or soft ranking signal</summary>
+              FilterType Type { get; }
+              
+              /// <summary>Apply filter to candidate query</summary>
+              IQueryable<UserProfile> Apply(IQueryable<UserProfile> candidates, FilterContext context);
+          }
+          
+          public enum FilterType { Dealbreaker, Preference, Ranking }
+          
+          public record FilterContext(
+              UserProfile RequestingUser,
+              HashSet<int> SwipedUserIds,
+              HashSet<int> BlockedUserIds,
+              CandidateOptions Options
+          );
+          ```
+        - **Design decisions**:
+          - `Order` property ensures cheapest filters (boolean checks) run before expensive ones (Haversine distance).
+          - `FilterType` enum allows the pipeline to track how many candidates each filter type excludes (metrics).
+          - `FilterContext` bundles all data a filter might need, avoiding constructor injection of different services per filter. Keeps filters pure query transformers.
+          - Returns `IQueryable<T>` not `IEnumerable<T>` — critical for DB-level execution. NEVER materialize in a filter.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Interface and contracts compile, (3) Code review: no `ToList()` or `ToArray()` in interface — enforces IQueryable composition.
+        - **Dependencies**: None
+
+- [ ] T168 [P0] [Backend] Implement 7 core candidate filters
+        - **Estimate**: 6h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Filters/` directory with one file per filter
+        - **Description**: Implement these filters, ordered by computational cost (cheapest first):
+          1. **`SelfExclusionFilter`** (Order: 0) — Exclude requesting user's own profile. Trivial but must be explicit.
+          2. **`ActiveUserFilter`** (Order: 10) — Only `IsActive == true`. Excludes deactivated/deleted accounts.
+          3. **`GenderFilter`** (Order: 20) — Bidirectional gender match: candidate's gender matches user's preference AND user's gender matches candidate's preference. Handle "Everyone" preference.
+          4. **`AgeRangeFilter`** (Order: 30) — Bidirectional: candidate's age within user's [MinAge, MaxAge] AND user's age within candidate's [MinAge, MaxAge]. Prevents 50-year-old seeing 20-year-old who set max age to 30.
+          5. **`ExcludeSwipedFilter`** (Order: 40) — Exclude all user IDs in `FilterContext.SwipedUserIds`. Uses `.Where(u => !swipedIds.Contains(u.UserId))` which EF Core translates to `NOT IN (...)` or `NOT EXISTS` depending on set size.
+          6. **`ExcludeBlockedFilter`** (Order: 50) — Exclude all user IDs in `FilterContext.BlockedUserIds`. Same pattern as swiped.
+          7. **`DistanceFilter`** (Order: 60) — Haversine formula in LINQ that EF Core/Pomelo can translate to MySQL: `WHERE (6371 * ACOS(COS(RADIANS(lat1)) * COS(RADIANS(lat2)) * COS(RADIANS(lon2) - RADIANS(lon1)) + SIN(RADIANS(lat1)) * SIN(RADIANS(lat2)))) <= maxDistance`. Uses `user.MaxDistance` as radius. This is THE big performance improvement — currently distance is checked per-candidate in memory after loading ALL candidates.
+        - **MySQL Haversine note**: Pomelo 8.x supports `Math.Acos`, `Math.Cos`, `Math.Sin` translation to MySQL functions. Verify with `EXPLAIN ANALYZE`. If EF Core can't translate, fall back to a bounding-box pre-filter (square approximation: `lat BETWEEN lat-delta AND lat+delta AND lon BETWEEN lon-delta AND lon+delta`) which IS translatable, then Haversine in-memory on the smaller set.
+        - **Each filter**: Single class, <50 lines, single responsibility, easily testable in isolation.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Each filter has a corresponding unit test (T170), (3) All 7 filters registered in DI, (4) `EXPLAIN ANALYZE` on filter chain shows single query with index usage.
+        - **Dependencies**: T161 (SwipedUserIds fix), T164 (new fields), T167 (interface)
+
+- [ ] T169 [P0] [Backend] CandidateFilterPipeline — chains filters and executes query
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Filters/CandidateFilterPipeline.cs`
+        - **Description**: Orchestrator that:
+          1. Resolves all `ICandidateFilter` implementations from DI (`IEnumerable<ICandidateFilter>`).
+          2. Sorts by `Order` ascending.
+          3. Chains them: `foreach (var filter in filters) query = filter.Apply(query, context);`
+          4. Executes the composed query with `.Take(limit).ToListAsync()`.
+          5. Returns `FilterPipelineResult` with candidates + per-filter exclusion counts (for observability).
+          ```csharp
+          public class CandidateFilterPipeline
+          {
+              private readonly IEnumerable<ICandidateFilter> _filters;
+              private readonly ILogger<CandidateFilterPipeline> _logger;
+              
+              public async Task<FilterPipelineResult> ExecuteAsync(
+                  IQueryable<UserProfile> baseQuery,
+                  FilterContext context,
+                  int limit,
+                  CancellationToken ct = default)
+              {
+                  var query = baseQuery;
+                  var metrics = new List<FilterMetric>();
+                  
+                  foreach (var filter in _filters.OrderBy(f => f.Order))
+                  {
+                      query = filter.Apply(query, context);
+                      // Note: can't count per-filter in IQueryable chain
+                      // Metrics tracked via Prometheus counters in each filter
+                  }
+                  
+                  var candidates = await query.Take(limit).ToListAsync(ct);
+                  return new FilterPipelineResult(candidates, metrics);
+              }
+          }
+          ```
+        - **Key design**: The pipeline does NOT score candidates — it only FILTERS. Scoring is the strategy's job (T172-T174). This separation means filters are reusable across all strategies.
+        - **Extensibility**: To add a new filter (e.g., "only show verified"), create `VerifiedOnlyFilter : ICandidateFilter`, register in DI, done. Zero changes to pipeline or existing filters.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Integration test: pipeline with all 7 filters produces correct candidate set, (3) Adding a new mock filter works without modifying pipeline code.
+        - **Dependencies**: T165 (indexes), T168 (filter implementations)
+
+- [ ] T170 [P1] [Backend] Filter pipeline unit tests — isolated + integration
+        - **Estimate**: 4h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Tests/Filters/` directory
+        - **Description**: Comprehensive tests for the filter system:
+          1. **Per-filter unit tests** (7 test classes, ~3-5 tests each):
+             - `GenderFilterTests`: Test male→female, female→male, male→everyone, everyone→everyone, same-sex preferences
+             - `AgeRangeFilterTests`: Test in-range, out-of-range, boundary cases, bidirectional enforcement
+             - `DistanceFilterTests`: Test within radius, outside radius, boundary (exactly at maxDistance), zero distance (same city)
+             - `ExcludeSwipedFilterTests`: Test empty set, single swiped, many swiped, swiped user not in candidates
+             - `ExcludeBlockedFilterTests`: Same patterns as swiped
+             - `ActiveUserFilterTests`: Test active-only, include deactivated (should be excluded)
+             - `SelfExclusionFilterTests`: Test requesting user excluded from results
+          2. **Pipeline integration tests** (1 test class, ~5 tests):
+             - Full pipeline with all filters produces expected candidates from seeded data
+             - Pipeline with no filters returns all candidates
+             - Pipeline with conflicting filters returns empty set gracefully
+             - Adding custom filter via DI works
+             - Pipeline handles empty UserProfile table gracefully
+          3. **Use EF Core InMemory provider** for speed, seed realistic data (10-20 profiles with varied attributes).
+        - **Pattern**: Follow existing test patterns in `MatchmakingService.Tests/` — xUnit, Moq, `WebApplicationFactory` for integration.
+        - **Acceptance**: (1) All tests pass via `dotnet test`, (2) ≥85% code coverage on `Filters/` directory, (3) Each filter tested in isolation with edge cases.
+        - **Dependencies**: T168 (filters to test), T169 (pipeline to test)
+
+---
+
+### Phase 14.4: ICandidateStrategy — Swappable Delivery Algorithms
+
+**Why strategy pattern**: The right candidate delivery approach depends on user count, server resources, and product stage. With 100 users, live scoring is fast and simple. With 100K users, pre-computed scores are essential. With 1M users, you need sharded per-region strategies. A strategy pattern lets us switch via config, A/B test different approaches, and add new strategies without touching existing code.
+
+**Interface**: All strategies take a user ID + request, run the filter pipeline, apply their scoring approach, return ranked candidates. The controller doesn't know or care which strategy runs.
+
+- [ ] T171 [P0] [Backend] Define ICandidateStrategy interface and supporting types
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Strategies/ICandidateStrategy.cs`, `Strategies/CandidateRequest.cs`, `Strategies/ScoredCandidate.cs`
+        - **Description**: Core strategy abstraction:
+          ```csharp
+          public interface ICandidateStrategy
+          {
+              string Name { get; }
+              Task<CandidateResult> GetCandidatesAsync(
+                  int userId, CandidateRequest request, CancellationToken ct = default);
+          }
+          
+          public record CandidateRequest(
+              int Limit = 20,
+              double MinScore = 0,
+              int? ActiveWithinDays = null,
+              bool OnlyVerified = false
+          );
+          
+          public record ScoredCandidate(
+              UserProfile Profile,
+              double CompatibilityScore,
+              double ActivityScore,
+              double DesirabilityScore,
+              double FinalScore,
+              string StrategyUsed
+          );
+          
+          public record CandidateResult(
+              List<ScoredCandidate> Candidates,
+              int TotalFiltered,
+              int TotalScored,
+              string StrategyUsed,
+              TimeSpan ExecutionTime,
+              bool QueueExhausted,
+              int SuggestionsRemaining
+          );
+          ```
+        - **Design decisions**:
+          - `CandidateResult` includes `QueueExhausted` and `SuggestionsRemaining` — these already exist in Flutter DTOs (discovered in research). Backend can now actually populate them.
+          - `ScoredCandidate` exposes individual score components — useful for debugging, A/B testing, and future "why this match" explanations in UI.
+          - `StrategyUsed` string included in responses for observability — know which strategy served each request.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Interface and records compile, (3) All properties map cleanly to existing Flutter `MatchCandidate` DTO.
+        - **Dependencies**: None
+
+- [ ] T172 [P0] [Backend] LiveScoringStrategy — real-time scoring for small-to-medium scale
+        - **Estimate**: 5h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: New `Strategies/LiveScoringStrategy.cs`
+        - **Description**: Extracts and refactors the scoring logic from `AdvancedMatchingService.FindMatchesAsync` into a strategy implementation. Flow:
+          1. Load requesting user's `UserProfile` from DB.
+          2. Build `FilterContext` (fetch swipedIds via fixed T161, blockedIds via SafetyServiceClient).
+          3. Run `CandidateFilterPipeline` to get filtered candidates (DB-level, paginated).
+          4. For each candidate, calculate compatibility score (reuse `CalculateCompatibilityScoreAsync`).
+          5. Sort by `FinalScore` descending, apply `MinScore` threshold.
+          6. Return `CandidateResult`.
+        - **Key improvement over current FindMatchesAsync**:
+          - Filters happen at DB level (pipeline) instead of loading 3x candidates and filtering in memory.
+          - Activity score is real (T163), not hardcoded 75.
+          - Swiped users actually excluded (T161).
+          - Scoring config actually used (T162).
+          - Score cache (`MatchScores` table, 24h TTL) still leveraged — check cache before computing.
+        - **When to use**: User count < 10,000. Above that, per-request scoring becomes slow (>500ms). Switch to PreComputed via config.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: 20 seeded profiles → returns top 10 by score, excludes swiped, (3) Benchmark: <200ms for 5K profiles with indexes.
+        - **Dependencies**: T161, T162, T163, T169, T171
+
+- [ ] T173 [P1] [Backend] PreComputedStrategy — read pre-computed scores for scale
+        - **Estimate**: 4h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: New `Strategies/PreComputedStrategy.cs`
+        - **Description**: Reads from the existing `MatchScores` table instead of computing on-the-fly. Flow:
+          1. Load requesting user's `UserProfile`.
+          2. Build `FilterContext`.
+          3. Query `MatchScores` table: `WHERE UserId = @userId AND CalculatedAt > @staleThreshold ORDER BY OverallScore DESC`.
+          4. Join with `UserProfiles` to apply filter pipeline on the pre-scored candidates.
+          5. If fewer than `request.Limit` fresh scores available, fall back to `LiveScoringStrategy` for the remainder (hybrid approach).
+          6. Return `CandidateResult`.
+        - **Fallback logic**: If no pre-computed scores exist for a user (new user, or scores expired), transparently delegates to `LiveScoringStrategy`. Users never see "no candidates" due to missing pre-computation — they just get slightly slower live-scored results until the background service catches up (T176).
+        - **When to use**: User count 10K-500K. Background service (T176) pre-computes scores, this strategy reads them.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: with pre-computed scores → returns them sorted, (3) Unit test: without pre-computed scores → falls back to LiveScoring, (4) Benchmark: <50ms for 100K pre-computed score reads.
+        - **Dependencies**: T171, T169
+
+- [ ] T174 [P2] [Backend] DailyPickStrategy — curated daily recommendations
+        - **Estimate**: 5h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Strategies/DailyPickStrategy.cs`, New `Models/DailyPick.cs`, Migration
+        - **Description**: Inspired by Hinge "Most Compatible". Each user gets N curated picks per day (configurable, default 10). These are the highest-scored candidates generated by a background job (T178) and stored in a new `DailyPicks` table.
+          - **DailyPick model**: `Id`, `UserId`, `CandidateUserId`, `Score`, `GeneratedAt`, `ExpiresAt` (24h), `WasSeen` (bool), `WasActedOn` (bool), `ActionType` (Like/Pass/null).
+          - **Strategy flow**: Query today's unseen `DailyPicks` for user, join with `UserProfiles` for full data, return as `CandidateResult`. If picks exhausted, set `QueueExhausted = true` and return however many remain.
+          - **Product value**: Creates urgency (limited daily picks → users come back tomorrow), increases match quality (only top-scored candidates shown), reduces decision fatigue.
+        - **Why separate from PreComputed**: PreComputed returns ALL scored candidates on demand. DailyPick returns a CURATED subset once per day. Different product experiences — DailyPick is a premium engagement feature.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Migration creates `DailyPicks` table, (3) Unit test: 10 picks generated → strategy returns them, marks as seen, (4) Exhausted picks → `QueueExhausted = true`.
+        - **Dependencies**: T171
+
+- [ ] T175 [P0] [Backend] StrategyResolver — picks strategy from config with fallback chain
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: New `Strategies/StrategyResolver.cs`
+        - **Description**: Resolves which `ICandidateStrategy` to use based on `CandidateOptions.Strategy` config value. Supports:
+          1. **Named resolution**: Config says `"Strategy": "Live"` → resolve `LiveScoringStrategy`.
+          2. **Auto resolution**: Config says `"Strategy": "Auto"` → resolver checks user count in DB. <10K → Live, 10K-500K → PreComputed, >500K → PreComputed with region sharding (future).
+          3. **Per-request override**: API can pass `?strategy=dailypick` for A/B testing.
+          4. **Fallback chain**: If selected strategy fails (exception), fall back to Live (always available, no pre-requisites).
+          ```csharp
+          public class StrategyResolver
+          {
+              private readonly IServiceProvider _serviceProvider;
+              private readonly IOptionsMonitor<CandidateOptions> _options;
+              
+              public ICandidateStrategy Resolve(string? strategyOverride = null)
+              {
+                  var name = strategyOverride ?? _options.CurrentValue.Strategy;
+                  return name.ToLower() switch
+                  {
+                      "live" => _serviceProvider.GetRequiredService<LiveScoringStrategy>(),
+                      "precomputed" => _serviceProvider.GetRequiredService<PreComputedStrategy>(),
+                      "dailypick" => _serviceProvider.GetRequiredService<DailyPickStrategy>(),
+                      "auto" => ResolveAuto(),
+                      _ => _serviceProvider.GetRequiredService<LiveScoringStrategy>()
+                  };
+              }
+          }
+          ```
+        - **Hot-reload**: Because `IOptionsMonitor<CandidateOptions>` is used (not `IOptions`), changing `appsettings.json` in production switches the strategy without restart. Operator can respond to load spikes by switching from PreComputed to Live or vice versa.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: config="Live" → LiveScoringStrategy resolved, (3) Unit test: config="Auto" with 5K users → Live resolved, (4) Unit test: invalid strategy name → falls back to Live.
+        - **Dependencies**: T172, T173, T174, T181
+
+---
+
+### Phase 14.5: Background Services — Proactive Score Computation
+
+**Why**: PreComputedStrategy and DailyPickStrategy need scores to be computed BEFORE a user opens the app. Currently zero background services exist. These run continuously, computing scores during low-traffic periods and keeping the `MatchScores` + `DailyPicks` tables warm.
+
+- [ ] T176 [P1] [Backend] ScoreRefreshBackgroundService — pre-compute compatibility scores
+        - **Estimate**: 5h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Services/Background/ScoreRefreshBackgroundService.cs`, `Program.cs` (register)
+        - **Description**: `BackgroundService` that continuously refreshes the `MatchScores` table:
+          1. **Select users to refresh**: Active users (`IsActive && LastActiveAt > threshold`) ordered by stalest scores first. Configurable batch size (default: 100 users per cycle).
+          2. **For each user**: Run filter pipeline to get candidate pool, compute compatibility score for each candidate, upsert into `MatchScores` table.
+          3. **Adaptive scheduling**: Run every `RefreshIntervalMinutes` (config, default: 30min). Skip cycle if server load > `SkipRefreshWhenCpuAbove` (config, default: 80%).
+          4. **Progress tracking**: Log batches completed, scores computed, time taken. Expose via Prometheus gauge (`score_refresh_last_run_seconds`, `score_refresh_users_processed`).
+          5. **Cancellation**: Respect `CancellationToken` for graceful shutdown. Checkpoint progress so next startup continues where it left off.
+        - **Cost controls**:
+          - `MaxUsersPerCycle`: 100 (don't hold DB connection too long)
+          - `OnlyRefreshActiveUsers`: true (don't waste compute on inactive accounts)
+          - `ScoreTtlHours`: 24 (don't recompute if score is fresh)
+          - `MaxConcurrentScoring`: 5 (parallel scoring tasks per cycle, bounded)
+        - **Acceptance**: (1) `dotnet build` passes, (2) Service starts with app, (3) `MatchScores` table populated after first cycle, (4) Service pauses when CPU > threshold, (5) Graceful shutdown mid-batch doesn't corrupt data.
+        - **Dependencies**: T173 (needs PreComputedStrategy to exist as the consumer), T181 (config)
+
+- [ ] T177 [P2] [Backend] Adaptive scheduling — peak-hour awareness and load sensitivity
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: `Services/Background/ScoreRefreshBackgroundService.cs` (enhance T176)
+        - **Description**: Make the background service smart about WHEN to run:
+          1. **Peak-hour detection**: Dating app usage peaks 8-10 PM local time. During peak, reduce batch size by 50% and increase interval by 2x. During off-peak (2-6 AM), increase batch size by 2x for catch-up.
+          2. **Load-based throttling**: Monitor request latency via Prometheus metric. If P95 latency > 500ms, pause scoring. Resume when P95 < 200ms.
+          3. **Priority queue**: New users (< 24h old) get scores computed first — they need candidates immediately. Returning users (active today, stale scores) second. Inactive users last.
+          4. **Configuration**:
+             ```json
+             "BackgroundScoring": {
+               "PeakHoursUtc": [19, 20, 21, 22],
+               "PeakBatchReduction": 0.5,
+               "OffPeakBatchMultiplier": 2.0,
+               "MaxP95LatencyMs": 500,
+               "ResumeP95LatencyMs": 200,
+               "NewUserPriorityHours": 24
+             }
+             ```
+        - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: during peak hours → batch size halved, (3) Unit test: high latency → scoring paused, (4) New users scored before returning users.
+        - **Dependencies**: T176
+
+- [ ] T178 [P2] [Backend] DailyPick generation background job
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Services/Background/DailyPickGenerationService.cs`
+        - **Description**: Runs once per day (configurable time, default: 3 AM UTC) to generate `DailyPicks` for all active users:
+          1. Query all active users with `LastActiveAt` within 7 days.
+          2. For each user: get top N pre-computed scores from `MatchScores` that haven't been shown as daily picks before, create `DailyPick` entries with 24h expiry.
+          3. Delete expired picks (older than 48h) to prevent table bloat.
+          4. Batch insert: 500 picks per DB round-trip for efficiency.
+          5. Log: "Generated {count} daily picks for {userCount} users in {elapsed}".
+        - **Idempotency**: If run twice on same day, skip users who already have today's picks. Safe to restart.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Trigger manually → DailyPicks table populated, (3) Already-generated users skipped on re-run, (4) Expired picks cleaned up.
+        - **Dependencies**: T174 (DailyPick model/table), T176 (scores must exist)
+
+---
+
+### Phase 14.6: Controller Rewire — The Payoff
+
+**Why**: This is where it all comes together. `ProfilesController` stops being a dumb proxy and becomes a proper candidate delivery endpoint backed by the entire strategy/filter infrastructure.
+
+- [ ] T179 [P0] [Backend] Rewire ProfilesController to use strategy pattern
+        - **Estimate**: 4h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: `Controllers/ProfilesController.cs`
+        - **Description**: Replace the current dumb-proxy logic with strategy-based candidate delivery:
+          **Current** (delete this):
+          ```
+          1. Call UserService /api/profiles/me → get my ID
+          2. Call UserService POST /api/demo/search → get ALL profiles
+          3. Filter out self
+          4. Return unscored list
+          ```
+          **New** (replace with):
+          ```
+          1. Extract userId from JWT claims (no HTTP call needed)
+          2. Resolve strategy via StrategyResolver
+          3. Call strategy.GetCandidatesAsync(userId, request)
+          4. Map ScoredCandidate → existing response DTO shape
+          5. Return scored, ranked, paginated list
+          ```
+        - **Response shape preservation**: The current endpoint returns an array of profile objects. New endpoint returns the SAME shape (same JSON fields) so Flutter `MatchCandidate.fromJson()` works unchanged. New fields like `compatibilityScore` are additive — Flutter ignores unknown JSON fields.
+        - **Backward compatibility**: CRITICAL. Do NOT change the URL, HTTP method, or response structure. Only change what's INSIDE the profiles (better ranking, scored).
+        - **Fallback safety**: If strategy throws, catch exception and fall back to current dumb-proxy behavior with a degraded quality warning in logs. Never return 500 to Flutter during this transition.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Flutter app still loads candidates without code changes, (3) Candidates now scored and ranked (verify via response inspection), (4) Prometheus: `candidate_pipeline_duration_seconds` metric emitted.
+        - **Dependencies**: T175 (StrategyResolver)
+
+- [ ] T180 [P1] [Backend] Add optional query params for future Flutter flexibility
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **File**: `Controllers/ProfilesController.cs`
+        - **Description**: Add optional query parameters to the existing endpoint for future Flutter control. All are optional with sensible defaults — current Flutter calls without params continue to work:
+          - `?limit=20` (default from config, max 50)
+          - `?minScore=50` (minimum compatibility score, default 0)
+          - `?activeWithin=7` (only show users active within N days, default from config)
+          - `?onlyVerified=false` (filter to verified profiles only)
+          - `?strategy=live|precomputed|dailypick` (override for A/B testing, default from config)
+          ```
+          GET /api/matchmaking/profiles/{userId}?limit=10&minScore=60&activeWithin=3&onlyVerified=true
+          ```
+        - **Validation**: `limit` clamped to [1, 50], `minScore` clamped to [0, 100], `activeWithin` clamped to [1, 365]. Invalid values → use defaults, don't error.
+        - **Why optional not required**: Flutter doesn't need to change. When Flutter DOES implement preference UI (filters screen), it can start passing these params. Backend is ready.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Call without params → works as before, (3) Call with `?limit=5` → returns max 5 candidates, (4) Call with `?minScore=90` → only high-score candidates returned.
+        - **Dependencies**: T179
+
+---
+
+### Phase 14.7: Configuration & Observability
+
+**Why**: The strategy system is powerful but useless if operators can't configure it or see what's happening. This phase adds the config section that drives everything and the Prometheus metrics that make performance visible.
+
+- [ ] T181 [P0] [Backend] CandidateOptions configuration section
+        - **Estimate**: 2h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: `appsettings.json`, New `Models/CandidateOptions.cs`, `Program.cs`
+        - **Description**: Add configuration that controls the entire candidate system:
+          ```json
+          "CandidateOptions": {
+            "Strategy": "Auto",
+            "DefaultLimit": 20,
+            "MaxLimit": 50,
+            "DefaultMinScore": 0,
+            "ActiveWithinDays": 30,
+            "OnlyShowVerifiedDefault": false,
+            "FallbackToLiveOnError": true,
+            "AutoStrategyThresholds": {
+              "LiveMaxUsers": 10000,
+              "PreComputedMaxUsers": 500000
+            },
+            "BackgroundScoring": {
+              "Enabled": true,
+              "RefreshIntervalMinutes": 30,
+              "MaxUsersPerCycle": 100,
+              "OnlyRefreshActiveUsers": true,
+              "ScoreTtlHours": 24,
+              "SkipRefreshWhenCpuAbove": 80,
+              "MaxConcurrentScoring": 5
+            },
+            "DailyPicks": {
+              "Enabled": false,
+              "PicksPerUser": 10,
+              "GenerationTimeUtc": "03:00",
+              "ExpiryHours": 24
+            }
+          }
+          ```
+        - Register with `services.Configure<CandidateOptions>(config.GetSection("CandidateOptions"))`.
+        - Use `IOptionsMonitor<CandidateOptions>` everywhere for live reload.
+        - `CandidateOptions.cs` model with data annotations for validation (`[Range]`, `[Required]`).
+        - **Acceptance**: (1) `dotnet build` passes, (2) Config binds correctly, (3) Change value in appsettings.json → picked up via IOptionsMonitor without restart.
+        - **Dependencies**: None (this is a leaf — other tasks depend on it)
+
+- [ ] T182 [P1] [Backend] Prometheus metrics for candidate pipeline observability
+        - **Estimate**: 3h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: New `Services/CandidateMetricsService.cs`, integration in pipeline/strategies
+        - **Description**: Add OpenTelemetry/Prometheus metrics for the candidate pipeline:
+          1. **`candidate_pipeline_duration_seconds`** (Histogram) — Total time from request to response, labeled by `strategy`.
+          2. **`candidate_pipeline_candidates_returned`** (Counter) — Number of candidates returned per request, labeled by `strategy`.
+          3. **`candidate_filter_exclusions_total`** (Counter) — Number of candidates excluded, labeled by `filter_name`. Shows which filters are most restrictive.
+          4. **`candidate_score_computation_duration_seconds`** (Histogram) — Time spent computing scores (vs filtering vs DB).
+          5. **`candidate_strategy_fallback_total`** (Counter) — How often fallback to Live triggers. High count = pre-computation problems.
+          6. **`score_refresh_users_processed`** (Gauge) — Users processed in last background scoring cycle.
+          7. **`score_refresh_duration_seconds`** (Histogram) — Duration of background scoring cycles.
+          8. **`daily_picks_generated_total`** (Counter) — Daily picks created per generation run.
+        - **Integration**: Use .NET `System.Diagnostics.Metrics` API (native OpenTelemetry support, already configured in Program.cs). Create a `Meter` named "MatchmakingService.CandidateSystem".
+        - **Grafana dashboard**: Create `infrastructure/grafana/dashboards/candidate-system.json` with panels for all metrics above. Include: strategy distribution pie chart, filter funnel visualization, latency percentiles, background service health.
+        - **Acceptance**: (1) `dotnet build` passes, (2) Hit `/metrics` → candidate metrics appear, (3) Grafana dashboard loads and shows data after a few requests.
+        - **Dependencies**: T179 (needs pipeline running to emit metrics)
+
+---
+
+### Phase 14.8: Scale Intelligence — Desirability & ELO (Stretch)
+
+**Why this is last**: Desirability scoring is powerful but controversial and complex. It requires enough swipe data to be meaningful (1000+ interactions per user minimum). Ship everything above first, then add this when data volume justifies it. Marked P3.
+
+- [ ] T183 [P3] [Backend] Desirability/ELO score — swipe-right ratio ranking signal
+        - **Estimate**: 6h
+        - **Repo**: `best-koder-org/MatchmakingService`
+        - **Files**: `Models/UserProfile.cs` (field added in T164), New `Services/DesirabilityCalculator.cs`, Background job enhancement
+        - **Description**: Implement ELO-inspired desirability scoring based on swipe patterns:
+          1. **Basic formula**: `DesirabilityScore = (likesReceived / totalSwipesReceived) * 100`, with Bayesian smoothing: `(likesReceived + prior * mean) / (totalSwipesReceived + prior)` where `prior = 10` (pseudocounts) and `mean = 0.3` (average like rate ~30%). This prevents new users with 1 like out of 1 swipe from scoring 100.
+          2. **ELO-style adjustment**: When UserA (desirability 70) likes UserB (desirability 40), UserB gets a big boost (liked by someone "above" them). When UserA passes on UserC (desirability 80), UserC gets a small penalty. K-factor = 32 (standard chess ELO).
+          3. **Decay**: Scores decay toward mean (50) over time if user receives no new swipes. Half-life: 30 days. Prevents stale scores.
+          4. **Usage in ranking**: Desirability score is NOT a filter (never hide someone for low desirability). It's a TIEBREAKER: when two candidates have similar compatibility scores (within 5 points), show the one with closer desirability to the requesting user first. This increases mutual match probability.
+          5. **Background computation**: Add to `ScoreRefreshBackgroundService` (T176) — recalculate desirability as part of the scoring cycle. Store in `UserProfile.DesirabilityScore`.
+          6. **Privacy**: NEVER expose raw desirability score to users. It's internal only. Not in API responses, not in logs that users can access.
+        - **Ethical considerations**: Documented in code comments. Unlike Tinder's original ELO, this score is about match COMPATIBILITY, not "attractiveness ranking". Two users with similar scores have a higher chance of matching — it's about reducing asymmetric swipes, not judging anyone.
+        - **Minimum data requirement**: Only compute for users with ≥20 total swipes received. Below that, use default (50.0).
+        - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: user with 80% like rate → high score, user with 20% → lower score, new user → 50.0, (3) Score never exposed in API response, (4) Bayesian smoothing prevents extreme scores for low-data users.
+        - **Dependencies**: T164 (DesirabilityScore field), T176 (background service to compute)
+
+---
+
+### Phase 14 Checkpoint
+
+**Phase 14 is COMPLETE when**:
+1. ✅ `GET /api/matchmaking/profiles/{userId}` returns scored, ranked candidates (not a dumb proxy)
+2. ✅ Previously-swiped users are excluded from results
+3. ✅ Activity score reflects real user activity (not hardcoded 75)
+4. ✅ All scoring penalties read from config (not hardcoded)
+5. ✅ Distance filter runs at DB level (not in-memory per-candidate)
+6. ✅ Strategy is swappable via config change (no code change)
+7. ✅ Background service pre-computes scores for PreComputed strategy
+8. ✅ Flutter app works identically without any client-side changes
+9. ✅ Prometheus metrics visible in Grafana for candidate pipeline
+10. ✅ All filter and strategy tests passing in `dotnet test`
+
+**Phase 14 is NOT about**:
+- ❌ Changing Flutter UI (same endpoint, same response shape)
+- ❌ Adding a message broker (HTTP fire-and-forget for now, broker in Phase 15+)
+- ❌ Multi-region sharding (that's Phase 16+, >500K users)
+- ❌ ML-based scoring (beyond ELO, that's Phase 17+)
+
+**When to execute**:
+- **Recommended execution order**: 14.1 (bugs) → 14.7 (config) → 14.2 (data) → 14.3 (filters) → 14.4 (strategies) → 14.6 (controller) → 14.5 (background) → 14.8 (ELO)
+- **Quick wins first**: T161 + T162 + T163 (6h) immediately improves match quality for existing users. Ship these even if nothing else ships.
+- **Minimum viable phase**: T161-T163 (bugs) + T167-T169 (filters) + T171-T172 (Live strategy) + T179 (controller rewire) = 14 tasks, ~35h = functional candidate system without pre-computation or daily picks.
+
+### Phase 14 Notes
+
+**Research References**:
+- Tinder's ELO system (2012-2019): Desirability rating based on swipe-right ratio, deprecated in favor of team-reviewed "Machine Learning" in 2019 but the principle stands.
+- Hinge's "Most Compatible" (2018+): Uses Gale-Shapley algorithm to compute stable matching pairs, shown as daily curated pick. Our DailyPickStrategy is inspired by this.
+- Bumble's time-limited matches: Matches expire if no message in 24h. Our DailyPick expiry (24h) borrows this engagement pattern.
+- Cognitive science (Iyengar & Lepper, 2000): Choice overload — more than 6-9 options reduces decision quality. Our default limit of 20 with MinScore threshold aims for quality over quantity.
+- Interview prep insight: Tinder processes 1.6B swipes/day. At scale, pre-computed scores + sharding are essential. Our strategy pattern is designed for this progression.
+
+**Existing Infrastructure Leveraged (not created new)**:
+- `MatchScores` table (exists, 24h TTL, unique index) → used by PreComputedStrategy
+- `UserInteractions` table (exists, has LIKE/PASS data) → used by GetSwipedUserIdsAsync fix
+- `MatchingAlgorithmMetrics` table (exists) → used for tracking
+- `DailySuggestionLimits` config (exists) → integrated with strategies
+- `InternalApiKeyAuthFilter` (exists) → protects sync endpoints
+- `OpenTelemetry` in Program.cs (exists) → new metrics hook in
+- `IMemoryCache` in Program.cs (exists, unused) → can cache filter pipeline results
+
+**What's NOT Built Yet That You Might Want Later**:
+- Message broker (RabbitMQ/Kafka) for event-driven LastActiveAt sync
+- Redis cache for scoring and filter results
+- Geospatial index (MySQL POINT + ST_Distance_Sphere) for sub-10ms distance queries
+- A/B testing framework for strategy comparison with statistical significance
+- "Why this match" explanation generation from score components
+- Photo-based scoring (face detection quality, photo count boost)
+- Mutual friend/interest boost (social graph integration)
+
+
+---
+
+## Phase 14.9: Swipe Abuse Detection & Bot Behavior Prevention
+> **Goal**: Detect and penalize users who spam-swipe (right on everyone), exhibit bot-like behavior, or otherwise abuse the swiping system. Protect match quality for genuine users.
+> **Why**: Research shows men swipe right on ~46% of profiles on average; indiscriminate swipers (90%+) degrade match quality for everyone. Tinder limits free users to 100 right-swipes/12h and penalizes over-swipers by reducing their visibility. Our system currently has a blunt 100/day rate limit but zero behavioral analysis.
+> **Depends on**: Phase 14.1 (T161 swipe data fix), Phase 14.2 (T164 UserProfile fields)
+> **Estimated total**: ~22h
+
+### Industry Research: Spam/Bot Swipe Detection Signals
+
+**What the big apps do:**
+1. **Tinder**: Limits free swipes to 100/12h. Monitors right-swipe ratio — users who like >80% of profiles get deprioritized in other people's stacks. Tracks message-after-match rate. Rewards "Tinder Coins" for good behavior. Uses ML on text + images for bot detection.
+2. **Bumble**: Uses ML pipeline for spam/bot detection. Signals include: account age, profile completeness, swipe velocity, same-device-multiple-accounts, message patterns (identical opener to all matches).
+3. **Hinge**: Rate-limits to 8-10 likes/day for free users. Requires a comment on likes, forcing engagement. Tracks "quality signals" — profile dwell time, message response rate.
+4. **Coffee Meets Bagel**: Gives only 5-6 curated profiles/day, making spam-swiping structurally impossible.
+
+**Key behavioral signals for abuse detection:**
+| Signal | Normal Range | Suspicious | Likely Bot/Spam |
+|--------|-------------|------------|-----------------|
+| Right-swipe ratio (likes / total swipes) | 20-60% | 70-85% | >90% |
+| Swipe velocity (swipes/minute) | 2-8 | 10-15 | >20 |
+| Average dwell time per profile (seconds) | 3-15s | 1-2s | <1s |
+| Message-after-match rate | >30% | 10-30% | <5% |
+| Same message sent to N matches | 1-2 | 3-5 | >5 identical |
+| Profile completeness (fields filled %) | >60% | 30-60% | <30% |
+| Session length pattern | Varies, organic | Clock-regular intervals | 24/7 activity |
+| Swipe direction entropy | Mixed L/R | Mostly R | All R or All L |
+
+**Detection tiers:**
+- **Tier 0 — Rate Limit (exists)**: Hard cap on daily swipes. Already implemented in SwipeService.
+- **Tier 1 — Behavioral Scoring (this phase)**: Calculate SwipeTrustScore from behavioral signals. Penalize low-trust users in candidate ranking.
+- **Tier 2 — Shadow Restriction**: Don't tell abusers they're penalized; just reduce their visibility to others and show them lower-quality candidates.
+- **Tier 3 — ML Classification (future)**: Train model on labeled bot/genuine data. Out of scope for MVP.
+
+### Tasks
+
+- [x] **T184** ⏱️ 3h 🔴 HIGH — **Create SwipeBehavior analytics model & migration** ✅ **COMPLETE** (2026-02-14)
+  - Add `SwipeBehaviorStats` table in SwipeService:
+    ```
+    SwipeBehaviorStats: UserId (unique), TotalSwipes, TotalLikes, TotalPasses,
+    AvgSwipeVelocity (swipes/min), LastCalculatedAt, SwipeTrustScore (0-100),
+    RightSwipeRatio (decimal), PeakSwipeStreak (max consecutive likes),
+    DaysActive, FlaggedAt (nullable), FlagReason (nullable)
+    ```
+  - `SwipeTrustScore` = composite score from behavioral signals, default 100 (trusted), minimum 0 (banned)
+  - EF migration with index on `UserId` (unique) and `SwipeTrustScore`
+  - **Acceptance**: Table created, migration runs, model has all fields
+
+- [x] **T185** ⏱️ 4h 🔴 HIGH — **Implement SwipeBehaviorAnalyzer service** ✅ **COMPLETE** (2026-02-14)
+  - New service `ISwipeBehaviorAnalyzer` in SwipeService with methods:
+    - `AnalyzeSwipePatternAsync(int userId)` → returns `SwipeBehaviorReport`
+    - `CalculateSwipeTrustScoreAsync(int userId)` → returns `double` (0-100)
+    - `IsSwipeSuspiciousAsync(int userId, bool isLike)` → returns `(bool isSuspicious, string reason)`
+  - **SwipeTrustScore formula** (configurable weights):
+    ```
+    baseScore = 100
+    rightSwipeRatioPenalty = max(0, (rightSwipeRatio - 0.7) * 100)  // 0 if <70%, up to 30 if 100%
+    velocityPenalty = max(0, (avgVelocity - 10) * 3)  // 0 if <10/min, up to 30 if 20/min
+    streakPenalty = max(0, (peakConsecutiveLikes - 20) * 1.5)  // 0 if <20, up to 30 if 40+
+    lowProfilePenalty = profileCompleteness < 30% ? 15 : 0
+    messageBonusBoost = messageAfterMatchRate > 50% ? +10 : 0
+    
+    SwipeTrustScore = clamp(baseScore - rightSwipeRatioPenalty - velocityPenalty - streakPenalty - lowProfilePenalty + messageBonusBoost, 0, 100)
+    ```
+  - Registers as Scoped service in DI
+  - **Thresholds** (configurable via appsettings):
+    - Score 80-100: Trusted (no action)
+    - Score 50-79: Warning zone (log, optional notification)
+    - Score 20-49: Restricted (shadow-deprioritized in candidate stacks)
+    - Score 0-19: Flagged for review (could auto-restrict or manual review)
+  - **Acceptance**: Unit tests for all score brackets, edge cases (new user = 100, spam user ≤ 20)
+
+- [x] **T186** ⏱️ 3h 🔵 MEDIUM — **Add real-time swipe velocity tracking** ✅ **COMPLETE** (2026-02-14)
+  - In `RecordSwipeHandler`, after recording the swipe:
+    1. Check time since last swipe for this user (`LastSwipeAt` in `DailySwipeLimit`)
+    2. If interval < 3 seconds → increment `rapidSwipeCount` in `SwipeBehaviorStats`
+    3. Track `maxConsecutiveLikes` — reset counter on any PASS, increment on LIKE
+    4. Every 10 swipes, call `ISwipeBehaviorAnalyzer.CalculateSwipeTrustScoreAsync()` to update score
+  - Add `swipe_velocity_exceeded_total` Prometheus counter
+  - **Acceptance**: Simulator "spam bot" making 30 likes in 1 minute gets trust score <30
+
+- [x] **T187** ⏱️ 2h 🔵 MEDIUM — **Expose SwipeTrustScore to MatchmakingService** ✅ **COMPLETE** (2026-02-14)
+  - New internal endpoint: `GET /api/internal/swipe-behavior/{userId}` (protected by `InternalApiKeyAuthFilter`)
+    - Returns: `{ trustScore, rightSwipeRatio, totalSwipes, flagged, flagReason }`
+  - MatchmakingService calls this during candidate scoring to factor trust into desirability
+  - Cache response for 1h (trust scores don't change rapidly)
+  - **Acceptance**: MatchmakingService can fetch trust score for any user, caches correctly
+
+- [x] **T188** ⏱️ 3h 🔵 MEDIUM — **Integrate SwipeTrustScore into candidate ranking (shadow restrict)** ✅ **COMPLETE** (2026-02-14)
+  - In `AdvancedMatchingService.CalculateCompatibilityScoreAsync()`:
+    - Fetch target's `SwipeTrustScore` from SwipeService (cached)
+    - Apply shadow penalty: `finalScore *= (0.5 + (trustScore / 200.0))`
+      - TrustScore 100: multiplier = 1.0 (no penalty)
+      - TrustScore 50: multiplier = 0.75 (25% penalty)
+      - TrustScore 0: multiplier = 0.5 (50% penalty — still visible, just ranked lower)
+  - Also apply to the *requester*: if the person asking for candidates has low trust, they get lower-quality candidates (reciprocal penalty, like Tinder's "swiper jail")
+  - **Do NOT** tell the user they're penalized (shadow restriction)
+  - Add `candidate_trust_penalized_total` Prometheus metric
+  - **Acceptance**: A user with trust=30 appears much lower in other people's stacks than trust=90
+
+- [x] **T189** ⏱️ 2h 🟡 LOW — **Add consecutive-like circuit breaker** ✅ **COMPLETE** (2026-02-14)
+  - If a user makes 30+ consecutive likes (no passes), pause swiping for 15 minutes
+  - Return HTTP 429 with `Retry-After: 900` header
+  - Message: "Take a moment to consider your choices — swiping resumes shortly"
+  - This is a softer intervention than the daily limit: it catches burst spam without penalizing genuine users who simply have a "liking session"
+  - Configurable thresholds in `SwipeLimitsConfiguration`:
+    ```
+    ConsecutiveLikeLimit: 30
+    CooldownMinutes: 15
+    ```
+  - **Acceptance**: Bot simulator hitting 30 consecutive likes gets 429, can resume after 15 min
+
+- [x] **T190** ⏱️ 2h 🟡 LOW — **SwipeBehavior background recalculation job** ✅ **COMPLETE** (2026-02-14)
+  - `BackgroundService` in SwipeService that runs every 6 hours:
+    1. Queries all users with >10 swipes in last 24h
+    2. Recalculates `SwipeTrustScore` from full history (not just incremental)
+    3. Emits `swipe_trust_recalculated_total` metric
+    4. Logs any users whose score dropped below 50 since last run
+  - Ensures scores stay accurate even if real-time tracking misses edge cases
+  - **Acceptance**: Background job runs on schedule, scores match expected values from test data
+
+- [x] **T191** ⏱️ 3h 🟡 LOW — **Bot detection heuristics & flagging** ✅ **COMPLETE** (2026-02-14)
+  - Add bot-detection signals beyond swipe patterns:
+    1. **Device fingerprint reuse**: If `DeviceInfo` field in Swipe model shows same device across multiple accounts → flag
+    2. **Clock-regular swiping**: If swipe timestamps show machine-like regularity (std deviation of intervals < 0.5s) → flag
+    3. **Profile completeness**: Check via UserService — accounts with <30% profile completion + high swipe volume → flag
+    4. **Session-hour distribution**: Genuine users have gaps (sleep, work). 24/7 swiping → flag
+  - When flagged: set `FlaggedAt` and `FlagReason` in `SwipeBehaviorStats`
+  - Creates structured log event for ops team dashboard (bot-service NiceGUI could show this)
+  - **Acceptance**: Simulated bot patterns are correctly flagged with appropriate reasons
+
+### Phase 14.9 Dependency Graph
+```mermaid
+graph TD
+    T184[T184: SwipeBehavior Model] --> T185[T185: BehaviorAnalyzer Service]
+    T185 --> T186[T186: Velocity Tracking]
+    T185 --> T187[T187: Expose to Matchmaking]
+    T187 --> T188[T188: Shadow Restrict in Ranking]
+    T186 --> T189[T189: Circuit Breaker]
+    T185 --> T190[T190: Background Recalc Job]
+    T185 --> T191[T191: Bot Heuristics]
+```
+
+### Phase 14.9 Execution Notes
+- **Critical path**: T184 → T185 → T187 → T188 (12h) — this gets trust scores into candidate ranking
+- **Quick win**: T184 → T185 → T186 + T189 (12h) — this adds velocity tracking + circuit breaker to SwipeService without touching MatchmakingService
+- T191 (bot heuristics) is future-proof scaffolding — implement signals incrementally as real abuse patterns emerge
+- Shadow restriction (T188) is the industry standard — NEVER tell users their score. This is how Tinder's "shadow ban" works.

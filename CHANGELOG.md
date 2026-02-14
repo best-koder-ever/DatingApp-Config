@@ -26,6 +26,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.14.9] - 2026-02-14
+
+### Added 🚀 (Swipe Abuse Detection — Phase 14.9)
+- SwipeBehaviorStats model with trust score tracking (SwipeService)
+- SwipeBehaviorAnalyzer service — composite trust score formula (ratio/velocity/streak penalties)
+- Real-time swipe velocity tracking integrated into RecordSwipeHandler
+- Consecutive-like circuit breaker (30 likes → 15min cooldown)
+- SwipeBehaviorRecalcService background job (6h periodic recalculation)
+- BotDetectionHeuristics — 4-signal bot detection (clock regularity, 24/7 activity, monotonic patterns, device fingerprint)
+- Internal SwipeBehaviorController (trust-score, report, recalc, batch, bot-check endpoints)
+- Shadow restrict in MatchmakingService — trust score multiplier in candidate ranking
+- 22 new unit tests (16 SwipeBehaviorAnalyzer + 6 BotDetection), all passing
+- EF migration for SwipeBehaviorStats table
+
+### Technical
+- SwipeService: 60/60 tests passing (was 38)
+- MatchmakingService: 81/81 tests passing
+- Trust score formula: 100 - ratioPenalty - velocityPenalty - streakPenalty, clamped [0,100]
+- Shadow restrict formula: finalScore *= (0.5 + trustScore/200)
+- Graceful degradation: MatchmakingService defaults to trust=100 on HTTP failure
+
 ## [0.1.0-alpha] - 2026-01-24
 
 ### Added

@@ -1,5 +1,6 @@
 """Profile seeder — loads pre-bundled Swedish users and builds enriched profiles instantly."""
 import asyncio
+import os
 import json
 import random
 import uuid
@@ -8,6 +9,12 @@ from pathlib import Path
 from typing import Callable
 
 import httpx
+
+try:
+    import pymysql
+    HAS_PYMYSQL = True
+except ImportError:
+    HAS_PYMYSQL = False
 from faker import Faker
 
 from . import config
@@ -26,6 +33,7 @@ class SeederState:
     def reset(self):
         self.total = 0
         self.created = 0
+        self.skipped = 0
         self.failed = 0
         self.running = False
         self.cancelled = False
@@ -33,7 +41,7 @@ class SeederState:
 
     @property
     def progress(self) -> float:
-        return self.created / max(self.total, 1)
+        return (self.created + self.skipped) / max(self.total, 1)
 
 
 state = SeederState()
@@ -84,6 +92,14 @@ def _build_profile(raw_user: dict) -> dict:
 
     height_cm = random.randint(155, 195) if gender == "male" else random.randint(150, 180)
 
+    # Map gender to a preferences value for the UserService
+    if gender == "male":
+        pref = random.choice(["women", "both"])
+    elif gender == "female":
+        pref = random.choice(["men", "both"])
+    else:
+        pref = "both"
+
     return {
         "username": username,
         "email": email,
@@ -107,6 +123,7 @@ def _build_profile(raw_user: dict) -> dict:
         ],
         "prompts": prompts,
         "relationship_goal": random.choice(config.RELATIONSHIP_GOALS),
+        "preferences": pref,
         "is_bot": True,
         "is_verified": random.random() > 0.3,
         "is_online": random.random() > 0.5,
@@ -128,17 +145,6 @@ async def _get_keycloak_admin_token(client: httpx.AsyncClient) -> str | None:
         resp = await client.post(
             f"{config.KEYCLOAK_URL}/realms/master/protocol/openid-connect/token",
             data={
-                "grant_type": "client_credentials",
-                "client_id": "admin-cli",
-                "username": config.KEYCLOAK_ADMIN_USER,
-                "password": config.KEYCLOAK_ADMIN_PASS,
-            },
-        )
-        if resp.status_code == 200:
-            return resp.json()["access_token"]
-        resp = await client.post(
-            f"{config.KEYCLOAK_URL}/realms/master/protocol/openid-connect/token",
-            data={
                 "grant_type": "password",
                 "client_id": "admin-cli",
                 "username": config.KEYCLOAK_ADMIN_USER,
@@ -152,7 +158,57 @@ async def _get_keycloak_admin_token(client: httpx.AsyncClient) -> str | None:
         return None
 
 
-async def _create_keycloak_user(client: httpx.AsyncClient, token: str, user_data: dict) -> str | None:
+async def _lookup_keycloak_user(client: httpx.AsyncClient, token: str, username: str) -> str | None:
+    """Look up existing Keycloak user by username, return their ID or None."""
+    try:
+        resp = await client.get(
+            f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users",
+            headers={"Authorization": f"Bearer {token}"},
+            params={"username": username, "exact": "true"},
+        )
+        if resp.status_code == 200:
+            users = resp.json()
+            if users:
+                return users[0]["id"]
+        return None
+    except Exception:
+        return None
+
+
+async def _update_existing_user(client: httpx.AsyncClient, token: str, kc_user_id: str, user_data: dict) -> bool:
+    """Update an existing Keycloak user with full profile data + reset password."""
+    try:
+        resp = await client.put(
+            f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users/{kc_user_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "firstName": user_data["first_name"],
+                "lastName": user_data["last_name"],
+                "email": user_data["email"],
+                "emailVerified": True,
+                "enabled": True,
+                "requiredActions": [],
+                "attributes": {"bot": ["true"]},
+            },
+        )
+        if resp.status_code not in (204, 200):
+            return False
+
+        resp2 = await client.put(
+            f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users/{kc_user_id}/reset-password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"type": "password", "value": config.DEFAULT_BOT_PASSWORD, "temporary": False},
+        )
+        return resp2.status_code == 204
+    except Exception:
+        return False
+
+
+async def _create_keycloak_user(client: httpx.AsyncClient, token: str, user_data: dict) -> tuple[str | None, str]:
+    """
+    Create a Keycloak user. Returns (user_id, status) where status is one of:
+      - "created", "exists", or "failed"
+    """
     try:
         resp = await client.post(
             f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users",
@@ -169,17 +225,26 @@ async def _create_keycloak_user(client: httpx.AsyncClient, token: str, user_data
             },
         )
         if resp.status_code == 201:
-            return resp.headers.get("location", "").split("/")[-1]
-        return None
-    except Exception:
-        return None
+            kc_id = resp.headers.get("location", "").split("/")[-1]
+            return kc_id, "created"
+
+        if resp.status_code == 409:
+            kc_id = await _lookup_keycloak_user(client, token, user_data["username"])
+            if kc_id:
+                await _update_existing_user(client, token, kc_id, user_data)
+                return kc_id, "exists"
+            return None, "failed"
+
+        return None, f"failed(HTTP {resp.status_code}: {resp.text[:200]})"
+    except Exception as e:
+        return None, f"failed({e})"
 
 
 async def _get_user_token(client: httpx.AsyncClient, username: str) -> str | None:
     try:
         resp = await client.post(
             f"{config.KEYCLOAK_URL}/realms/{config.KEYCLOAK_REALM}/protocol/openid-connect/token",
-            data={"grant_type": "password", "client_id": "datingapp-backend",
+            data={"grant_type": "password", "client_id": config.KEYCLOAK_CLIENT_ID,
                   "username": username, "password": config.DEFAULT_BOT_PASSWORD},
         )
         if resp.status_code == 200:
@@ -189,16 +254,240 @@ async def _get_user_token(client: httpx.AsyncClient, username: str) -> str | Non
         return None
 
 
-async def _create_user_profile(client: httpx.AsyncClient, token: str, profile: dict) -> bool:
+async def _create_user_profile(client: httpx.AsyncClient, token: str, profile: dict, log: Callable[[str], None] | None = None) -> bool:
+    """Create a user profile in UserService via POST /api/UserProfiles.
+
+    Required fields: name, email, preferences
+    Optional: bio, gender, dateOfBirth, city, interests, occupation, height, etc.
+    """
     try:
-        resp = await client.put(
-            f"{config.USER_SERVICE_URL}/api/profile/me",
+        # First check if profile already exists
+        check = await client.get(
+            f"{config.USER_SERVICE_URL}/api/profiles/me",
             headers={"Authorization": f"Bearer {token}"},
-            json=profile,
         )
-        return resp.status_code in (200, 201, 204)
-    except Exception:
+        if check.status_code == 200:
+            # Profile exists — extract the ID for matchmaking
+            data = check.json()
+            if isinstance(data, dict) and "data" in data:
+                profile["user_service_id"] = data["data"].get("id")
+            elif isinstance(data, dict):
+                profile["user_service_id"] = data.get("id")
+            return True  # already exists, skip creation
+
+        # Build the payload matching CreateUserProfileDto schema
+        payload = {
+            "name": f"{profile['first_name']} {profile['last_name']}",
+            "email": profile["email"],
+            "preferences": profile.get("preferences", "both"),
+            "bio": profile.get("bio", ""),
+            "gender": profile.get("gender", "other").capitalize(),
+            "dateOfBirth": profile.get("date_of_birth", "2000-01-01"),
+            "city": profile.get("city", "Stockholm"),
+            "interests": profile.get("interests", []),
+            "occupation": profile.get("occupation", ""),
+            "height": profile.get("height_cm", 175),
+            "relationshipType": profile.get("relationship_goal", "open_to_anything"),
+        }
+
+        # Add coordinates if available
+        lat = profile.get("latitude")
+        lon = profile.get("longitude")
+        if lat is not None and lon is not None:
+            try:
+                payload["latitude"] = float(lat)
+                payload["longitude"] = float(lon)
+            except (ValueError, TypeError):
+                pass
+
+        resp = await client.post(
+            f"{config.USER_SERVICE_URL}/api/UserProfiles",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json=payload,
+        )
+        if resp.status_code in (200, 201):
+            data = resp.json()
+            # Extract userService ID for matchmaking
+            if isinstance(data, dict) and "data" in data:
+                profile["user_service_id"] = data["data"].get("id")
+            elif isinstance(data, dict):
+                profile["user_service_id"] = data.get("id")
+            return True
+        else:
+            if log:
+                log(f"   ⚠️  Profile creation failed for {profile.get('username')}: HTTP {resp.status_code} — {resp.text[:150]}")
+            return False
+    except Exception as e:
+        if log:
+            log(f"   ⚠️  Profile creation error for {profile.get('username')}: {e}")
         return False
+
+
+
+
+
+def _sync_swipe_profile_mappings(profiles: list[dict], log: Callable[[str], None] | None = None) -> int:
+    """Sync Keycloak UUID → UserService ID mappings to SwipeService's UserProfileMappings table.
+    
+    The SwipeService match-check endpoint needs this mapping to translate
+    Keycloak UUIDs (used by MessagingService) into integer profile IDs.
+    """
+    if not HAS_PYMYSQL:
+        if log:
+            log("⚠️  pymysql not installed — skipping SwipeService mapping sync")
+        return 0
+    
+    db_host = os.getenv("SWIPE_DB_HOST", "localhost")
+    db_port = int(os.getenv("SWIPE_DB_PORT", "3310"))
+    db_user = os.getenv("SWIPE_DB_USER", "root")
+    db_pass = os.getenv("SWIPE_DB_PASS", "root_password")
+    db_name = os.getenv("SWIPE_DB_NAME", "SwipeServiceDb")
+    
+    try:
+        conn = pymysql.connect(
+            host=db_host, port=db_port, user=db_user,
+            password=db_pass, database=db_name, charset="utf8mb4",
+        )
+    except Exception as e:
+        if log:
+            log(f"⚠️  Could not connect to SwipeService DB ({db_host}:{db_port}): {e}")
+        return 0
+    
+    synced = 0
+    skipped = 0
+    try:
+        cursor = conn.cursor()
+        for p in profiles:
+            kc_sub = p.get("keycloak_sub")
+            us_id = p.get("user_service_id")
+            if not kc_sub or not us_id:
+                continue
+            
+            cursor.execute("SELECT ProfileId FROM UserProfileMappings WHERE UserId = %s", (kc_sub,))
+            if cursor.fetchone():
+                skipped += 1
+                continue
+            
+            try:
+                cursor.execute(
+                    "INSERT INTO UserProfileMappings (UserId, ProfileId, CreatedAt) VALUES (%s, %s, NOW())",
+                    (kc_sub, us_id)
+                )
+                synced += 1
+            except Exception:
+                skipped += 1  # duplicate PK etc
+        
+        conn.commit()
+    except Exception as e:
+        if log:
+            log(f"⚠️  Error syncing SwipeService mappings: {e}")
+    finally:
+        conn.close()
+    
+    if log:
+        log(f"🔗 SwipeService mappings: {synced} synced, {skipped} already existed")
+    return synced
+
+def _sync_to_matchmaking_db(profiles: list[dict], log: Callable[[str], None] | None = None) -> int:
+    """Sync user profiles to MatchmakingService's MySQL database directly.
+    
+    The MatchmakingService has its own isolated database and does not read from
+    UserService. To make find-matches return candidates, profiles must be INSERTed
+    into matchmaking_service_db.UserProfiles.
+    """
+    if not HAS_PYMYSQL:
+        if log:
+            log("⚠️  pymysql not installed — skipping MatchmakingService DB sync")
+            log("   Install with: pip install pymysql")
+        return 0
+    
+    db_host = os.getenv("MATCHMAKING_DB_HOST", "localhost")
+    db_port = int(os.getenv("MATCHMAKING_DB_PORT", "3309"))
+    db_user = os.getenv("MATCHMAKING_DB_USER", "root")
+    db_pass = os.getenv("MATCHMAKING_DB_PASS", "root_password")
+    db_name = os.getenv("MATCHMAKING_DB_NAME", "matchmaking_service_db")
+    
+    try:
+        conn = pymysql.connect(
+            host=db_host, port=db_port, user=db_user,
+            password=db_pass, database=db_name, charset="utf8mb4",
+        )
+    except Exception as e:
+        if log:
+            log(f"⚠️  Could not connect to MatchmakingService DB ({db_host}:{db_port}): {e}")
+        return 0
+    
+    synced = 0
+    skipped = 0
+    try:
+        cursor = conn.cursor()
+        for p in profiles:
+            us_id = p.get("user_service_id")
+            if not us_id:
+                continue
+            
+            # Check if already exists
+            cursor.execute("SELECT Id FROM UserProfiles WHERE UserId = %s", (us_id,))
+            if cursor.fetchone():
+                skipped += 1
+                continue
+            
+            gender = (p.get("gender", "other") or "other").lower()
+            age = p.get("age", 30)
+            
+            # Map preferences to PreferredGender  
+            pref = p.get("preferences", "both")
+            if pref == "men":
+                pref_gender = "male"
+            elif pref == "women":
+                pref_gender = "female"
+            else:
+                pref_gender = "both"
+            
+            lat = float(p.get("latitude", 59.33))
+            lon = float(p.get("longitude", 18.07))
+            interests = json.dumps(p.get("interests", []))
+            
+            cursor.execute("""
+                INSERT INTO UserProfiles (
+                    UserId, Gender, Age, Latitude, Longitude, City, State, Country,
+                    PreferredGender, MinAge, MaxAge, MaxDistance,
+                    Interests, Education, Occupation, Height,
+                    Religion, Ethnicity, WantsChildren, HasChildren,
+                    SmokingStatus, DrinkingStatus,
+                    LocationWeight, AgeWeight, InterestsWeight, EducationWeight, LifestyleWeight,
+                    CreatedAt, UpdatedAt, IsActive
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s,
+                    %s, %s, %s, %s, %s,
+                    NOW(), NOW(), 1
+                )
+            """, (
+                us_id, gender, age, lat, lon,
+                p.get("city", "Stockholm"), "", "Sweden",
+                pref_gender,
+                max(18, age - 8), age + 8, 100,
+                interests, "", p.get("occupation", ""), p.get("height_cm", 175),
+                "", "", 0, 0,
+                0, 0,
+                1.0, 1.0, 1.0, 1.0, 1.0,
+            ))
+            synced += 1
+        
+        conn.commit()
+    except Exception as e:
+        if log:
+            log(f"⚠️  Error syncing to MatchmakingService DB: {e}")
+    finally:
+        conn.close()
+    
+    if log:
+        log(f"🔗 MatchmakingService DB: {synced} synced, {skipped} already existed")
+    return synced
 
 
 # ── Main seeder ──────────────────────────────────────────────────────────────
@@ -234,13 +523,20 @@ async def seed_bots(
     else:
         log(f"📦 Loaded {len(raw_users)} pre-bundled user templates")
 
-    # If asked for more than we have, cycle through them
     while len(raw_users) < count:
         raw_users.extend(_load_seed_users())
     raw_users = raw_users[:count]
 
     # Step 2: Build enriched profiles (instant, no network)
     profiles = [_build_profile(u) for u in raw_users]
+
+    # Deduplicate emails — Keycloak rejects duplicate emails
+    seen_emails: set[str] = set()
+    for p in profiles:
+        if p["email"] in seen_emails:
+            p["email"] = f"{p['username']}@bot.local"
+        seen_emails.add(p["email"])
+
     state.created = len(profiles)
     state.bot_users = profiles
     log(f"✅ Built {len(profiles)} enriched profiles instantly")
@@ -260,7 +556,7 @@ async def seed_bots(
             return profiles
 
         log("🔑 Got Keycloak admin token — pushing users...")
-        state.created = 0  # Reset for accurate push count
+        state.created = 0
 
         for i, profile in enumerate(profiles):
             if state.cancelled:
@@ -269,18 +565,39 @@ async def seed_bots(
 
             username = profile["username"]
             try:
-                kc_id = await _create_keycloak_user(client, admin_token, profile)
+                kc_id, status = await _create_keycloak_user(client, admin_token, profile)
+
                 if kc_id:
                     profile["keycloak_id"] = kc_id
+
+                    if status == "exists":
+                        state.skipped += 1
+                    else:
+                        state.created += 1
+
+                    # Create UserService profile so the bot is discoverable
                     user_token = await _get_user_token(client, username)
                     if user_token:
-                        await _create_user_profile(client, user_token, profile)
-                    state.created += 1
-                    if (i + 1) % 10 == 0 or i == 0:
-                        log(f"👤 [{state.created}/{count}] Created: {profile['display_name']}, {profile['age']}, {profile['city']}")
+                        # Cache keycloak sub for messaging
+                        try:
+                            import base64
+                            parts = user_token.split(".")
+                            payload_b64 = parts[1] + "=" * (4 - len(parts[1]) % 4)
+                            payload = json.loads(base64.b64decode(payload_b64))
+                            profile["keycloak_sub"] = payload.get("sub")
+                        except Exception:
+                            pass
+                        ok = await _create_user_profile(client, user_token, profile, log)
+                        us_id = profile.get("user_service_id", "?")
+                        if ok and ((i + 1) % 10 == 0 or i == 0):
+                            tag = "♻️ " if status == "exists" else "👤"
+                            log(f"{tag} [{state.created + state.skipped}/{count}] {status}: {profile['display_name']}, {profile['age']}, {profile['city']} (profile_id={us_id})")
+                    else:
+                        log(f"   ⚠️  Could not get user token for {username} — profile not created in UserService")
+
                 else:
                     state.failed += 1
-                    log(f"❌ Failed to create Keycloak user: {username}")
+                    log(f"❌ Failed to create Keycloak user: {username} ({status})")
             except Exception as e:
                 state.failed += 1
                 log(f"❌ Error creating {username}: {e}")
@@ -288,7 +605,18 @@ async def seed_bots(
             await asyncio.sleep(0.05)
 
     state.running = False
-    log(f"🏁 Seeding complete: {state.created} created, {state.failed} failed")
+    # Sync profiles to MatchmakingService database (separate from UserService)
+    profiles_with_ids = [p for p in profiles if p.get("user_service_id")]
+    if profiles_with_ids:
+        log(f"🔗 Syncing {len(profiles_with_ids)} profiles to backend databases...")
+        loop = asyncio.get_event_loop()
+        await asyncio.gather(
+            loop.run_in_executor(None, _sync_to_matchmaking_db, profiles_with_ids, log),
+            loop.run_in_executor(None, _sync_swipe_profile_mappings, profiles_with_ids, log),
+        )
+
+
+    log(f"🏁 Seeding complete: {state.created} created, {state.skipped} already existed, {state.failed} failed")
     return state.bot_users
 
 
@@ -311,7 +639,7 @@ async def reset_bots(log_callback: Callable[[str], None] | None = None):
             resp = await client.get(
                 f"{config.KEYCLOAK_URL}/admin/realms/{config.KEYCLOAK_REALM}/users",
                 headers={"Authorization": f"Bearer {admin_token}"},
-                params={"max": 5000, "q": "bot:true"},
+                params={"max": 5000, "search": "bot_0"},
             )
             if resp.status_code != 200:
                 log("⚠️  Could not fetch users — clearing local state only")
@@ -319,7 +647,7 @@ async def reset_bots(log_callback: Callable[[str], None] | None = None):
                 return
 
             users = resp.json()
-            bot_users = [u for u in users if u.get("attributes", {}).get("bot", [None])[0] == "true"]
+            bot_users = [u for u in users if u.get("username", "").startswith("bot_")]
             log(f"Found {len(bot_users)} bot users to delete")
 
             deleted = 0

@@ -5,7 +5,7 @@ global:
     cluster: 'dating-app-mvp'
     environment: 'development'
 
-# Alertmanager configuration (optional for now)
+# Alertmanager configuration (enable when alertmanager is deployed)
 # alerting:
 #   alertmanagers:
 #     - static_configs:
@@ -17,8 +17,8 @@ rule_files:
 
 scrape_configs:
   # ===== BACKEND SERVICES - OpenTelemetry Metrics =====
-  
-  # User Service - Profile management
+
+  # User Service - Profile management (:8082)
   - job_name: 'user-service'
     static_configs:
       - targets: ['host.docker.internal:8082']
@@ -26,7 +26,7 @@ scrape_configs:
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Matchmaking Service - Match algorithm
+  # Matchmaking Service - Match algorithm (:8083)
   - job_name: 'matchmaking-service'
     static_configs:
       - targets: ['host.docker.internal:8083']
@@ -34,15 +34,15 @@ scrape_configs:
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Swipe Service - Swipe processing
+  # Swipe Service - Swipe processing (:8087)
   - job_name: 'swipe-service'
     static_configs:
-      - targets: ['host.docker.internal:8084']
+      - targets: ['host.docker.internal:8087']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Photo Service - Photo upload and moderation
+  # Photo Service - Photo upload and moderation (:8085)
   - job_name: 'photo-service'
     static_configs:
       - targets: ['host.docker.internal:8085']
@@ -50,7 +50,7 @@ scrape_configs:
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Messaging Service - Real-time messaging
+  # Messaging Service - Real-time messaging (:8086)
   - job_name: 'messaging-service'
     static_configs:
       - targets: ['host.docker.internal:8086']
@@ -58,23 +58,15 @@ scrape_configs:
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Auth Service - Authentication and JWT issuance
-  - job_name: 'auth-service'
-    static_configs:
-      - targets: ['host.docker.internal:8081']
-    metrics_path: '/metrics'
-    scrape_interval: 15s
-    scrape_timeout: 10s
-
-  # ===== INFRASTRUCTURE =====
-  
-  # YARP Gateway - API Gateway metrics
+  # YARP Gateway - API Gateway (:8080)
   - job_name: 'yarp-gateway'
     static_configs:
       - targets: ['host.docker.internal:8080']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 10s
+
+  # ===== INFRASTRUCTURE =====
 
   # Prometheus self-monitoring
   - job_name: 'prometheus'
@@ -83,17 +75,15 @@ scrape_configs:
     scrape_interval: 15s
 
   # ===== HEALTH CHECKS (for uptime monitoring) =====
-  
-  # Service health endpoints
   - job_name: 'health-checks'
     static_configs:
-      - targets: 
-        - 'host.docker.internal:8081'  # Auth Service
+      - targets:
+        - 'host.docker.internal:8080'  # YARP Gateway
         - 'host.docker.internal:8082'  # User Service
         - 'host.docker.internal:8083'  # Matchmaking Service
-        - 'host.docker.internal:8084'  # Swipe Service
         - 'host.docker.internal:8085'  # Photo Service
         - 'host.docker.internal:8086'  # Messaging Service
+        - 'host.docker.internal:8087'  # Swipe Service
     metrics_path: '/health'
     scrape_interval: 30s
     scrape_timeout: 5s
