@@ -2694,7 +2694,7 @@ graph TD
 
 **Why first**: Three stubs/bugs mean the existing scoring engine produces garbage results. No point building a strategy layer on a broken foundation. These are surgical fixes, low risk, high impact.
 
-- [ ] T161 [P0] [Backend] Fix GetSwipedUserIdsAsync stub — query UserInteractions table
+- [x] T161 [P0] [Backend] Fix GetSwipedUserIdsAsync stub — query UserInteractions table
         - **Estimate**: 2h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: `Services/AdvancedMatchingService.cs` (line ~269)
@@ -2724,7 +2724,7 @@ graph TD
         - **Open question**: UserInteractions in MatchmakingDb vs Swipes in SwipeServiceDb — are they synced? If not, T161 needs to also add a cross-service sync mechanism or query SwipeService via HTTP. Verify before implementing.
         - **Dependencies**: None
 
-- [ ] T162 [P0] [Backend] Wire ScoringConfiguration into AdvancedMatchingService
+- [x] T162 [P0] [Backend] Wire ScoringConfiguration into AdvancedMatchingService
         - **Estimate**: 2h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: `Services/AdvancedMatchingService.cs`, `Models/ScoringConfiguration.cs`
@@ -2738,7 +2738,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Change `ChildrenMismatchPenalty` in appsettings.json from 30 to 50, verify scoring output changes without recompile, (3) No hardcoded scoring numbers remain in AdvancedMatchingService.cs.
         - **Dependencies**: None
 
-- [ ] T163 [P0] [Backend] Fix CalculateActivityScore stub — use real activity data
+- [x] T163 [P0] [Backend] Fix CalculateActivityScore stub — use real activity data
         - **Estimate**: 2h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: `Services/AdvancedMatchingService.cs`
@@ -2753,7 +2753,7 @@ graph TD
 
 **Why**: UserProfile already has Height, Religion, Ethnicity, SmokingStatus, DrinkingStatus, WantsChildren, HasChildren (discovered in research — they DO exist). But `LastActiveAt`, `LookingFor`, and `IsVerified` are missing. These are critical for filtering and ranking. Also need better composite indexes for the filter pipeline queries.
 
-- [ ] T164 [P0] [Backend] Add LastActiveAt, LookingFor, IsVerified, DesirabilityScore to UserProfile
+- [x] T164 [P0] [Backend] Add LastActiveAt, LookingFor, IsVerified, DesirabilityScore to UserProfile
         - **Estimate**: 3h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: `Models/UserProfile.cs`, `Data/MatchmakingDbContext.cs`
@@ -2779,7 +2779,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Migration applies, (3) `EXPLAIN ANALYZE` on a representative filter query shows index usage (no full table scan), (4) Query time <50ms on test dataset.
         - **Dependencies**: T164 (needs new fields to index)
 
-- [ ] T166 [P1] [Backend] LastActiveAt sync endpoint + UserService heartbeat integration
+- [x] T166 [P1] [Backend] LastActiveAt sync endpoint + UserService heartbeat integration
         - **Estimate**: 3h
         - **Repo**: `best-koder-org/MatchmakingService` + `best-koder-org/UserService`
         - **Files**: `Controllers/ProfilesController.cs` (or new `SyncController.cs`), UserService event publisher
@@ -2799,7 +2799,7 @@ graph TD
 
 **Design**: Each filter implements `ICandidateFilter` with a single method. The pipeline chains them as `IQueryable<UserProfile>` transformations, meaning ALL filtering happens at the database level (single SQL query), not in memory. Filters are registered in DI and resolved as `IEnumerable<ICandidateFilter>`, so adding a new filter = add class + register in DI. No existing code changes.
 
-- [ ] T167 [P0] [Backend] Define ICandidateFilter interface and filter contracts
+- [x] T167 [P0] [Backend] Define ICandidateFilter interface and filter contracts
         - **Estimate**: 1.5h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Filters/ICandidateFilter.cs`, `Filters/FilterContext.cs`
@@ -2837,7 +2837,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Interface and contracts compile, (3) Code review: no `ToList()` or `ToArray()` in interface — enforces IQueryable composition.
         - **Dependencies**: None
 
-- [ ] T168 [P0] [Backend] Implement 7 core candidate filters
+- [x] T168 [P0] [Backend] Implement 7 core candidate filters
         - **Estimate**: 6h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Filters/` directory with one file per filter
@@ -2854,7 +2854,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Each filter has a corresponding unit test (T170), (3) All 7 filters registered in DI, (4) `EXPLAIN ANALYZE` on filter chain shows single query with index usage.
         - **Dependencies**: T161 (SwipedUserIds fix), T164 (new fields), T167 (interface)
 
-- [ ] T169 [P0] [Backend] CandidateFilterPipeline — chains filters and executes query
+- [x] T169 [P0] [Backend] CandidateFilterPipeline — chains filters and executes query
         - **Estimate**: 3h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Filters/CandidateFilterPipeline.cs`
@@ -2928,7 +2928,7 @@ graph TD
 
 **Interface**: All strategies take a user ID + request, run the filter pipeline, apply their scoring approach, return ranked candidates. The controller doesn't know or care which strategy runs.
 
-- [ ] T171 [P0] [Backend] Define ICandidateStrategy interface and supporting types
+- [x] T171 [P0] [Backend] Define ICandidateStrategy interface and supporting types
         - **Estimate**: 2h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Strategies/ICandidateStrategy.cs`, `Strategies/CandidateRequest.cs`, `Strategies/ScoredCandidate.cs`
@@ -2974,7 +2974,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Interface and records compile, (3) All properties map cleanly to existing Flutter `MatchCandidate` DTO.
         - **Dependencies**: None
 
-- [ ] T172 [P0] [Backend] LiveScoringStrategy — real-time scoring for small-to-medium scale
+- [x] T172 [P0] [Backend] LiveScoringStrategy — real-time scoring for small-to-medium scale
         - **Estimate**: 5h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: New `Strategies/LiveScoringStrategy.cs`
@@ -2995,7 +2995,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: 20 seeded profiles → returns top 10 by score, excludes swiped, (3) Benchmark: <200ms for 5K profiles with indexes.
         - **Dependencies**: T161, T162, T163, T169, T171
 
-- [ ] T173 [P1] [Backend] PreComputedStrategy — read pre-computed scores for scale
+- [x] T173 [P1] [Backend] PreComputedStrategy — read pre-computed scores for scale
         - **Estimate**: 4h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: New `Strategies/PreComputedStrategy.cs`
@@ -3023,7 +3023,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Migration creates `DailyPicks` table, (3) Unit test: 10 picks generated → strategy returns them, marks as seen, (4) Exhausted picks → `QueueExhausted = true`.
         - **Dependencies**: T171
 
-- [ ] T175 [P0] [Backend] StrategyResolver — picks strategy from config with fallback chain
+- [x] T175 [P0] [Backend] StrategyResolver — picks strategy from config with fallback chain
         - **Estimate**: 3h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: New `Strategies/StrategyResolver.cs`
@@ -3062,7 +3062,7 @@ graph TD
 
 **Why**: PreComputedStrategy and DailyPickStrategy need scores to be computed BEFORE a user opens the app. Currently zero background services exist. These run continuously, computing scores during low-traffic periods and keeping the `MatchScores` + `DailyPicks` tables warm.
 
-- [ ] T176 [P1] [Backend] ScoreRefreshBackgroundService — pre-compute compatibility scores
+- [x] T176 [P1] [Backend] ScoreRefreshBackgroundService — pre-compute compatibility scores
         - **Estimate**: 5h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Services/Background/ScoreRefreshBackgroundService.cs`, `Program.cs` (register)
@@ -3122,7 +3122,7 @@ graph TD
 
 **Why**: This is where it all comes together. `ProfilesController` stops being a dumb proxy and becomes a proper candidate delivery endpoint backed by the entire strategy/filter infrastructure.
 
-- [ ] T179 [P0] [Backend] Rewire ProfilesController to use strategy pattern
+- [x] T179 [P0] [Backend] Rewire ProfilesController to use strategy pattern
         - **Estimate**: 4h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: `Controllers/ProfilesController.cs`
@@ -3172,7 +3172,7 @@ graph TD
 
 **Why**: The strategy system is powerful but useless if operators can't configure it or see what's happening. This phase adds the config section that drives everything and the Prometheus metrics that make performance visible.
 
-- [ ] T181 [P0] [Backend] CandidateOptions configuration section
+- [x] T181 [P0] [Backend] CandidateOptions configuration section
         - **Estimate**: 2h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: `appsettings.json`, New `Models/CandidateOptions.cs`, `Program.cs`
@@ -3237,7 +3237,7 @@ graph TD
 
 **Why this is last**: Desirability scoring is powerful but controversial and complex. It requires enough swipe data to be meaningful (1000+ interactions per user minimum). Ship everything above first, then add this when data volume justifies it. Marked P3.
 
-- [ ] T183 [P3] [Backend] Desirability/ELO score — swipe-right ratio ranking signal
+- [x] T183 [P3] [Backend] Desirability/ELO score — swipe-right ratio ranking signal
         - **Estimate**: 6h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: `Models/UserProfile.cs` (field added in T164), New `Services/DesirabilityCalculator.cs`, Background job enhancement
