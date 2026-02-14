@@ -2766,7 +2766,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Migration applies cleanly to existing DB with data, (3) All four fields queryable via EF Core.
         - **Dependencies**: None
 
-- [ ] T165 [P1] [Backend] Add composite query indexes for filter pipeline performance
+- [x] T165 [P1] [Backend] Add composite query indexes for filter pipeline performance
         - **Estimate**: 2h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: `Data/MatchmakingDbContext.cs`
@@ -2896,7 +2896,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Integration test: pipeline with all 7 filters produces correct candidate set, (3) Adding a new mock filter works without modifying pipeline code.
         - **Dependencies**: T165 (indexes), T168 (filter implementations)
 
-- [ ] T170 [P1] [Backend] Filter pipeline unit tests — isolated + integration
+- [x] T170 [P1] [Backend] Filter pipeline unit tests — isolated + integration
         - **Estimate**: 4h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Tests/Filters/` directory
@@ -3148,7 +3148,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Flutter app still loads candidates without code changes, (3) Candidates now scored and ranked (verify via response inspection), (4) Prometheus: `candidate_pipeline_duration_seconds` metric emitted.
         - **Dependencies**: T175 (StrategyResolver)
 
-- [ ] T180 [P1] [Backend] Add optional query params for future Flutter flexibility
+- [x] T180 [P1] [Backend] Add optional query params for future Flutter flexibility
         - **Estimate**: 2h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **File**: `Controllers/ProfilesController.cs`

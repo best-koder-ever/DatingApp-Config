@@ -26,6 +26,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.14.10] - 2026-02-14
+
+### Added
+- T170: Comprehensive test suite for candidate system (51 new tests → 132 total)
+  - StrategyResolver: 12 tests (live/precomputed/auto resolution, thresholds, fallback)
+  - LiveScoringStrategy: 16 tests (scoring, trust shadow-restrict, activity decay, limits)
+  - PreComputedStrategy: 13 tests (stale/fresh scores, live fallback, supplementing)
+  - ProfilesController: 10 tests (query param clamping, strategy override, response shape)
+- T165: Composite index IX_UserProfile_ActiveSearch (IsActive, Gender, Age, LastActiveAt)
+- T180: Query parameter clamping on ProfilesController (limit, minScore, activeWithin)
+
+### Technical
+- Tests use InMemory EF provider + Moq for full isolation
+- SelfExclusionFilter included in all strategy test pipelines
+- Trust score shadow-restrict (T188) verified: trust=0 → 50% score demotion
+- Activity decay verified: 30-day inactive → activity score < 10 (half-life=7)
+
 ## [0.14.9] - 2026-02-14
 
 ### Added 🚀 (Swipe Abuse Detection — Phase 14.9)
