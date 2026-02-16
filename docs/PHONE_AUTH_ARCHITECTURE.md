@@ -95,7 +95,7 @@ Firebase is configured as an **OIDC Identity Provider** in Keycloak:
 - **Alias**: `firebase`
 - **Provider ID**: `oidc`
 - **JWKS URL**: `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com`
-- **Issuer**: `https://securetoken.google.com/{FIREBASE_PROJECT_ID}`
+- **Issuer**: `https://securetoken.google.com/dejting-94dec`
 - **Token Exchange**: Enabled on `dejtingapp-flutter` client
 
 ---
@@ -184,7 +184,7 @@ After creating the Firebase project, update the realm JSON:
 
 ```bash
 # Replace placeholder with your Firebase project ID
-sed -i 's/FIREBASE_PROJECT_ID/your-actual-project-id/g' \
+# Already configured with dejting-94dec \
   config/keycloak/realms/datingapp-realm.json
 
 # Restart Keycloak to apply
