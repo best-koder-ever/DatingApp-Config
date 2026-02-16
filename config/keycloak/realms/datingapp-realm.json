@@ -138,9 +138,10 @@
         "*"
       ],
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "token.exchange.standard.flow.enabled": "true"
       },
       "protocolMappers": [
         {
@@ -153,6 +154,20 @@
             "access.token.claim": "true",
             "userinfo.token.claim": "false",
             "included.client.audience": "yarp-gateway"
+          }
+        },
+        {
+          "name": "phone-number-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "phoneNumber",
+            "claim.name": "phone_number",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String"
           }
         }
       ]
@@ -185,6 +200,68 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "test-runner",
+      "name": "Test Runner Service Account",
+      "description": "Confidential client for integration tests and dev tooling. Uses client_credentials grant to get admin-level tokens for test user creation and impersonation.",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "secret": "CHANGE_ME_TEST_RUNNER",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false",
+            "included.client.audience": "yarp-gateway"
+          }
+        }
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "firebase",
+      "displayName": "Firebase Phone Auth",
+      "providerId": "oidc",
+      "enabled": true,
+      "trustEmail": false,
+      "storeToken": true,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "FIREBASE_PROJECT_ID",
+        "useJwksUrl": "true",
+        "jwksUrl": "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com",
+        "tokenUrl": "https://oauth2.googleapis.com/token",
+        "authorizationUrl": "https://accounts.google.com/o/oauth2/auth",
+        "issuer": "https://securetoken.google.com/FIREBASE_PROJECT_ID",
+        "defaultScope": "openid",
+        "validateSignature": "true",
+        "syncMode": "FORCE",
+        "backchannelSupported": "false"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "firebase-phone-to-username",
+      "identityProviderAlias": "firebase",
+      "identityProviderMapper": "hardcoded-attribute-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "attribute": "phoneNumberVerified",
+        "attribute.value": "true"
+      }
     }
   ],
   "roles": {
@@ -220,6 +297,7 @@
       ]
     }
   ],
+  "defaultRoles": ["user"],
   "verifyEmail": true,
   "registrationEmailAsUsername": true,
   "requiredActions": [
