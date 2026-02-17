@@ -1,95 +1,96 @@
-# TODO — Current State (2026-02-17)
+# TODO — Current State (2026-02-18)
 
-## ✅ Recently Completed
-- Profile Detail Screen (570 lines, Hinge-style) — committed `71059ad`
-- Navigation wiring: Discover tap, Matches long-press, Chat avatar tap
-- Renamed TinderLikeProfileScreen → EditProfileScreen — committed `9e11b3c`
-- **Fixed SMS login route mismatch** — `/onboarding/phone` vs `/onboarding/phone-entry` — committed `fe6937f`
-- **Fixed Firebase crash on Linux desktop** — DevMode bypass for non-mobile
-- **Chat Polish: Typing Indicators** — backend hub method + Flutter service + animated dots UI — committed `63c1fb3` + `db83495`
-- **Chat Polish: Live Read Receipts** — readReceiptStream in MessagingService, live checkmark updates (✓ → ✓✓ coral) — committed `db83495`
-- Email screen attempted then reverted (phone-only for MVP) — committed `ab6f4b1`
-- FaceVerificationServiceTests (19 tests), DailyPickStrategyTests (16), DailyPickGenerationServiceTests (20)
-- All backend tests green: photo-service 82/82, MatchmakingService 168/168
-- **l10n: English + Swedish (304+ keys, ALL screens wired)** — committed `1a5de9e` + `cf0b78f`
-  - Expanded app_en.arb from ~70 to 304+ keys (auth, onboarding, discovery, chat, matches, profile, settings, verification, errors)
-  - Created app_sv.arb with complete Swedish translations
-  - ALL 25/26 screen files use AppLocalizations (account_consent_screen excluded — has own inline translations map)
-- **E2E Journey Test (17 tests, 5 phases)** — committed `fbf5b95`
-  - Phase 1: Onboarding (Alice + Bob register via Keycloak)
-  - Phase 2: Discovery/Matching (mutual swipe → match)
-  - Phase 3: Messaging (send/receive/conversation list)
-  - Phase 4: Safety (block/unblock flow)
-  - Phase 5: Edge cases (token refresh, swipe history)
-- **Swipe API wired** — `_likeProfile` calls `SwipeService.swipe(isLike: true)` with match dialog, `_passProfile` sends pass (fire-and-forget) — committed `68b1278`
-- **Logout wired** — `AppState().logout()` clears tokens before navigation — committed `68b1278`
-- **Permissions wired** — `permission_handler` for location + notification real OS prompts — committed `68b1278`
-- **Stale TODOs cleaned** — removed 3 misleading "Save to profile" comments in wizard screens — committed `68b1278`
+## ✅ Completed Today (2026-02-18)
+- **Voice Prompt: Hinge-style UX simplification** — removed preview/re-record step. Now: tap mic → recording → tap stop → auto-upload → done. 3-phase state machine (idle/recording/uploading). Committed `c267abe` (Flutter).
+- **Voice Prompt: Whisper.net async moderation pipeline** — background service polls AUTO_APPROVED prompts every 30s, transcribes via Whisper.net, scans text for policy violations (phone numbers, emails, social media handles, hate speech, explicit content). Committed `402c136` (photo-service).
+- **Voice Prompt: Report endpoint** — `POST /api/voice-prompts/report/{userId}` with reason validation, duplicate prevention, PENDING_REVIEW escalation. VoicePromptReport entity + DB config.
+- **44 new backend tests** — 17 VoicePromptsController tests (upload validation, CRUD, report, moderation filtering) + 27 VoicePromptModerationService tests (text violation detection). All green.
+- **6 Flutter widget tests** — VoicePromptScreen idle state rendering. All green.
+- **Documentation** — `VOICE_PROMPT_MODERATION.md` in photo-service.
+- **Flutter analyze** — 0 errors, 0 warnings (only pre-existing info hints).
 
-## 📊 Current Position: ~95% through MVP
+## ✅ Previously Completed
+- All onboarding wizard screens (16 steps, all wired to backend)
+- Discovery with Hinge-style scrollable cards + SwipeService
+- Match + Chat via SignalR (typing indicators, live read receipts)
+- Photo upload with 4-tier privacy + ML.NET moderation
+- l10n: English + Swedish (304+ keys, all screens)
+- E2E journey test (17 tests, 5 phases)
+- SMS auth (Firebase → Keycloak token exchange)
+- Voice prompt recording/playback/upload
+- Face verification service + tests
+- Daily picks system + tests
+- Profile detail screen (570 lines, Hinge-style)
 
-All core features are wired to backend APIs. No functional stubs remain for MVP flows.
+## 📊 Current Position: ~96% through MVP
 
-### Auth Flow (SMS + Firebase)
-- ✅ Phone entry screen (+46 Sweden default, country picker)
-- ✅ SMS code verification (6-digit, auto-advance, resend timer)
-- ✅ Firebase → Keycloak token exchange
-- ✅ Desktop DevMode bypass (skip Firebase on Linux/macOS/Windows)
-- ✅ Proper logout with token clearing
-- ⚠️ Google/Apple Sign-In buttons show "Coming soon" — placeholders only (post-MVP)
+### Test Counts (Updated)
+| Service | Tests | Status |
+|---------|-------|--------|
+| UserService | 173 | ✅ |
+| MatchmakingService | 168 | ✅ |
+| PhotoService | 126 (123+3 skip) | ✅ |
+| SwipeService | 103 | ✅ |
+| MessagingService | 90 | ✅ |
+| Flutter E2E | 17 | ✅ |
+| Flutter Widget | 6 | ✅ |
+| **Total** | **683** | **All green** |
 
-### Onboarding Wizard (16 steps) — ALL WIRED
-1. Phone Entry → 2. SMS Verify → 3. Community Guidelines →
-4. First Name → 5. Birthday → 6. Gender → 7. Orientation →
-8. Match Preferences → 9. Relationship Goals → 10. Lifestyle →
-11. Interests → 12. About Me → 13. Photos → 14. Location →
-15. Notifications → 16. Complete (submits 3-step PATCH to UserService)
+## 🎯 Tomorrow's Plan (Priority Order)
 
-### Core User Stories — ALL FUNCTIONAL
-1. ✅ Register → 16-screen onboarding wizard (profile creation via 3-step PATCH)
-2. ✅ Discover → Hinge-style scrollable cards, SwipeService with retry + idempotency
-3. ✅ Match + Chat → SignalR with offline queue + typing indicators + live read receipts
-4. ✅ Safety → block/report + photo privacy
-5. ✅ l10n → English + Swedish, ARB-based, 304+ keys, ALL screens wired
-6. ✅ E2E tests → full journey coverage (17 tests)
-7. ✅ Photo upload → multipart POST to photo-service in wizard + standalone
-8. ✅ Permissions → real OS permission prompts for location + notifications
+### 1. EF Core Migration for VoicePromptReport (HIGH, 15 min)
+The new `VoicePromptReport` entity needs an actual DB migration.
+The InMemory tests pass but MySQL needs the migration applied.
+```bash
+cd photo-service
+dotnet ef migrations add AddVoicePromptReports
+dotnet ef database update
+```
 
-## 🎯 Remaining Work (Priority Order)
+### 2. Docker: Add ffmpeg to photo-service Dockerfile (HIGH, 10 min)
+Whisper moderation pipeline needs ffmpeg for m4a → WAV conversion.
+Add `apt-get install -y ffmpeg` to the Dockerfile's runtime stage.
+Also add `models/` to `.dockerignore` — the ggml-base.bin (142MB) is
+downloaded at runtime, not baked into the image.
 
-### 1. Test SMS Login on Android Device (HIGH)
+### 3. Test SMS Login on Android Device (HIGH, 30 min)
 - Firebase phone auth only works on Android/iOS (not Linux desktop)
-- Get phone authorized for USB debugging
-- Test full flow: phone entry → SMS → verify code → onboarding
+- Connect phone via USB, `flutter run` on physical device
+- Test full: phone entry → SMS → verify code → onboarding → discover
+- This is THE remaining blocker for "MVP works end-to-end on real device"
 
-### 2. Android Permission Config (MEDIUM)
-- `permission_handler` added but Android manifest entries may need `<uses-permission>` tags
-- Location: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`
-- Notifications: `POST_NOTIFICATIONS` (Android 13+)
+### 4. Voice Prompt Playback in Discovery (MEDIUM, 45 min)
+Voice prompts can be recorded + uploaded + moderated, but the discovery
+card doesn't play them yet. Need:
+- Add play button to `ProfileCard` widget when voice prompt exists
+- Call `GET /api/voice-prompts/audio/{userId}` via VoicePromptService
+- Audio playback with `just_audio` or the existing record plugin's player
 
-### 3. Clean warnings (LOW)
-- ~20 unnecessary `!` assertions from l10n wiring (cosmetic)
-- `withOpacity` deprecation warnings (use `.withValues()`)
+### 5. Voice Prompt in Profile Detail Screen (MEDIUM, 30 min)
+The profile detail screen (570 lines) should show/play the voice prompt.
+Add a voice prompt section between photos and bio.
 
-### 4. Post-MVP Features (DEFERRED)
+### 6. Appsettings: VoiceModeration Config (LOW, 5 min)
+Add VoiceModeration config block to `appsettings.Development.json`:
+```json
+"VoiceModeration": {
+  "Enabled": true,
+  "PollIntervalSeconds": 30
+}
+```
+
+### 7. Clean Warnings (LOW, 15 min)
+- ~20 unnecessary `!` assertions from l10n wiring
+- `withOpacity` → `.withValues()` deprecation
+- Cosmetic only, no functional impact
+
+### 8. Post-MVP Features (DEFERRED)
 - Google/Apple Sign-In
-- Voice prompt audio playback (home_screen L734)
 - Verification flow (settings_screen L48)
 - Privacy/location settings screens
 - Help screen, Rate app
 - Sparks/Spotlight premium features
 - DejTing Plus subscription
-
-## 📈 Test Counts
-| Service | Tests |
-|---------|-------|
-| UserService | 173 |
-| MatchmakingService | 168 |
-| SwipeService | 103 |
-| MessagingService | 90 |
-| PhotoService | 82 |
-| Flutter E2E | 17 |
-| **Total** | **633** |
 
 ## 🏗️ Architecture
 - **Backend**: .NET 8 — UserService, MatchmakingService, SwipeService, MessagingService, PhotoService
@@ -97,5 +98,18 @@ All core features are wired to backend APIs. No functional stubs remain for MVP 
 - **Gateway**: YARP (dejting-yarp)
 - **Client**: Flutter 3.32.1 + Dart 3.5 (Android/iOS/Linux)
 - **Real-time**: SignalR (messaging hub)
-- **l10n**: English (en) + Swedish (sv), ARB-based, flutter_localizations
+- **Moderation**: Whisper.net (voice), ML.NET (photos), regex+blocklist (text)
+- **l10n**: English (en) + Swedish (sv), ARB-based
 - **Permissions**: permission_handler ^12.0.1
+
+## 📝 Git Status (All repos pushed, all clean)
+| Repo | Latest Commit | Status |
+|------|--------------|--------|
+| photo-service | `402c136` moderation pipeline + tests | ✅ pushed |
+| Flutter | `c267abe` Hinge-style flow + widget tests | ✅ pushed |
+| dejting-yarp | `eb4d0dd` voice-prompts route | ✅ pushed |
+| DatingApp root | `914ddfb` submodule pointers | ✅ pushed |
+| UserService | `1c08d7f` metrics | ✅ pushed |
+| MatchmakingService | `6e533d3` daily pick tests | ✅ pushed |
+| SwipeService | `00fb597` metrics | ✅ pushed |
+| MessagingService | `63c1fb3` typing indicators | ✅ pushed |
