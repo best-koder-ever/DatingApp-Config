@@ -1,24 +1,26 @@
 # MVP Foundation Dashboard
 
-**Last Updated**: 2025-07-16 UTC  
+**Last Updated**: 2025-07-17 UTC  
 **Project**: [001-mvp-foundation](https://github.com/users/best-koder-ever/projects/2)
 
 ---
 
-## 📊 Overall Progress
+## 📊 Overall Progress (Core MVP: Phases 0–7)
 
-**43% Complete** (25/58 tasks)
+**66% Complete** (50/76 tasks)
 
 ```
-Progress: █████████░░░░░░░░░░░░ 43%
+Progress: █████████████░░░░░░░░ 66%
 ```
 
 | Status | Count | Percentage |
 |--------|-------|------------|
-| ✅ Completed | 25 | 43% |
-| 🔄 In Progress | 2 | 3% |
-| ⬚ Remaining | 31 | 54% |
-| **Total** | **58** | **100%** |
+| ✅ Completed | 50 | 66% |
+| 🔄 In Progress | 1 | 1% |
+| ⬚ Remaining | 25 | 33% |
+| **Total (Phases 0-7)** | **76** | **100%** |
+
+> **Note**: Phases 8-12 (E2E automation, monetization, niche strategy) add 112 additional tasks tracked separately. Total across all phases: 69/188.
 
 ---
 
@@ -26,10 +28,15 @@ Progress: █████████░░░░░░░░░░░░ 43%
 
 | Task | Description | Commit | Repo |
 |------|-------------|--------|------|
-| T026-SCREEN-001/002/003 | Location, Notification, Onboarding Complete screens | `ae3ef70` | mobile_dejtingapp |
+| T036-Flutter | MatchmakingHub SignalR real-time client + match notification dialog | `2a4a6b0` | mobile_dejtingapp |
+| T044-Flutter | Unified messaging service wired into app initialization | `2a4a6b0` | mobile_dejtingapp |
+| T035-Polish | Unread message badges (red dots) on bottom nav | `2a4a6b0` | mobile_dejtingapp |
+| BugFix | MatchmakingService /health endpoint clash (duplicate removed) | `5808c51` | MatchmakingService |
+| BugFix | YARP safety rate-limit split (reports 10/hr, block/unblock 60/hr) | `33c2347` | dejting-yarp |
+| T026-SCREEN | Location, Notification, Onboarding Complete screens | `ae3ef70` | mobile_dejtingapp |
 | T026-COORD | Onboarding Flow Coordinator (16-step) | `30c2282` | mobile_dejtingapp |
-| T026-TEST-011 | Wizard models unit tests (50 tests) | `922e0be` | mobile_dejtingapp |
-| T154-RING-TESTS | Profile completeness ring tests (41 tests) | `32ca33c` | mobile_dejtingapp |
+| T026-TEST | Wizard models unit tests (50 tests) | `922e0be` | mobile_dejtingapp |
+| T154-RING | Profile completeness ring tests (41 tests) | `32ca33c` | mobile_dejtingapp |
 | T153-BE | Profile completeness calculation backend | `14b8716` | UserService |
 | T090-PAUSE | Account Pause API stubs + DTOs | `14b8716` | UserService |
 | T091-SUPPORT | Feedback/Support API stubs + DTOs (19 tests) | `1ecb486` | UserService |
@@ -42,14 +49,14 @@ Progress: █████████░░░░░░░░░░░░ 43%
 
 | Service | Unit Tests | Test Status | Coverage Trend |
 |---------|-----------|-------------|----------------|
-| **Flutter App** | 289 | ✅ All pass | 🟢 Growing |
+| **Flutter App** | 289+ | ✅ All pass | 🟢 Growing |
 | UserService | 139 | ✅ All pass | 🟢 Growing |
-| MatchmakingService | 4 | ✅ Pass | 🟡 Needs growth |
+| MatchmakingService | 18 | ✅ Pass | 🟡 Needs growth |
 | swipe-service | 5 | ✅ Pass | 🟡 Needs growth |
-| photo-service | 4 | ✅ Pass | 🟡 Needs growth |
+| photo-service | 14 | ✅ Pass | 🟡 Needs growth |
 | messaging-service | 4 | ✅ Pass | 🟡 Needs growth |
 
-### Flutter Test Breakdown (289 total)
+### Flutter Test Breakdown (289+ total)
 - Wizard screens: 132 tests (16 screens)
 - Onboarding coordinator: 32 tests
 - Wizard models: 50 tests
@@ -75,34 +82,41 @@ Progress: █████████░░░░░░░░░░░░ 43%
 
 ## 🎯 User Story Status
 
-### 🟡 US1: Profile Onboarding (Priority: P1) — 70%
+### ✅ US1: Profile Onboarding (Priority: P1) — 85%
 **Goal**: New visitor completes registration, profile wizard, and photo upload.
 
-- **Evidence**: 16 wizard screens built + tested, coordinator wired, l10n ready
-- **Remaining**: Keycloak integration (T022), API integration with real backend
-- **Flutter screens**: ✅ All 16 onboarding screens implemented
-- **Backend**: ✅ Wizard controller, preferences, verification endpoints
+- **Evidence**: 16 wizard screens built + tested, coordinator wired, l10n ready, onboarding gating in Flutter
+- **Completed**: T020, T022, T023, T024, T025, T026, T027
+- **Remaining**: T021 (Flutter integration test), T028/T029 (deferred)
+- **Flutter screens**: ✅ All 16 onboarding screens + onboarding completion gating
+- **Backend**: ✅ Wizard controller, preferences, verification, Keycloak config
 
-### 🔴 US2: Match Discovery (Priority: P1) — 15%
+### 🟡 US2: Match Discovery (Priority: P1) — 90%
 **Goal**: Logged-in member browses prioritized candidates and swipes.
 
-- **Evidence**: Swipe service exists, demo profiles available
-- **Blockers**: Matchmaking scoring algorithm needs tests (T030)
-- **Next Task**: T030 - Unit tests for matchmaking scoring
+- **Evidence**: Full scoring algorithm + tests, discover UI with compatibility, offline cache, real-time match notifications via SignalR
+- **Completed**: T030, T031, T032, T033, T034, T035, T036, T037
+- **Remaining**: None for MMP (all core tasks done)
+- **Flutter**: ✅ Discover screen, swipe UI, match notifications, offline cache
+- **Backend**: ✅ Scoring, daily limits, swipe idempotency, MatchmakingHub SignalR
 
-### 🔴 US3: Messaging (Priority: P2) — 20%
+### 🟡 US3: Messaging (Priority: P2) — 80%
 **Goal**: Matched users exchange real-time messages.
 
-- **Evidence**: SignalR hub exists, basic messaging works
-- **Blockers**: Message persistence missing (T043)
-- **Next Task**: T043 - Add message persistence layer
+- **Evidence**: SignalR hub + persistence, offline queue + reconnection, YARP websocket routing
+- **Completed**: T040, T042, T043, T044, T045
+- **Remaining**: T041 (Flutter widget test), T046 (deferred)
+- **Flutter**: ✅ UnifiedMessagingService with offline queue, wired into app initialization
+- **Backend**: ✅ MessagingHub, message persistence, YARP websocket passthrough
 
-### 🟡 US4: Safety & Recovery (Priority: P3) — 40%
+### 🟡 US4: Safety & Recovery (Priority: P3) — 50%
 **Goal**: Privacy toggles, block/report actions, recovery flows.
 
-- **Evidence**: Safety controller with block/report/unblock (16 tests), Account Pause API stubs, Support ticket API stubs
-- **Remaining**: Implementation behind stubs, UI screens
-- **Next Task**: Implement pause/resume logic, support ticket persistence
+- **Evidence**: Safety controller with block/report/unblock (16 tests), Account Pause API stubs, Support ticket API stubs, photo privacy enforcement
+- **Completed**: T050, T052, T054
+- **Remaining**: T051 (Flutter privacy test), T053/T055/T056 (deferred)
+- **Flutter**: ✅ Block UX with confirmation dialog  
+- **Backend**: ✅ Safety controller, photo privacy enforcement, API test coverage
 
 ---
 
@@ -110,11 +124,11 @@ Progress: █████████░░░░░░░░░░░░ 43%
 
 | ID | Criteria | Status | Evidence |
 |----|----------|--------|----------|
-| SC-001 | 90% onboarding completion <12min | 🟡 Partially tracked | Onboarding metrics controller exists |
-| SC-002 | ≤350ms P95 API latency | ❌ Not measured | No load tests |
-| SC-003 | 80% mutual match <48h | ❌ Not measured | No metrics pipeline |
-| SC-004 | 95% message delivery <1s | ❌ Not implemented | Messaging incomplete |
-| SC-005 | Safety reports <2min response | 🟡 Scaffolded | Safety controller + report endpoints exist |
+| SC-001 | 90% onboarding completion <12min | 🟡 Instrumented | OnboardingMetricsService (T068) + funnel tracking |
+| SC-002 | ≤350ms P95 API latency | 🟡 Instrumented | MatchmakingMetricsService (T069) + K6 harness (T017) |
+| SC-003 | 80% mutual match <48h | 🟡 Instrumented | Match conversion metrics (T069) |
+| SC-004 | 95% message delivery <1s | 🟡 Instrumented | MessagingMetricsService (T070) + SignalR hub |
+| SC-005 | Safety reports <2min response | 🟡 Instrumented | SafetyMetricsService (T071) + audit logging |
 
 ---
 
@@ -122,16 +136,18 @@ Progress: █████████░░░░░░░░░░░░ 43%
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| YARP Gateway | ✅ Running | Rate limiting, routing configured |
-| Keycloak Auth | ✅ Running | OIDC configured, JWT validation |
-| UserService | ✅ Active | 8 controllers, 139 tests |
-| MatchmakingService | ✅ Active | Basic scoring |
-| SwipeService | ✅ Active | Swipe ingestion |
-| PhotoService | ✅ Active | Upload + moderation pipeline |
-| MessagingService | ✅ Active | SignalR hub |
-| Flutter Client | ✅ Active | 16 wizard screens, 289 tests |
+| YARP Gateway | ✅ Running | Rate limiting (split safety), routing, websocket passthrough |
+| Keycloak Auth | ✅ Running | OIDC, JWT validation, realm configured |
+| UserService | ✅ Active | 8 controllers, 139 tests, wizard + safety + metrics |
+| MatchmakingService | ✅ Active | Scoring algo, daily limits, SignalR hub, 18 tests |
+| SwipeService | ✅ Active | Idempotent swipe ingestion, retry logic |
+| PhotoService | ✅ Active | Upload + moderation + privacy pipeline |
+| MessagingService | ✅ Active | SignalR hub + REST, message persistence |
+| SafetyService | ✅ Active | Block/report/unblock endpoints |
+| Flutter Client | ✅ Active | 16 wizard screens, discover, messaging, match notifications, 289+ tests |
 | L10n Infrastructure | ✅ Ready | ARB + gen-l10n, English locale |
 | Profile Completeness | ✅ Complete | Ring widget + backend calculator |
+| Real-time Notifications | ✅ Complete | MatchmakingHub + Flutter client |
 
 ---
 
@@ -159,4 +175,23 @@ cd UserService && dotnet test
 
 ---
 
-*Dashboard updated from AI task queue execution. 25/58 tasks completed.*
+## 📋 Remaining MMP Tasks (High Priority)
+
+| Task | Category | Description |
+|------|----------|-------------|
+| T004 | CI/CD | Fix CI/CD pipeline for green builds (coverage gate) |
+| T021 | US1 Test | Flutter integration test for onboarding wizard |
+| T041 | US3 Test | Flutter widget test for conversation view |
+| T051 | US4 Test | Flutter integration test for privacy settings |
+| T060 | Polish | Consolidate documentation updates |
+| T061 | Polish | Harden error messaging + localization |
+| T063 | Polish | Finalize monitoring dashboards + alerts |
+| T064 | Polish | Quickstart validation + screenshots |
+| T067 | Polish | Address desktop plugin analyzer warnings |
+
+**Deferred (not needed for beta)**:  
+T002, T005, T009-T015, T028, T029, T046, T053, T055, T056, T066, T072
+
+---
+
+*Dashboard regenerated 2025-07-17. 50/76 core MVP tasks completed (66%).*
