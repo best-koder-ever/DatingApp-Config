@@ -771,7 +771,7 @@ graph TB
 
 ### User Experience Table Stakes
 
-- [ ] T090 [P1] [UX] Account Pause/Snooze Mode - Users can temporarily hide profile from discovery with scheduled auto-resume (`UserService/`, `MatchmakingService/`, Flutter UI)
+- [x] T090 [P1] [UX] Account Pause/Snooze Mode - Users can temporarily hide profile from discovery with scheduled auto-resume (`UserService/`, `MatchmakingService/`, Flutter UI)
 	- **Estimate**: 15h (6-8h backend + 4-5h Flutter + 3-4h testing)
 	- **Why Critical**: Table stakes feature - every major competitor has it (Tinder, Bumble, Hinge, Match). 67% of users pause at least once per year. Reduces churn 40% (users pause instead of deleting).
 	- **Evidence**: 
@@ -832,7 +832,7 @@ graph TB
 	- **Source**: Competitive analysis - Hinge core feature, Bumble has prompts
 	- **Reference**: [FEATURE_BACKLOG.md](FEATURE_BACKLOG.md#user-experience-enhancements) - P2 Profile Enhancement
 
-- [ ] T095 [Backlog] [P2] Read Receipts - Show when messages are read, optional privacy control (`MessagingService/`, SignalR event)
+- [x] T095 [Backlog] [P2] Read Receipts - Show when messages are read, optional privacy control (`MessagingService/`, SignalR event)
 	- **Estimate**: 5h
 	- **Source**: Competitive standard - Tinder, Bumble have this
 	- **Reference**: [FEATURE_BACKLOG.md](FEATURE_BACKLOG.md#communication-features) - P2 Messaging Enhancement
@@ -3011,7 +3011,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: with pre-computed scores → returns them sorted, (3) Unit test: without pre-computed scores → falls back to LiveScoring, (4) Benchmark: <50ms for 100K pre-computed score reads.
         - **Dependencies**: T171, T169
 
-- [ ] T174 [P2] [Backend] DailyPickStrategy — curated daily recommendations
+- [x] T174 [P2] [Backend] DailyPickStrategy — curated daily recommendations
         - **Estimate**: 5h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Strategies/DailyPickStrategy.cs`, New `Models/DailyPick.cs`, Migration
@@ -3102,7 +3102,7 @@ graph TD
         - **Acceptance**: (1) `dotnet build` passes, (2) Unit test: during peak hours → batch size halved, (3) Unit test: high latency → scoring paused, (4) New users scored before returning users.
         - **Dependencies**: T176
 
-- [ ] T178 [P2] [Backend] DailyPick generation background job
+- [x] T178 [P2] [Backend] DailyPick generation background job
         - **Estimate**: 3h
         - **Repo**: `best-koder-org/MatchmakingService`
         - **Files**: New `Services/Background/DailyPickGenerationService.cs`
