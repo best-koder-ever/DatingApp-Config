@@ -43,31 +43,31 @@ jobs:
     - name: Checkout UserService
       uses: actions/checkout@v4
       with:
-        repository: best-koder-ever/UserService
+        repository: best-koder-org/UserService
         path: UserService
     
     - name: Checkout MatchmakingService
       uses: actions/checkout@v4
       with:
-        repository: best-koder-ever/MatchmakingService
+        repository: best-koder-org/MatchmakingService
         path: MatchmakingService
     
     - name: Checkout swipe-service
       uses: actions/checkout@v4
       with:
-        repository: best-koder-ever/swipe-service
+        repository: best-koder-org/swipe-service
         path: swipe-service
     
     - name: Checkout photo-service
       uses: actions/checkout@v4
       with:
-        repository: best-koder-ever/photo-service
+        repository: best-koder-org/photo-service
         path: photo-service
     
     - name: Checkout messaging-service
       uses: actions/checkout@v4
       with:
-        repository: best-koder-ever/messaging-service
+        repository: best-koder-org/messaging-service
         path: messaging-service
     
     - name: Setup .NET
@@ -209,7 +209,7 @@ jobs:
     - name: Checkout dejting-yarp
       uses: actions/checkout@v4
       with:
-        repository: best-koder-ever/dejting-yarp
+        repository: best-koder-org/dejting-yarp
         path: dejting-yarp
     
     - name: Setup .NET
