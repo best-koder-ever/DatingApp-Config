@@ -1,0 +1,101 @@
+name: Visual QA
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Nightly at 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  visual-qa:
+    name: Visual QA Tests
+    runs-on: macos-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java (required for Android SDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements-visual-qa.txt
+
+      - name: Build Flutter APK (release)
+        working-directory: mobile-apps/flutter/dejtingapp
+        run: |
+          flutter pub get
+          flutter build apk --release
+
+      - name: Start Android emulator and run Visual QA
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          avd-name: visual_qa_avd
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            echo "Emulator is ready. Installing APK..."
+            adb install mobile-apps/flutter/dejtingapp/build/app/outputs/flutter-apk/app-release.apk
+
+            echo "Starting Docker services for visual QA..."
+            docker compose -f docker-compose.visual-qa.yml up -d
+
+            echo "Waiting for Docker services to become healthy..."
+            timeout 60 bash -c \
+              'until docker compose -f docker-compose.visual-qa.yml ps --format json \
+                 | python3 -c "import sys,json; d=json.load(sys.stdin); \
+                   assert all(s.get(\"Health\",\"healthy\")==\"healthy\" for s in (d if isinstance(d,list) else [d]))" \
+               2>/dev/null; do sleep 3; done' \
+              || { echo "❌ Docker services failed to become healthy"; \
+                   docker compose -f docker-compose.visual-qa.yml logs; \
+                   exit 1; }
+
+            echo "Running Visual QA..."
+            python run_visual_qa.py --use-case all
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-qa-results
+          path: |
+            visual_qa_results*.json
+            visual_qa_results*.md
+          if-no-files-found: warn
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-qa-screenshots
+          path: |
+            screenshots/
+            visual_qa_screenshots/
+          if-no-files-found: warn
+
+      - name: Stop Docker services
+        if: always()
+        run: |
+          docker compose -f docker-compose.visual-qa.yml down || true
