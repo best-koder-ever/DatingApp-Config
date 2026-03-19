@@ -72,6 +72,10 @@ if [ -n "${MYSQL_CONTAINER}" ]; then
     echo "\n🗑️ Resetting MatchmakingService demo data..."
     docker exec "${MYSQL_CONTAINER}" sh -c "mysql -u matchmakingservice_user -pmatchmakingservice_user_password MatchmakingServiceDb -e \"SET FOREIGN_KEY_CHECKS=0; TRUNCATE TABLE MatchScores; TRUNCATE TABLE Matches; TRUNCATE TABLE Messages; TRUNCATE TABLE UserInteractions; SET FOREIGN_KEY_CHECKS=1;\"" >/dev/null && \
     echo "✅ MatchmakingService tables truncated."
+
+    echo "\n🗑️ Resetting SwipeService demo data..."
+    docker exec swipe-service-db sh -c "mysql -u root -proot_password SwipeServiceDb -e \"SET FOREIGN_KEY_CHECKS=0; TRUNCATE TABLE Swipes; TRUNCATE TABLE Matches; SET FOREIGN_KEY_CHECKS=1;\"" >/dev/null && \
+        echo "✅ SwipeService tables truncated." || echo "⚠️  SwipeService reset skipped."
 else
     echo "⚠️ Could not determine MatchmakingService-db container ID; skipping data reset." >&2
 fi

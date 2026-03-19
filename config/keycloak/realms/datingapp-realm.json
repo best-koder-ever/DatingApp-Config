@@ -138,7 +138,7 @@
         "*"
       ],
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "token.exchange.standard.flow.enabled": "true"

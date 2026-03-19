@@ -5,6 +5,16 @@
 
 echo "🚀 Starting Local Development Environment..."
 
+# Source environment files (API keys, shared config)
+if [ -f .env.local ]; then
+    set -a; source .env.local; set +a
+    echo "📋 Loaded .env.local"
+fi
+if [ -f .env ]; then
+    set -a; source .env; set +a
+    echo "📋 Loaded .env (API keys)"
+fi
+
 check_port() {
     local host="$1"
     local port="$2"
@@ -50,7 +60,7 @@ sleep 2
 
 # Check if ports are available
 echo "🔍 Checking port availability..."
-PORTS=(8080 8082 8083 8085 8086 8087 8088)
+PORTS=(8080 8082 8083 8085 8086 8087 8088 8089)
 for port in "${PORTS[@]}"; do
     if lsof -i :$port >/dev/null 2>&1; then
         echo "❌ Port $port is busy - killing processes..."
@@ -104,7 +114,7 @@ sleep 2
 # Start YARP Gateway
 echo "🌐 Starting YARP Gateway on port 8080..."
 cd /home/m/development/DatingApp/dejting-yarp/src/dejting-yarp
-ASPNETCORE_ENVIRONMENT=Local ASPNETCORE_URLS=http://+:8080 dotnet run > ../../../logs/yarp-gateway.log 2>&1 &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8080 dotnet run > ../../../logs/yarp-gateway.log 2>&1 &
 YARP_PID=$!
 
 # Create logs directory if it doesn't exist
@@ -195,5 +205,24 @@ echo "📊 To check status: ./dev-status.sh"
 echo ""
 echo "🎯 Complete Dating App Backend Running!"
 
-echo "💡 All services: 8080(Gateway), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe), 8088(Safety)"
+echo "💡 All services: 8080(Gateway), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe), 8088(Safety), 8089(Bot*)"
 
+
+# Start BotService (on by default, disable with BOT_MODE=false)
+if [ "${BOT_MODE:-true}" = "true" ]; then
+    echo "🤖 Starting BotService on port 8089..."
+    cd /home/m/development/DatingApp/bot-service/BotService
+    # Source .env for API keys (GEMINI_API_KEY etc)
+    set -a; source /home/m/development/DatingApp/.env 2>/dev/null; set +a
+    ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8089 dotnet run > ../../logs/bot-service.log 2>&1 &
+    BOT_PID=$!
+    sleep 3
+    BOT_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8089/health 2>/dev/null || echo "000")
+    if [ "$BOT_HEALTH" = "200" ]; then
+        echo "✅ BotService: Running (PID: $BOT_PID)"
+    else
+        echo "⚠️  BotService: Starting (HTTP: $BOT_HEALTH) — check logs/bot-service.log"
+    fi
+else
+    echo "🤖 BotService: Skipped (set BOT_MODE=true to enable)"
+fi

@@ -3,6 +3,7 @@
 Usage:
     python3 api_tests.py              # Run match scenario
     python3 api_tests.py --safety     # Run safety scenario
+    python3 api_tests.py --wizard    # Run wizard onboarding tests
     python3 api_tests.py --all        # Run all scenarios
 """
 
@@ -347,7 +348,8 @@ class ApiScenarioRunner:
 			raise RuntimeError(f"Fetching matches failed: {response.status_code} {response.text}")
 		if not response.content:
 			return []
-		return response.json()
+		body = response.json()
+		return body.get("data", body) if isinstance(body, dict) else body
 
 	@staticmethod
 	def _extract_trailing_segment(location: Optional[str]) -> Optional[str]:
@@ -378,46 +380,253 @@ class ApiScenarioRunner:
 		raise RuntimeError("Unable to resolve profile identifier from response")
 
 
-def main() -> None:
-	import argparse
-	
-	parser = argparse.ArgumentParser(description="Run API smoke tests")
-	parser.add_argument("--safety", action="store_true", help="Run safety feature tests")
-	parser.add_argument("--all", action="store_true", help="Run all test scenarios")
-	args = parser.parse_args()
-	
-	config = TestConfig()
-	
-	try:
-		if args.all:
-			print("=" * 60)
-			print("Running match scenario tests...")
-			print("=" * 60)
-			match_runner = ApiScenarioRunner(config)
-			match_runner.run()
-			
-			print("\n" + "=" * 60)
-			print("Running safety scenario tests...")
-			print("=" * 60)
-			safety_runner = SafetyScenarioRunner(config)
-			safety_runner.run()
-			
-			print("\n" + "=" * 60)
-			print("All scenarios completed successfully!")
-			print("=" * 60)
-		elif args.safety:
-			safety_runner = SafetyScenarioRunner(config)
-			safety_runner.run()
-		else:
-			match_runner = ApiScenarioRunner(config)
-			match_runner.run()
-	except Exception as exc:  # pylint: disable=broad-except
-		print(f"ERROR: {exc}", file=sys.stderr)
-		sys.exit(1)
+
+class WizardScenarioRunner:
+    """Test the 5-step onboarding wizard flow end-to-end."""
+
+    def __init__(self, config: TestConfig) -> None:
+        self.config = config
+        self.session = requests.Session()
+        self.session.headers.update({"Accept": "application/json"})
+        self.logs: List[str] = []
+        self.wizard_base = f"{config.user_service_url}/api/Wizard"
+
+    def log(self, message: str) -> None:
+        timestamp = datetime.utcnow().strftime("%H:%M:%S")
+        entry = f"{timestamp} | {message}"
+        self.logs.append(entry)
+        print(entry)
+
+    def run(self) -> None:
+        self.log("Starting wizard onboarding scenario (5 steps)")
+        self._check_health()
+
+        admin_token = self._get_admin_token()
+        user = self._provision_user(admin_token)
+        user.token = self._get_user_token(user.username, user.password)
+
+        # Step 1: Basic Info
+        self._wizard_step_1(user)
+
+        # Step 2: Preferences
+        self._wizard_step_2(user)
+
+        # Step 3: Photos — marks profile as Ready
+        self._wizard_step_3(user)
+
+        # Step 4: Identity & Goals (optional)
+        self._wizard_step_4(user)
+
+        # Step 5: About Me (optional — interests, lifestyle, work, education)
+        self._wizard_step_5(user)
+
+        # Verify final profile state
+        self._verify_profile(user)
+
+        self.log("Wizard scenario completed successfully — all 5 steps verified")
+
+    def _check_health(self) -> None:
+        for name, url in [("Keycloak", self.config.keycloak_health),
+                          ("UserService", self.config.user_service_health)]:
+            try:
+                r = self.session.get(url, timeout=self.config.request_timeout)
+            except requests.exceptions.RequestException as e:
+                raise RuntimeError(f"{name} health check failed: {e}") from e
+            if r.status_code >= 400:
+                raise RuntimeError(f"{name} returned {r.status_code}")
+            self.log(f"{name} healthy ({r.status_code})")
+
+    def _get_admin_token(self) -> str:
+        url = f"{self.config.keycloak_base}/realms/master/protocol/openid-connect/token"
+        r = self.session.post(url, data={
+            "grant_type": "password",
+            "client_id": "admin-cli",
+            "username": self.config.admin_user,
+            "password": self.config.admin_password,
+        }, timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Admin token failed: {r.status_code} {r.text}")
+        token = r.json().get("access_token")
+        if not token:
+            raise RuntimeError("Admin token missing")
+        self.log("Admin token acquired")
+        return token
+
+    def _provision_user(self, admin_token: str) -> ScenarioUser:
+        suffix = uuid.uuid4().hex[:8]
+        username = f"wizard_test_{suffix}"
+        email = f"{username}@demo.local"
+        user = ScenarioUser(
+            username=username, email=email,
+            first_name="Wizard", last_name="Tester",
+            gender="Male", preferences="Female",
+            password=self.config.demo_password,
+        )
+
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        create_url = f"{self.config.keycloak_base}/admin/realms/{self.config.keycloak_realm}/users"
+        r = self.session.post(create_url, json={
+            "username": user.username, "email": user.email,
+            "firstName": user.first_name, "lastName": user.last_name,
+            "enabled": True, "emailVerified": True,
+        }, headers=headers, timeout=self.config.request_timeout)
+
+        if r.status_code == 201:
+            user.keycloak_id = ApiScenarioRunner._extract_trailing_segment(r.headers.get("Location", ""))
+            self.log(f"Created Keycloak user {username}")
+        elif r.status_code == 409:
+            search_r = self.session.get(create_url, params={"username": username},
+                                        headers=headers, timeout=self.config.request_timeout)
+            results = search_r.json()
+            user.keycloak_id = results[0]["id"] if results else None
+            self.log(f"Reusing Keycloak user {username}")
+        else:
+            raise RuntimeError(f"User creation failed: {r.status_code} {r.text}")
+
+        if not user.keycloak_id:
+            raise RuntimeError(f"No keycloak ID for {username}")
+
+        # Set password
+        pw_url = f"{self.config.keycloak_base}/admin/realms/{self.config.keycloak_realm}/users/{user.keycloak_id}/reset-password"
+        pw_r = self.session.put(pw_url, json={"type": "password", "value": user.password, "temporary": False},
+                                headers=headers, timeout=self.config.request_timeout)
+        if pw_r.status_code >= 400:
+            raise RuntimeError(f"Password set failed: {pw_r.status_code}")
+
+        return user
+
+    def _get_user_token(self, username: str, password: str) -> str:
+        url = f"{self.config.keycloak_base}/realms/{self.config.keycloak_realm}/protocol/openid-connect/token"
+        r = self.session.post(url, data={
+            "grant_type": "password", "client_id": self.config.client_id,
+            "username": username, "password": password,
+            "scope": self.config.client_scopes,
+        }, timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Token failed for {username}: {r.status_code} {r.text}")
+        token = r.json().get("access_token")
+        if not token:
+            raise RuntimeError(f"No access_token for {username}")
+        self.log(f"Token issued for {username}")
+        return token
+
+    def _auth_headers(self, user: ScenarioUser) -> Dict[str, str]:
+        return {"Authorization": f"Bearer {user.token}"}
+
+    def _wizard_step_1(self, user: ScenarioUser) -> None:
+        """Step 1: Basic Info — firstName, gender, DOB"""
+        payload = {
+            "firstName": "Wizard",
+            "lastName": "Tester",
+            "dateOfBirth": "1995-06-15T00:00:00Z",
+            "gender": "Male"
+        }
+        r = self.session.patch(f"{self.wizard_base}/step/1", json=payload,
+                               headers=self._auth_headers(user), timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Step 1 failed: {r.status_code} {r.text}")
+        self.log("Step 1 (Basic Info) ✓")
+
+    def _wizard_step_2(self, user: ScenarioUser) -> None:
+        """Step 2: Preferences — age range, distance, preferredGender"""
+        payload = {
+            "minAge": 20,
+            "maxAge": 35,
+            "maxDistance": 50,
+            "preferredGender": "Female",
+            "bio": "Automated wizard test profile"
+        }
+        r = self.session.patch(f"{self.wizard_base}/step/2", json=payload,
+                               headers=self._auth_headers(user), timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Step 2 failed: {r.status_code} {r.text}")
+        self.log("Step 2 (Preferences) ✓")
+
+    def _wizard_step_3(self, user: ScenarioUser) -> None:
+        """Step 3: Photos — marks profile as OnboardingStatus=Ready"""
+        payload = {
+            "photoUrls": ["https://example.com/photo1.jpg", "https://example.com/photo2.jpg"]
+        }
+        r = self.session.patch(f"{self.wizard_base}/step/3", json=payload,
+                               headers=self._auth_headers(user), timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Step 3 failed: {r.status_code} {r.text}")
+        self.log("Step 3 (Photos) ✓")
+
+    def _wizard_step_4(self, user: ScenarioUser) -> None:
+        """Step 4: Identity — orientation, relationship type"""
+        payload = {
+            "sexualOrientation": "Heterosexual",
+            "relationshipType": "LongTerm"
+        }
+        r = self.session.patch(f"{self.wizard_base}/step/4", json=payload,
+                               headers=self._auth_headers(user), timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Step 4 failed: {r.status_code} {r.text}")
+        self.log("Step 4 (Identity) ✓")
+
+    def _wizard_step_5(self, user: ScenarioUser) -> None:
+        """Step 5: About Me — interests, lifestyle, occupation, education"""
+        payload = {
+            "interests": ["hiking", "coffee", "reading", "yoga"],
+            "smokingStatus": "Never",
+            "drinkingStatus": "Socially",
+            "wantsChildren": True,
+            "occupation": "Software Engineer",
+            "company": "TestCorp",
+            "education": "Master's",
+            "school": "KTH"
+        }
+        r = self.session.patch(f"{self.wizard_base}/step/5", json=payload,
+                               headers=self._auth_headers(user), timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Step 5 failed: {r.status_code} {r.text}")
+        self.log("Step 5 (About Me) ✓")
+
+    def _wizard_step_5_comma_test(self, user: ScenarioUser) -> None:
+        """Step 5 variant: send interests as comma-separated string (tests server normalization)"""
+        payload = {
+            "interests": ["hiking,coffee,reading,yoga"],
+            "smokingStatus": "Never",
+            "drinkingStatus": "Socially",
+        }
+        r = self.session.patch(f"{self.wizard_base}/step/5", json=payload,
+                               headers=self._auth_headers(user), timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Step 5 comma-test failed: {r.status_code} {r.text}")
+        body = r.json()
+        profile = body.get("data") or body.get("value") or body
+        interests = profile.get("interests", [])
+        if len(interests) < 4:
+            raise RuntimeError(
+                f"Comma-separated interests not normalized: expected 4+ items, got {len(interests)}: {interests}"
+            )
+        self.log(f"Step 5 comma-separated normalization ✓ (got {len(interests)} interests)")
+
+    def _verify_profile(self, user: ScenarioUser) -> None:
+        """Fetch profile and verify key fields were saved"""
+        r = self.session.get(f"{self.config.user_service_url}/api/profiles/me",
+                             headers=self._auth_headers(user), timeout=self.config.request_timeout)
+        if r.status_code >= 400:
+            raise RuntimeError(f"Profile fetch failed: {r.status_code} {r.text}")
+        body = r.json()
+        profile = body.get("data") or body.get("value") or body
+        checks = {
+            "firstName": "Wizard",
+            "gender": "Male",
+        }
+        for field, expected in checks.items():
+            actual = profile.get(field)
+            if actual != expected:
+                raise RuntimeError(f"Profile field '{field}' mismatch: expected '{expected}', got '{actual}'")
+        interests = profile.get("interests", [])
+        if not interests:
+            self.log("Warning: interests list empty after wizard step 5")
+        else:
+            self.log(f"Profile verified: interests={interests}")
+        self.log("Profile verification ✓")
 
 
-if __name__ == "__main__":
-	main()
 
 
 class SafetyScenarioRunner:
@@ -774,3 +983,55 @@ def run_safety_tests() -> None:
     except Exception as exc:  # pylint: disable=broad-except
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
+
+
+def main() -> None:
+	import argparse
+	
+	parser = argparse.ArgumentParser(description="Run API smoke tests")
+	parser.add_argument("--safety", action="store_true", help="Run safety feature tests")
+	parser.add_argument("--wizard", action="store_true", help="Run wizard onboarding tests")
+	parser.add_argument("--all", action="store_true", help="Run all test scenarios")
+	args = parser.parse_args()
+	
+	config = TestConfig()
+	
+	try:
+		if args.all:
+			print("=" * 60)
+			print("Running match scenario tests...")
+			print("=" * 60)
+			match_runner = ApiScenarioRunner(config)
+			match_runner.run()
+			
+			print("\n" + "=" * 60)
+			print("Running wizard onboarding tests...")
+			print("=" * 60)
+			wizard_runner = WizardScenarioRunner(config)
+			wizard_runner.run()
+			
+			print("\n" + "=" * 60)
+			print("Running safety scenario tests...")
+			print("=" * 60)
+			safety_runner = SafetyScenarioRunner(config)
+			safety_runner.run()
+			
+			print("\n" + "=" * 60)
+			print("All scenarios completed successfully!")
+			print("=" * 60)
+		elif args.wizard:
+			wizard_runner = WizardScenarioRunner(config)
+			wizard_runner.run()
+		elif args.safety:
+			safety_runner = SafetyScenarioRunner(config)
+			safety_runner.run()
+		else:
+			match_runner = ApiScenarioRunner(config)
+			match_runner.run()
+	except Exception as exc:  # pylint: disable=broad-except
+		print(f"ERROR: {exc}", file=sys.stderr)
+		sys.exit(1)
+
+
+if __name__ == "__main__":
+	main()

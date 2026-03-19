@@ -13,7 +13,9 @@ public.key
 appsettings.Development.json
 appsettings.Production.json
 .env
-.env.*
+# Production env (has secret placeholders)
+.env.production
+# Keep .env.local and .env.docker in version control (no secrets, just URLs)
 secrets.json
 
 # JWT Keys and tokens
