@@ -68,6 +68,9 @@ TestResults/
 *.coverage
 *.coveragexml
 
+# Visual QA — generated reports (keep directory structure via .gitkeep)
+visual-qa/reports/*.html
+
 # Service repositories (separate repos, cloned by CI/CD)
 /UserService/
 /MatchmakingService/

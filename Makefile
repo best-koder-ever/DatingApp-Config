@@ -1,7 +1,7 @@
 # DatingApp - Development & Testing Automation
 # Professional task runner for consistent workflows
 
-.PHONY: help test test-clean test-e2e dev-start dev-stop reset seed-minimal seed-standard seed-load
+.PHONY: help test test-clean test-e2e dev-start dev-stop reset seed-minimal seed-standard seed-load visual-qa-up visual-qa-down visual-qa-gallery
 
 # Default target
 help:
@@ -23,6 +23,11 @@ help:
 	@echo "  make seed-minimal      - Load minimal fixtures (5 users)"
 	@echo "  make seed-standard     - Load standard fixtures (50 users)"
 	@echo "  make seed-load         - Load load test fixtures (500 users)"
+	@echo ""
+	@echo "Visual QA:"
+	@echo "  make visual-qa-up      - Start Android emulator + noVNC (http://localhost:6080)"
+	@echo "  make visual-qa-down    - Stop Visual QA containers"
+	@echo "  make visual-qa-gallery - Generate screenshot gallery HTML"
 	@echo ""
 
 # Start development environment
@@ -160,3 +165,29 @@ visual-qa-down: ## Stop emulator + visual-qa services
 
 visual-qa-logs: ## Tail visual-qa runner logs
 	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml logs -f visual-qa
+# Visual QA — Android emulator + VNC viewer + screenshot gallery
+# ============================================================================
+
+# Start the Android emulator with noVNC web viewer.
+# VNC access: http://localhost:6080
+visual-qa-up:
+	@echo "📱 Starting Visual QA environment (Android emulator + noVNC)..."
+	docker-compose -f visual-qa/docker-compose.visual-qa.yml up -d
+	@echo "✅ Android emulator starting. VNC viewer: http://localhost:6080"
+	@echo "   (Emulator may take ~2 minutes to fully boot)"
+
+# Stop the Visual QA containers.
+visual-qa-down:
+	@echo "🛑 Stopping Visual QA environment..."
+	docker-compose -f visual-qa/docker-compose.visual-qa.yml down
+	@echo "✅ Visual QA containers stopped."
+
+# Generate a static HTML screenshot gallery from test results.
+# Output: visual-qa/reports/gallery.html
+visual-qa-gallery:
+	@echo "🖼  Generating Visual QA screenshot gallery..."
+	python3 visual-qa/gallery.py \
+		--screenshots visual-qa/screenshots \
+		--baselines   visual-qa/baselines \
+		--output      visual-qa/reports/gallery.html
+	@echo "✅ Gallery: visual-qa/reports/gallery.html"
