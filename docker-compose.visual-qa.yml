@@ -1,0 +1,50 @@
+# Visual QA Automation — Headless Android Emulator + ADB-driven test runner
+# Usage: docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml up
+#
+# Extends the main docker-compose.yml (backend services on app-network).
+# Adds a headless Android emulator + Python visual-qa runner.
+
+services:
+  android-emulator:
+    image: budtmo/docker-android:emulator_14.0
+    privileged: true
+    environment:
+      EMULATOR_DEVICE: "pixel_7"
+      WEB_VNC: "true"
+      WEB_LOG: "true"
+      DATAPARTITION: "4g"
+    ports:
+      - "6080:6080"   # noVNC web viewer (for debugging)
+      - "5555:5555"   # ADB port
+    devices:
+      - /dev/kvm
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "adb shell getprop sys.boot_completed 2>/dev/null | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  visual-qa:
+    build:
+      context: ./visual-qa
+      dockerfile: Dockerfile
+    depends_on:
+      android-emulator:
+        condition: service_healthy
+    environment:
+      ADB_HOST: android-emulator
+      ADB_PORT: "5555"
+      GATEWAY_URL: "http://dejting-yarp:8080"
+      APK_PATH: "/app/apk/app-release.apk"
+    volumes:
+      - ./visual-qa:/app/src
+      - ./walkthrough-screenshots:/app/baselines
+      - ./test-results:/app/test-results
+      - ./mobile-apps/flutter/dejtingapp/build/app/outputs/flutter-apk:/app/apk:ro
+    networks:
+      - app-network
+    profiles:
+      - visual-qa
