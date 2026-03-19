@@ -27,6 +27,59 @@ Modern microservices-based dating platform with .NET 8 backend and Flutter front
 - **Seq** - Structured logging (port 5380)
 - **Grafana** - Metrics & dashboards (port 3030)
 
+## Visual QA
+
+The project includes a browser-based visual QA environment powered by an Android emulator with a built-in noVNC web viewer.
+
+### Start the Visual QA environment
+
+```bash
+# Start Android emulator + noVNC web viewer
+make visual-qa-up
+```
+
+### Access the VNC viewer
+
+Open your browser and navigate to:
+
+```
+http://localhost:6080
+```
+
+No VNC client is required — the noVNC viewer runs entirely in the browser.
+The emulator may take ~2 minutes to fully boot on first launch.
+
+### Generate a screenshot gallery
+
+After running visual QA tests, generate a static HTML gallery that shows
+captured screenshots, baselines, and diff overlays side-by-side:
+
+```bash
+make visual-qa-gallery
+# → visual-qa/reports/gallery.html
+```
+
+The gallery is grouped by use-case and shows pass/fail badges for each test.
+You can also browse it via the gallery server at `http://localhost:8099/gallery.html`
+(served by the `gallery-server` container when `make visual-qa-up` is running).
+
+### Stop the Visual QA environment
+
+```bash
+make visual-qa-down
+```
+
+### Directory layout
+
+```
+visual-qa/
+├── docker-compose.visual-qa.yml   # Android emulator + noVNC compose
+├── gallery.py                     # Gallery generator script
+├── screenshots/                   # Captured test screenshots (by use-case)
+├── baselines/                     # Baseline images          (by use-case)
+└── reports/                       # Generated gallery HTML
+```
+
 ## Quick Start
 
 ```bash

@@ -1,0 +1,59 @@
+# Visual QA Docker Compose
+# Provides an Android emulator with noVNC web viewer for live debugging of visual QA runs.
+#
+# Usage:
+#   docker-compose -f visual-qa/docker-compose.visual-qa.yml up
+#
+# Access:
+#   VNC viewer:      http://localhost:6080
+#   Gallery server:  http://localhost:8099  (run `make visual-qa-gallery` first)
+#   (Browser-based — no VNC client required)
+
+services:
+  android-emulator:
+    image: budtmo/docker-android:emulator_13.0
+    container_name: visual-qa-android-emulator
+    privileged: true
+    environment:
+      - EMULATOR_DEVICE=Samsung Galaxy S10
+      - WEB_VNC=true
+      - APPIUM=false
+      - MOBILE_WEB_TEST=false
+      - RELAXED_SECURITY=true
+    ports:
+      - "6080:6080"   # noVNC web viewer
+      - "5554:5554"   # ADB emulator console
+      - "5555:5555"   # ADB device connection
+    volumes:
+      - android-data:/root
+      - ./screenshots:/home/androidusr/screenshots
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6080"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - visual-qa-network
+
+  # Static file server for the generated gallery HTML.
+  # Generate the gallery first with: make visual-qa-gallery
+  # Then browse to: http://localhost:8099/gallery.html
+  gallery-server:
+    image: python:3.12-slim
+    container_name: visual-qa-gallery-server
+    working_dir: /reports
+    volumes:
+      - ./reports:/reports:ro
+    ports:
+      - "8099:8099"   # Static gallery HTTP server
+    command: ["python", "-m", "http.server", "8099"]
+    networks:
+      - visual-qa-network
+
+volumes:
+  android-data:
+
+networks:
+  visual-qa-network:
+    driver: bridge
