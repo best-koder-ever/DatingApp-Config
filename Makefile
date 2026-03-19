@@ -127,3 +127,36 @@ ai-state-verbose: ## Detailed state dump (AI debugging)
 
 ai-verify-fixtures: ## Assert minimal fixtures loaded (AI testing)
 	@python3 scripts/ai-verify-state.py --assert-minimal
+
+
+
+# ============================================================================
+# Visual QA Automation (Emulator-based E2E)
+# ============================================================================
+
+.PHONY: visual-qa-build visual-qa-up visual-qa-run visual-qa-down visual-qa-logs
+
+visual-qa-build: ## Build Flutter APK + visual-qa Docker image
+	@echo "Building Flutter APK..."
+	cd mobile-apps/flutter/dejtingapp && flutter build apk --release
+	@echo "Building visual-qa runner image..."
+	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml build visual-qa
+	@echo "Visual QA images ready!"
+
+visual-qa-up: ## Start emulator + backend services
+	@echo "Starting emulator + services..."
+	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml up -d
+	@echo "Waiting for emulator boot (this may take 2-3 minutes)..."
+	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml exec -T android-emulator adb wait-for-device
+	@echo "Emulator + services running"
+
+visual-qa-run: ## Run visual QA tests (starts everything if needed)
+	@echo "Running Visual QA automation..."
+	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml run --rm visual-qa python run_visual_qa.py --use-case all
+	@echo "Results in visual-qa/test-results/"
+
+visual-qa-down: ## Stop emulator + visual-qa services
+	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml down
+
+visual-qa-logs: ## Tail visual-qa runner logs
+	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml logs -f visual-qa
