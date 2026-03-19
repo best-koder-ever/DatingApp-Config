@@ -118,7 +118,7 @@ if python3 "$SCRIPT_DIR/fixture_loader.py" load --set "$FIXTURE_SET" --env demo;
     log_info "✓ Test data loaded successfully!"
     log_info "================================================================"
     log_info ""
-    log_info "Available test users (password: Test123!):"
+    log_info "Available test users (auth: impersonation, no password needed):"
     log_info "  alice@test.se    - 28F, Photographer, Stockholm"
     log_info "  bob@test.se      - 32M, Musician, Göteborg"
     log_info "  charlie@test.se  - 30M, Fitness Coach, Malmö"

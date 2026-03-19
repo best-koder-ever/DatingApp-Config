@@ -78,7 +78,7 @@ show_menu() {
     echo ""
     echo -e "  ${DIM}──────────────────────────────────────────────────────────${NC}"
     echo -e "  ${DIM}Typical workflow: 1 (first time) → make changes → 4 (restart) → 8 (flutter)${NC}"
-    echo -e "  ${DIM}Test users: alice/bob/charlie/diana/erik @test.se  password: Test123!${NC}"
+    echo -e "  ${DIM}Test users: alice/bob/charlie/diana/erik @test.se (auth via impersonation)${NC}"
     echo -e "  ${DIM}Matches: alice↔bob, bob↔charlie  |  Messages: bob↔charlie${NC}"
     echo ""
 }
@@ -215,7 +215,7 @@ do_launch_everything() {
 
     echo ""
     echo -e "  ${BOLD}${GREEN}✅ Everything is up! Open the Flutter app and log in.${NC}"
-    echo -e "  ${DIM}Try: alice@test.se / Test123!${NC}"
+    echo -e "  ${DIM}Test users: alice/bob/charlie/diana/erik @test.se${NC}"
     echo ""
 }
 

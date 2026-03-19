@@ -59,13 +59,13 @@ flutter run -d chrome   # or: flutter run -d <device_id>
 
 All seeded by `./scripts/seed-test-data.sh minimal`.
 
-| Email            | Password  | Name    | Role/Notes              |
-|------------------|-----------|---------|-------------------------|
-| alice@test.se    | Test123!  | Alice   | 28F, Photographer       |
-| bob@test.se      | Test123!  | Bob     | 32M, Musician           |
-| charlie@test.se  | Test123!  | Charlie | 30M, Fitness Coach      |
-| diana@test.se    | Test123!  | Diana   | 27F, Graphic Designer   |
-| erik@test.se     | Test123!  | Erik    | 35M, Civil Engineer     |
+| Email            | Name    | Role/Notes              |
+|------------------|---------|-------------------------|
+| alice@test.se    | Alice   | 28F, Photographer       |
+| bob@test.se      | Bob     | 32M, Musician           |
+| charlie@test.se  | Charlie | 30M, Fitness Coach      |
+| diana@test.se    | Diana   | 27F, Graphic Designer   |
+| erik@test.se     | Erik    | 35M, Civil Engineer     |
 
 Pre-existing Keycloak users (from realm export):
 - `erik_astrom` / `Demo123!`

@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak_password
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
     volumes:
       - keycloak-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -18,14 +18,14 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:25.0.0
-    command: start-dev
+    command: start-dev --features=token-exchange
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: keycloak_password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
       - "8090:8080"
     depends_on:
@@ -87,7 +87,7 @@ services:
     image: mysql:8.0
     container_name: UserService-db
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: UserServiceDb
       MYSQL_USER: userservice_user
       MYSQL_PASSWORD: userservice_user_password
@@ -126,7 +126,7 @@ services:
     image: mysql:8.0
     container_name: MatchmakingService-db
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: MatchmakingServiceDb
       MYSQL_USER: matchmakingservice_user
       MYSQL_PASSWORD: matchmakingservice_user_password
@@ -164,7 +164,7 @@ services:
     image: mysql:8.0
     container_name: swipe-service-db
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: SwipeServiceDb
       MYSQL_USER: swipeservice_user
       MYSQL_PASSWORD: swipeservice_user_password
@@ -209,7 +209,7 @@ services:
     image: mysql:8.0
     container_name: photo-service-db
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: PhotoServiceDb
       MYSQL_USER: photoservice_user
       MYSQL_PASSWORD: photoservice_user_password
@@ -264,7 +264,7 @@ services:
     image: mysql:8.0
     container_name: messaging-service-db
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: MessagingServiceDb
       MYSQL_USER: messagingservice_user
       MYSQL_PASSWORD: messagingservice_user_password

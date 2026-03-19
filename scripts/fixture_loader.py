@@ -114,11 +114,94 @@ class FixtureLoader:
             self.log(f"✗ Failed to authenticate with Keycloak: {e}", "ERROR")
             raise
     
-    def get_user_token(self, username: str, password: str) -> str:
-        """Get user access token for API calls"""
-        if username in self.user_tokens:
-            return self.user_tokens[username]
+    def get_user_token(self, email: str, password: str = None) -> str:
+        """Get user access token via Keycloak admin impersonation (no user password needed).
+        
+        Flow: admin impersonates user → session cookies → PKCE auth code → access token.
+        The 'password' parameter is kept for backward compatibility but ignored.
+        """
+        if email in self.user_tokens:
+            return self.user_tokens[email]
+        
+        import hashlib, base64, secrets as crypto_secrets
+        from urllib.parse import urlparse, parse_qs
+        
+        # Look up user ID from Keycloak
+        user_id = self._get_keycloak_user_id(email)
+        if not user_id:
+            raise RuntimeError(f"User {email} not found in Keycloak")
+        
+        admin_token = self.get_keycloak_admin_token()
+        kc_url = self.config.keycloak_url
+        realm = self.config.keycloak_realm
+        client_id = "dejtingapp-flutter"
+        redirect_uri = "dejtingapp://callback"
+        
+        try:
+            # Step 1: Impersonate user → get session cookies
+            session = requests.Session()
+            imp_resp = session.post(
+                f"{kc_url}/admin/realms/{realm}/users/{user_id}/impersonation",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                timeout=10,
+            )
+            imp_resp.raise_for_status()
             
+            # Step 2: Generate PKCE challenge
+            verifier = crypto_secrets.token_urlsafe(32)
+            challenge = base64.urlsafe_b64encode(
+                hashlib.sha256(verifier.encode()).digest()
+            ).rstrip(b"=").decode()
+            
+            # Step 3: Get auth code via impersonated session (no redirect follow)
+            auth_resp = session.get(
+                f"{kc_url}/realms/{realm}/protocol/openid-connect/auth",
+                params={
+                    "client_id": client_id,
+                    "response_type": "code",
+                    "redirect_uri": redirect_uri,
+                    "scope": "openid",
+                    "code_challenge_method": "S256",
+                    "code_challenge": challenge,
+                },
+                allow_redirects=False,
+                timeout=10,
+            )
+            
+            location = auth_resp.headers.get("Location", "")
+            parsed = urlparse(location)
+            code = parse_qs(parsed.query).get("code", [None])[0]
+            
+            if not code:
+                raise RuntimeError(f"No auth code in redirect: {location[:200]}")
+            
+            # Step 4: Exchange code for token
+            token_resp = requests.post(
+                f"{kc_url}/realms/{realm}/protocol/openid-connect/token",
+                data={
+                    "grant_type": "authorization_code",
+                    "client_id": client_id,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                    "code_verifier": verifier,
+                },
+                timeout=10,
+            )
+            token_resp.raise_for_status()
+            token = token_resp.json()["access_token"]
+            self.user_tokens[email] = token
+            return token
+            
+        except Exception as e:
+            # Fallback: password grant (if password provided)
+            if password:
+                self.log(f"  ⚠ Impersonation failed, falling back to password grant: {e}", "WARNING")
+                return self._get_user_token_password(email, password)
+            self.log(f"✗ Failed to get user token for {email}: {e}", "ERROR")
+            raise
+    
+    def _get_user_token_password(self, username: str, password: str) -> str:
+        """Fallback: password grant (legacy, requires user password)"""
         url = f"{self.config.keycloak_url}/realms/{self.config.keycloak_realm}/protocol/openid-connect/token"
         data = {
             "grant_type": "password",
@@ -126,16 +209,24 @@ class FixtureLoader:
             "password": password,
             "client_id": "dejtingapp-flutter",
         }
+        response = requests.post(url, data=data, timeout=10)
+        response.raise_for_status()
+        token = response.json()["access_token"]
+        self.user_tokens[username] = token
+        return token
+    
+    def _get_keycloak_user_id(self, email: str) -> Optional[str]:
+        """Look up Keycloak user ID by email"""
+        admin_token = self.get_keycloak_admin_token()
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        search_url = f"{self.config.keycloak_url}/admin/realms/{self.config.keycloak_realm}/users?email={email}&exact=true"
+        response = requests.get(search_url, headers=headers, timeout=10)
         
-        try:
-            response = requests.post(url, data=data, timeout=10)
-            response.raise_for_status()
-            token = response.json()["access_token"]
-            self.user_tokens[username] = token
-            return token
-        except Exception as e:
-            self.log(f"✗ Failed to get user token for {username}: {e}", "ERROR")
-            raise
+        if response.status_code == 200:
+            users = response.json()
+            if users:
+                return users[0]["id"]
+        return None
     
     def load_json_file(self, filename: str) -> Dict[str, Any]:
         """Load JSON fixture file"""
@@ -198,14 +289,15 @@ class FixtureLoader:
                     user_id = location.split("/")[-1] if location else None
                     
                     if user_id:
-                        # Set password
-                        password_url = f"{self.config.keycloak_url}/admin/realms/{self.config.keycloak_realm}/users/{user_id}/reset-password"
-                        password_data = {
-                            "type": "password",
-                            "value": user["credentials"][0]["value"],
-                            "temporary": False,
-                        }
-                        requests.put(password_url, headers=headers, json=password_data)
+                        # Set password only if credentials are provided in fixture
+                        if user.get("credentials"):
+                            password_url = f"{self.config.keycloak_url}/admin/realms/{self.config.keycloak_realm}/users/{user_id}/reset-password"
+                            password_data = {
+                                "type": "password",
+                                "value": user["credentials"][0]["value"],
+                                "temporary": False,
+                            }
+                            requests.put(password_url, headers=headers, json=password_data)
                         
                         user_ids[email] = user_id
                         # Map fixture userId to Keycloak UUID
@@ -237,7 +329,7 @@ class FixtureLoader:
             
             # Get user token (authenticates as this user)
             try:
-                token = self.get_user_token(email, "Test123!")
+                token = self.get_user_token(email)
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
                 
                 # PATCH to wizard step 1 to create basic profile info
@@ -362,7 +454,7 @@ class FixtureLoader:
             
             try:
                 # Authenticate as the user performing the swipe
-                token = self.get_user_token(from_email, "Test123!")
+                token = self.get_user_token(from_email)
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
                 
                 # Map to SwipeService API format
@@ -450,7 +542,7 @@ class FixtureLoader:
             
             try:
                 # Authenticate as sender
-                token = self.get_user_token(sender_email, "Test123!")
+                token = self.get_user_token(sender_email)
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
                 
                 # Map to MessagingService API format
