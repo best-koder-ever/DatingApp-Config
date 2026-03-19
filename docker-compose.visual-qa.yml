@@ -41,7 +41,7 @@ services:
       APK_PATH: "/app/apk/app-release.apk"
     volumes:
       - ./visual-qa:/app/src
-      - ./walkthrough-screenshots:/app/baselines
+      - ./visual-qa/baselines:/app/baselines
       - ./test-results:/app/test-results
       - ./mobile-apps/flutter/dejtingapp/build/app/outputs/flutter-apk:/app/apk:ro
     networks:

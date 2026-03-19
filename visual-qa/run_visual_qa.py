@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -20,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from adb_client import AdbClient
 from navigator import Navigator
+from regression import RegressionChecker
 from report import generate_json_report, generate_markdown_report
 from use_cases.onboarding import ONBOARDING_FLOW, ONBOARDING_TERMINAL_SCREENS
 from use_cases.discovery import DISCOVERY_FLOW, DISCOVERY_TERMINAL_SCREENS
@@ -79,6 +81,14 @@ def main():
         action="store_true",
         help="Verbose output",
     )
+    parser.add_argument(
+        "--update-baselines",
+        action="store_true",
+        help=(
+            "After running, save the first screenshot + XML for each screen "
+            "to visual-qa/baselines/<use_case>/<NN>-<slug>.{png,xml}"
+        ),
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -101,7 +111,7 @@ def main():
         print("✅ Emulator booted")
 
         # Install APK if provided
-        apk_path = args.apk_path or __import__("os").environ.get("APK_PATH")
+        apk_path = args.apk_path or os.environ.get("APK_PATH")
         if apk_path and Path(apk_path).exists():
             print(f"📦 Installing APK: {apk_path}")
             if adb.install_apk(apk_path):
@@ -155,6 +165,10 @@ def main():
     print(f"  JSON: {json_path}")
     print(f"  Markdown: {md_path}")
 
+    # Save baselines if requested
+    if args.update_baselines:
+        _save_baselines(results, cases_to_run)
+
     # Summary
     passed = sum(1 for r in results if r.success)
     failed = sum(1 for r in results if not r.success)
@@ -164,6 +178,44 @@ def main():
     print(f"{'='*60}")
 
     sys.exit(0 if failed == 0 else 1)
+
+
+def _save_baselines(results, cases_to_run: list[str]) -> None:
+    """Copy first screenshot + XML for each unique ScreenId to baselines dir."""
+    baselines_dir = Path(__file__).parent / "baselines"
+    checker = RegressionChecker(baselines_dir)
+
+    print(f"\n{'='*60}")
+    print(f"📸 Saving baselines to {baselines_dir} ...")
+
+    for case_result, case_key in zip(results, cases_to_run):
+        seen_screens: set = set()
+        saved_count = 0
+        for step in case_result.steps:
+            if step.screen in seen_screens:
+                continue
+            seen_screens.add(step.screen)
+
+            screenshot: bytes | None = None
+            xml: str | None = None
+            if step.screenshot_path and Path(step.screenshot_path).exists():
+                screenshot = Path(step.screenshot_path).read_bytes()
+            if step.xml_path and Path(step.xml_path).exists():
+                xml = Path(step.xml_path).read_text(encoding="utf-8")
+
+            if screenshot is None and xml is None:
+                continue
+
+            written = checker.save_baseline(
+                case_key, step.screen, screenshot=screenshot, xml=xml
+            )
+            for ext, path in written.items():
+                print(f"  [{case_key}] {step.screen.name} → {Path(path).name}")
+            saved_count += 1
+
+        print(f"  ✅ {case_key}: {saved_count} screens saved")
+
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":

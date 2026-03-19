@@ -24,6 +24,13 @@ help:
 	@echo "  make seed-standard     - Load standard fixtures (50 users)"
 	@echo "  make seed-load         - Load load test fixtures (500 users)"
 	@echo ""
+	@echo "Visual QA:"
+	@echo "  make visual-qa-build   - Build Flutter APK + Docker image"
+	@echo "  make visual-qa-up      - Start emulator + backend services"
+	@echo "  make visual-qa-run     - Run visual QA automation (all use cases)"
+	@echo "  make visual-qa-baseline- Capture + store regression baselines"
+	@echo "  make visual-qa-down    - Stop emulator + visual-qa services"
+	@echo ""
 
 # Start development environment
 dev-start:
@@ -134,7 +141,7 @@ ai-verify-fixtures: ## Assert minimal fixtures loaded (AI testing)
 # Visual QA Automation (Emulator-based E2E)
 # ============================================================================
 
-.PHONY: visual-qa-build visual-qa-up visual-qa-run visual-qa-down visual-qa-logs
+.PHONY: visual-qa-build visual-qa-up visual-qa-run visual-qa-down visual-qa-logs visual-qa-baseline
 
 visual-qa-build: ## Build Flutter APK + visual-qa Docker image
 	@echo "Building Flutter APK..."
@@ -160,3 +167,10 @@ visual-qa-down: ## Stop emulator + visual-qa services
 
 visual-qa-logs: ## Tail visual-qa runner logs
 	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml logs -f visual-qa
+
+visual-qa-baseline: visual-qa-up ## Capture + store baseline screenshots and XML dumps
+	@echo "📸 Capturing visual QA baselines (all use cases)..."
+	docker compose -f docker-compose.yml -f docker-compose.visual-qa.yml run --rm visual-qa \
+		python run_visual_qa.py --use-case all --update-baselines \
+		--output-dir /app/test-results
+	@echo "✅ Baselines stored in visual-qa/baselines/"
