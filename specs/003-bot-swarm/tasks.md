@@ -10,60 +10,60 @@
 **Goal**: Build provider-agnostic LLM abstraction. Ship Gemini integration first. Validate Swedish output quality.
 
 ### LLM Abstraction Layer
-- [ ] T300 [P0] [Infra] Create `ILlmProvider` interface — `Task<string> GenerateAsync(LlmRequest request, CancellationToken ct)` with `LlmRequest { SystemPrompt, Messages[], MaxTokens, Temperature }` and `LlmResponse { Content, TokensUsed, LatencyMs, Provider }`
+- [x] T300 [P0] [Infra] Create `ILlmProvider` interface — `Task<string> GenerateAsync(LlmRequest request, CancellationToken ct)` with `LlmRequest { SystemPrompt, Messages[], MaxTokens, Temperature }` and `LlmResponse { Content, TokensUsed, LatencyMs, Provider }`
 - **Estimate**: 2h
 - **File**: `Services/Llm/ILlmProvider.cs`, `Models/LlmRequest.cs`, `Models/LlmResponse.cs`
 - **Evidence**: Interface compiles, used by T301-T303
 
-- [ ] T301 [P0] [Infra] Implement `GeminiLlmProvider` — HTTP client calling `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent`, API key from `GEMINI_API_KEY` env var, JSON request/response mapping, retry on 429 with exponential backoff
+- [x] T301 [P0] [Infra] Implement `GeminiLlmProvider` — HTTP client calling `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent`, API key from `GEMINI_API_KEY` env var, JSON request/response mapping, retry on 429 with exponential backoff
 - **Estimate**: 4h
 - **File**: `Services/Llm/GeminiLlmProvider.cs`
 - **Depends on**: T300
 - **Evidence**: `dotnet test` with integration test hitting Gemini free tier, Swedish response received
 
-- [ ] T302 [P1] [Infra] Implement `GroqLlmProvider` — HTTP client calling `https://api.groq.com/openai/v1/chat/completions` (OpenAI-compatible), API key from `GROQ_API_KEY`, model default `llama-3.3-70b-versatile`, automatic fallback to `llama-3.1-8b-instant` on 429
+- [x] T302 [P1] [Infra] Implement `GroqLlmProvider` — HTTP client calling `https://api.groq.com/openai/v1/chat/completions` (OpenAI-compatible), API key from `GROQ_API_KEY`, model default `llama-3.3-70b-versatile`, automatic fallback to `llama-3.1-8b-instant` on 429
 - **Estimate**: 3h
 - **File**: `Services/Llm/GroqLlmProvider.cs`
 - **Depends on**: T300
 - **Evidence**: Integration test passes with Groq free tier
 
-- [ ] T303 [P2] [Infra] Implement `OllamaLlmProvider` — HTTP client calling `http://localhost:11434/v1/chat/completions`, model from config (default `qwen3:32b`), timeout 30s, health check on startup
+- [x] T303 [P2] [Infra] Implement `OllamaLlmProvider` — HTTP client calling `http://localhost:11434/v1/chat/completions`, model from config (default `qwen3:32b`), timeout 30s, health check on startup
 - **Estimate**: 2h
 - **File**: `Services/Llm/OllamaLlmProvider.cs`
 - **Depends on**: T300
 - **Evidence**: Works with locally running Ollama instance
 
-- [ ] T304 [P0] [Infra] Create `LlmRouter` — selects provider based on config priority, implements circuit breaker (3 failures → fallback), tracks token usage per provider per day, respects daily budget caps
+- [x] T304 [P0] [Infra] Create `LlmRouter` — selects provider based on config priority, implements circuit breaker (3 failures → fallback), tracks token usage per provider per day, respects daily budget caps
 - **Estimate**: 4h
 - **File**: `Services/Llm/LlmRouter.cs`
 - **Depends on**: T301, T302, T303
 - **Evidence**: Unit test: primary fails → falls to secondary. Budget exceeded → returns canned fallback.
 
-- [ ] T305 [P0] [Infra] Add LLM configuration to `BotServiceOptions` — `LlmOptions { PrimaryProvider, FallbackProvider, DailyTokenBudget, MaxTokensPerMessage, Temperature, ApiKeys }`, bind from appsettings.json + env vars
+- [x] T305 [P0] [Infra] Add LLM configuration to `BotServiceOptions` — `LlmOptions { PrimaryProvider, FallbackProvider, DailyTokenBudget, MaxTokensPerMessage, Temperature, ApiKeys }`, bind from appsettings.json + env vars
 - **Estimate**: 1h
 - **File**: `Configuration/BotServiceOptions.cs`, `appsettings.json`
 - **Evidence**: Config loads, providers initialize from config
 
-- [ ] T306 [P0] [Infra] Register LLM services in DI — `AddSingleton<ILlmProvider, GeminiLlmProvider>()` etc, `AddSingleton<LlmRouter>()`, keyed by provider name
+- [x] T306 [P0] [Infra] Register LLM services in DI — `AddSingleton<ILlmProvider, GeminiLlmProvider>()` etc, `AddSingleton<LlmRouter>()`, keyed by provider name
 - **Estimate**: 1h
 - **File**: `Program.cs`
 - **Depends on**: T305
 - **Evidence**: `dotnet build` succeeds, services resolve from DI
 
 ### Prompt Engineering
-- [ ] T307 [P0] [AI] Design Swedish bot system prompt template — incorporate persona fields (name, age, city, occupation, interests, bio, chattiness), conversation stage detection, persona voice (formal/casual/flirty based on `BotBehavior`), explicit Swedish language instruction, max length guardrail (2 sentences)
+- [x] T307 [P0] [AI] Design Swedish bot system prompt template — incorporate persona fields (name, age, city, occupation, interests, bio, chattiness), conversation stage detection, persona voice (formal/casual/flirty based on `BotBehavior`), explicit Swedish language instruction, max length guardrail (2 sentences)
 - **Estimate**: 3h
 - **File**: `Services/Llm/PromptTemplates.cs`
 - **Depends on**: T300
 - **Evidence**: 10 sample prompts reviewed for naturalness. Swedish native speaker evaluation.
 
-- [ ] T308 [P0] [AI] Build conversation context formatter — takes last N messages from `DatingAppApiClient.GetConversationsAsync()`, formats as `[user]: message\n[bot]: message\n...` for LLM context window, truncates to 2000 tokens max
+- [x] T308 [P0] [AI] Build conversation context formatter — takes last N messages from `DatingAppApiClient.GetConversationsAsync()`, formats as `[user]: message\n[bot]: message\n...` for LLM context window, truncates to 2000 tokens max
 - **Estimate**: 2h
 - **File**: `Services/Llm/ConversationContextBuilder.cs`
 - **Depends on**: T307
 - **Evidence**: Unit test: 20 messages → truncated to last 8 within 2K tokens
 
-- [ ] T309 [P1] [AI] LLM output guardrails — post-processing filter that rejects responses containing: real phone numbers, URLs, "jag är en AI/bot", English (>20% English words), messages longer than 280 chars. Falls back to canned message on rejection.
+- [x] T309 [P1] [AI] LLM output guardrails — post-processing filter that rejects responses containing: real phone numbers, URLs, "jag är en AI/bot", English (>20% English words), messages longer than 280 chars. Falls back to canned message on rejection.
 - **Estimate**: 2h
 - **File**: `Services/Llm/ResponseGuardrails.cs`
 - **Evidence**: Unit tests for all rejection cases
@@ -77,29 +77,29 @@
 **Goal**: Replace canned messages with LLM-powered, persona-aware conversations. Keep canned as fallback.
 
 ### Core Engine
-- [ ] T310 [P0] [Core] Create `IConversationEngine` interface — `Task<string> GenerateReplyAsync(BotPersona persona, string matchKeycloakId, ConversationContext context, CancellationToken ct)` where `ConversationContext` includes stage, message history, match profile snippet, bot mood
+- [x] T310 [P0] [Core] Create `IConversationEngine` interface — `Task<string> GenerateReplyAsync(BotPersona persona, string matchKeycloakId, ConversationContext context, CancellationToken ct)` where `ConversationContext` includes stage, message history, match profile snippet, bot mood
 - **Estimate**: 2h
 - **File**: `Services/Conversation/IConversationEngine.cs`, `Models/ConversationContext.cs`
 
-- [ ] T311 [P0] [Core] Implement `CannedConversationEngine` — wraps existing `MessageContentProvider`, implements `IConversationEngine`, zero LLM calls, used as fallback and for load testing mode
+- [x] T311 [P0] [Core] Implement `CannedConversationEngine` — wraps existing `MessageContentProvider`, implements `IConversationEngine`, zero LLM calls, used as fallback and for load testing mode
 - **Estimate**: 1h
 - **File**: `Services/Conversation/CannedConversationEngine.cs`
 - **Depends on**: T310
 - **Evidence**: Returns same messages as current `MessageContentProvider.GetMessageForDepth()`
 
-- [ ] T312 [P0] [Core] Implement `LlmConversationEngine` — builds prompt from persona + context, calls `LlmRouter`, applies guardrails, falls back to canned on failure, logs token usage + latency
+- [x] T312 [P0] [Core] Implement `LlmConversationEngine` — builds prompt from persona + context, calls `LlmRouter`, applies guardrails, falls back to canned on failure, logs token usage + latency
 - **Estimate**: 4h
 - **File**: `Services/Conversation/LlmConversationEngine.cs`
 - **Depends on**: T304, T307, T308, T309, T310
 - **Evidence**: Integration test: persona "Sofia" generates Swedish response to "Hej! Hur mår du?"
 
-- [ ] T313 [P0] [Core] Wire `IConversationEngine` into `SyntheticUserService.ChatWithMatchesAsync()` — replace `_messageProvider.GetMessageForDepth()` with `_conversationEngine.GenerateReplyAsync()`, pass conversation history from API
+- [x] T313 [P0] [Core] Wire `IConversationEngine` into `SyntheticUserService.ChatWithMatchesAsync()` — replace `_messageProvider.GetMessageForDepth()` with `_conversationEngine.GenerateReplyAsync()`, pass conversation history from API
 - **Estimate**: 2h
 - **File**: `Services/BotModes/SyntheticUserService.cs`
 - **Depends on**: T312
 - **Evidence**: Bots send LLM-generated Swedish messages instead of canned
 
-- [ ] T314 [P0] [Core] Wire `IConversationEngine` into `WarmupBotService.WarmupRespondAsync()` — same integration for warmup mode
+- [x] T314 [P0] [Core] Wire `IConversationEngine` into `WarmupBotService.WarmupRespondAsync()` — same integration for warmup mode
 - **Estimate**: 1h
 - **File**: `Services/BotModes/WarmupBotService.cs`
 - **Depends on**: T312
@@ -123,7 +123,7 @@
 - **Depends on**: T304
 - **Evidence**: Unit test: "Hej vackra!" → `flirty`. "Kolla min länk" → `suspicious`.
 
-- [ ] T318 [P1] [Core] Add conversation engine config toggle — `BotServiceOptions.ConversationEngine: "llm" | "canned" | "hybrid"`. Hybrid = LLM for first contact + deepening, canned for fill messages. Per-persona override possible.
+- [x] T318 [P1] [Core] Add conversation engine config toggle — `BotServiceOptions.ConversationEngine: "llm" | "canned" | "hybrid"`. Hybrid = LLM for first contact + deepening, canned for fill messages. Per-persona override possible.
 - **Estimate**: 1h
 - **File**: `Configuration/BotServiceOptions.cs`, `Program.cs`
 - **Evidence**: Toggle works at runtime via `IOptionsMonitor`
@@ -137,17 +137,17 @@
 **Goal**: Bots report what they see — like a normal user complaining about bugs, but structured and actionable.
 
 ### Data Model
-- [ ] T320 [P0] [Data] Create `BotFinding` entity — `{ Id, BotPersonaId, FindingType (enum), Severity (info/warning/critical), Title, Description, Metadata (JSON), CreatedAt, Acknowledged }`. Types: `SlowEndpoint, ApiError, EmptyState, MatchQualityIssue, ConversationDead, SafetyIncident, RateLimitHit, FeatureGap`
+- [x] T320 [P0] [Data] Create `BotFinding` entity — `{ Id, BotPersonaId, FindingType (enum), Severity (info/warning/critical), Title, Description, Metadata (JSON), CreatedAt, Acknowledged }`. Types: `SlowEndpoint, ApiError, EmptyState, MatchQualityIssue, ConversationDead, SafetyIncident, RateLimitHit, FeatureGap`
 - **Estimate**: 2h
 - **File**: `Models/BotFinding.cs`
 
-- [ ] T321 [P0] [Data] Add `DbSet<BotFinding>` to `BotDbContext`, create migration
+- [x] T321 [P0] [Data] Add `DbSet<BotFinding>` to `BotDbContext`, create migration
 - **Estimate**: 1h
 - **File**: `Data/BotDbContext.cs`
 - **Depends on**: T320
 
 ### Observer Layer (instruments DatingAppApiClient)
-- [ ] T322 [P0] [Core] Create `BotObserver` service — wraps `DatingAppApiClient` to measure every API call: latency, status code, payload size. Records findings when: latency >2s, 4xx/5xx errors, empty results for expected data
+- [x] T322 [P0] [Core] Create `BotObserver` service — wraps `DatingAppApiClient` to measure every API call: latency, status code, payload size. Records findings when: latency >2s, 4xx/5xx errors, empty results for expected data
 - **Estimate**: 4h
 - **File**: `Services/Intelligence/BotObserver.cs`
 - **Depends on**: T320, T321
@@ -169,12 +169,12 @@
 - **Depends on**: T315
 
 ### Reporting API
-- [ ] T326 [P0] [API] `GET /api/bot/findings` — paginated list of findings, filter by type/severity/date/persona. Returns JSON array. Used by dashboard/scripts.
+- [x] T326 [P0] [API] `GET /api/bot/findings` — paginated list of findings, filter by type/severity/date/persona. Returns JSON array. Used by dashboard/scripts.
 - **Estimate**: 2h
 - **File**: `Controllers/BotController.cs`
 - **Depends on**: T321
 
-- [ ] T327 [P0] [API] `GET /api/bot/findings/summary` — aggregated dashboard: counts by type, top 5 critical findings, avg API latency by endpoint, conversation health metrics, findings trend (last 7 days)
+- [x] T327 [P0] [API] `GET /api/bot/findings/summary` — aggregated dashboard: counts by type, top 5 critical findings, avg API latency by endpoint, conversation health metrics, findings trend (last 7 days)
 - **Estimate**: 3h
 - **File**: `Controllers/BotController.cs`
 - **Depends on**: T326
@@ -203,22 +203,22 @@
 **Goal**: Dynamically spin up/down bot swarms for specific missions. Run experiments.
 
 ### Swarm Orchestration
-- [ ] T340 [P0] [Core] `SwarmOrchestrator` service — manages bot lifecycle: provision N bots on demand, assign to specific mode, set duration, auto-decommission when done. Supports concurrent swarms.
+- [x] T340 [P0] [Core] `SwarmOrchestrator` service — manages bot lifecycle: provision N bots on demand, assign to specific mode, set duration, auto-decommission when done. Supports concurrent swarms.
 - **Estimate**: 6h
 - **File**: `Services/Swarm/SwarmOrchestrator.cs`, `Models/SwarmConfig.cs`
 - **Evidence**: API call creates 5 bots, they act for 30min, then auto-stop
 
-- [ ] T341 [P0] [API] `POST /api/bot/swarm` — `{ mode: "onboarding-assist"|"retention-boost"|"load-test"|"experiment", count, targetUserIds?, durationMinutes, experimentId? }`. Returns swarm ID for tracking.
+- [x] T341 [P0] [API] `POST /api/bot/swarm` — `{ mode: "onboarding-assist"|"retention-boost"|"load-test"|"experiment", count, targetUserIds?, durationMinutes, experimentId? }`. Returns swarm ID for tracking.
 - **Estimate**: 3h
 - **File**: `Controllers/SwarmController.cs`
 - **Depends on**: T340
 
-- [ ] T342 [P0] [API] `GET /api/bot/swarm/{id}` — swarm status: active bots, matches made, messages sent, findings generated, time remaining
+- [x] T342 [P0] [API] `GET /api/bot/swarm/{id}` — swarm status: active bots, matches made, messages sent, findings generated, time remaining
 - **Estimate**: 2h
 - **File**: `Controllers/SwarmController.cs`
 - **Depends on**: T341
 
-- [ ] T343 [P1] [API] `DELETE /api/bot/swarm/{id}` — stop a running swarm, decommission all its bots
+- [x] T343 [P1] [API] `DELETE /api/bot/swarm/{id}` — stop a running swarm, decommission all its bots
 - **Estimate**: 1h
 - **File**: `Controllers/SwarmController.cs`
 - **Depends on**: T341
