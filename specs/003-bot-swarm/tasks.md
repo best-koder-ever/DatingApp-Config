@@ -234,7 +234,7 @@
 - **File**: `Services/Swarm/Modes/RetentionBoostSwarm.cs`
 - **Depends on**: T340
 
-- [ ] T346 [P1] [Mode] `LoadTestSwarm` — spin up 50-500 bots doing rapid swipe/match/message cycles using canned engine (no LLM cost). Measure: API latency percentiles, error rates, DB connection pool usage. Output: load test report.
+- [x] T346 [P1] [Mode] `LoadTestSwarm` — spin up 50-500 bots doing rapid swipe/match/message cycles using canned engine (no LLM cost). Measure: API latency percentiles, error rates, DB connection pool usage. Output: load test report.
 - **Estimate**: 4h
 - **File**: `Services/Swarm/Modes/LoadTestSwarm.cs`
 - **Depends on**: T340, T322
@@ -245,11 +245,11 @@
 - **Depends on**: T340, T325
 
 ### A/B & Experiment Framework
-- [ ] T348 [P1] [Data] Create `Experiment` entity — `{ Id, Name, Status, GroupA config, GroupB config, StartedAt, EndsAt, Metrics JSON }`. Stored in BotDbContext.
+- [x] T348 [P1] [Data] Create `Experiment` entity — `{ Id, Name, Status, GroupA config, GroupB config, StartedAt, EndsAt, Metrics JSON }`. Stored in BotDbContext.
 - **Estimate**: 2h
 - **File**: `Models/Experiment.cs`, `Data/BotDbContext.cs`
 
-- [ ] T349 [P1] [API] `POST /api/bot/experiments` — create experiment, `GET` list, `GET /{id}/results` — statistical comparison of group A vs B metrics (match rate, conversation depth, response rate)
+- [x] T349 [P1] [API] `POST /api/bot/experiments` — create experiment, `GET` list, `GET /{id}/results` — statistical comparison of group A vs B metrics (match rate, conversation depth, response rate)
 - **Estimate**: 3h
 - **File**: `Controllers/ExperimentController.cs`
 - **Depends on**: T348, T347
