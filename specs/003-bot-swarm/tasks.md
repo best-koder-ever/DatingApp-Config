@@ -105,7 +105,7 @@
 - **Depends on**: T312
 
 ### Conversation Intelligence
-- [ ] T315 [P1] [AI] Implement conversation stage detection — LLM-based or rule-based classifier: `intro → getting_to_know → deep_talk → suggest_fika → post_fika`. Updates `BotState.ConversationStageJson` per match.
+- [x] T315 [P1] [AI] Implement conversation stage detection — LLM-based or rule-based classifier: `intro → getting_to_know → deep_talk → suggest_fika → post_fika`. Updates `BotState.ConversationStageJson` per match.
 - **Estimate**: 3h
 - **File**: `Services/Conversation/ConversationStageDetector.cs`
 - **Depends on**: T310
@@ -117,7 +117,7 @@
 - **Depends on**: T312
 - **Evidence**: All 12 personas score >3.5/5.0 Swedish naturalness
 
-- [ ] T317 [P2] [AI] Implement received-message analysis — when bot receives a message, briefly classify: `normal / flirty / cold / suspicious / spam / sexual`. Use classification to adjust bot response tone + feed into BotObserver safety signals.
+- [x] T317 [P2] [AI] Implement received-message analysis — when bot receives a message, briefly classify: `normal / flirty / cold / suspicious / spam / sexual`. Use classification to adjust bot response tone + feed into BotObserver safety signals.
 - **Estimate**: 3h
 - **File**: `Services/Conversation/MessageClassifier.cs`
 - **Depends on**: T304
@@ -153,17 +153,17 @@
 - **Depends on**: T320, T321
 - **Evidence**: Integration test: mock slow API → finding created with type=SlowEndpoint
 
-- [ ] T323 [P0] [Core] Instrument `SyntheticUserService` with observer — after `GetCandidatesAsync()`: record empty_state if 0 results. After `SwipeAsync()`: record match quality (age delta, distance). After `ChatWithMatchesAsync()`: record conversation depth + dead convos.
+- [x] T323 [P0] [Core] Instrument `SyntheticUserService` with observer — after `GetCandidatesAsync()`: record empty_state if 0 results. After `SwipeAsync()`: record match quality (age delta, distance). After `ChatWithMatchesAsync()`: record conversation depth + dead convos.
 - **Estimate**: 3h
 - **File**: `Services/BotModes/SyntheticUserService.cs`
 - **Depends on**: T322
 
-- [ ] T324 [P1] [Core] Add safety incident recording — when bot receives classified `suspicious`/`spam`/`sexual` message (from T317), create finding with full context: sender ID, message content hash (not plain text for privacy!), pattern, timestamp
+- [x] T324 [P1] [Core] Add safety incident recording — when bot receives classified `suspicious`/`spam`/`sexual` message (from T317), create finding with full context: sender ID, message content hash (not plain text for privacy!), pattern, timestamp
 - **Estimate**: 2h
 - **File**: `Services/Intelligence/SafetyIncidentRecorder.cs`
 - **Depends on**: T317, T322
 
-- [ ] T325 [P1] [Core] Track conversation metrics per match — `{ matchId, firstMessageAt, lastMessageAt, messagesExchanged, avgResponseTimeMs, conversationStage, outcome (ongoing/dead/fika_suggested/blocked) }`. Updates BotState JSON field.
+- [x] T325 [P1] [Core] Track conversation metrics per match — `{ matchId, firstMessageAt, lastMessageAt, messagesExchanged, avgResponseTimeMs, conversationStage, outcome (ongoing/dead/fika_suggested/blocked) }`. Updates BotState JSON field.
 - **Estimate**: 2h
 - **File**: `Services/Intelligence/ConversationTracker.cs`
 - **Depends on**: T315
@@ -179,7 +179,7 @@
 - **File**: `Controllers/BotController.cs`
 - **Depends on**: T326
 
-- [ ] T328 [P1] [Core] `BotReporter` background service — runs every 6 hours, generates "daily digest" of findings: top issues, trends, anomalies. Logs structured summary. Optionally webhooks to Slack/Discord.
+- [x] T328 [P1] [Core] `BotReporter` background service — runs every 6 hours, generates "daily digest" of findings: top issues, trends, anomalies. Logs structured summary. Optionally webhooks to Slack/Discord.
 - **Estimate**: 3h
 - **File**: `Services/Intelligence/BotReporter.cs`
 - **Depends on**: T326, T327
