@@ -1,6 +1,7 @@
 using BotService.Data;
 using BotService.Models;
 using Microsoft.AspNetCore.Mvc;
+using BotService.Services.Swarm;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotService.Controllers;
@@ -142,6 +143,7 @@ public class ExperimentsController : ControllerBase
             experiment.MetricsJson,
             groupA = new { config = experiment.GroupAConfig },
             groupB = new { config = experiment.GroupBConfig }
+            ,analysis = ExperimentAnalyzer.Analyze(experiment.MetricsJson)
         });
     }
 }

@@ -239,7 +239,7 @@
 - **File**: `Services/Swarm/Modes/LoadTestSwarm.cs`
 - **Depends on**: T340, T322
 
-- [ ] T347 [P2] [Mode] `ExperimentSwarm` — A/B testing: split bots into groups, each group uses different conversation strategy (opener style, response delay, chattiness level). Track engagement metrics per group.
+- [x] T347 [P2] [Mode] `ExperimentSwarm` — A/B testing: split bots into groups, each group uses different conversation strategy (opener style, response delay, chattiness level). Track engagement metrics per group.
 - **Estimate**: 5h
 - **File**: `Services/Swarm/Modes/ExperimentSwarm.cs`
 - **Depends on**: T340, T325
@@ -254,7 +254,7 @@
 - **File**: `Controllers/ExperimentController.cs`
 - **Depends on**: T348, T347
 
-- [ ] T350 [P2] [Core] Experiment result calculator — compute: p-value for metric differences, confidence intervals, sample size adequacy, winner declaration. Simple t-test implementation.
+- [x] T350 [P2] [Core] Experiment result calculator — compute: p-value for metric differences, confidence intervals, sample size adequacy, winner declaration. Simple t-test implementation.
 - **Estimate**: 3h
 - **File**: `Services/Swarm/ExperimentAnalyzer.cs`
 - **Depends on**: T349
@@ -304,7 +304,7 @@
 - **File**: `Tests/Integration/SwedishNaturalnessTests.cs`
 - **Depends on**: T312
 
-- [ ] T367 [P1] [Ops] Bot health dashboard script — `scripts/bot-dashboard.sh` that queries `/api/bot/status`, `/api/bot/findings/summary`, formats terminal-friendly overview. For daily monitoring.
+- [x] T367 [P1] [Ops] Bot health dashboard script — `scripts/bot-dashboard.sh` that queries `/api/bot/status`, `/api/bot/findings/summary`, formats terminal-friendly overview. For daily monitoring.
 - **Estimate**: 2h
 - **File**: `scripts/bot-dashboard.sh`
 
