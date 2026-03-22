@@ -148,12 +148,12 @@ services:
       context: ./swipe-service
       dockerfile: Dockerfile
     ports:
-      - "8086:8086"
+      - "8087:8087"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8086
-      - ASPNETCORE_HTTPS_PORTS=8086
-      - ASPNETCORE_URLS=http://*:8086
+      - ASPNETCORE_HTTP_PORTS=8087
+      - ASPNETCORE_HTTPS_PORTS=8087
+      - ASPNETCORE_URLS=http://*:8087
       - ConnectionStrings__DefaultConnection=Server=swipe-service-db;Port=3306;Database=SwipeServiceDb;User=swipeservice_user;Password=swipeservice_user_password;
     depends_on:
       - swipe-service-db
@@ -283,7 +283,7 @@ services:
   seq:
     image: datalust/seq:latest
     ports:
-      - "8087:80"
+      - "5341:80"
     environment:
       ACCEPT_EULA: Y
     volumes:

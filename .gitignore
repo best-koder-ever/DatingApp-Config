@@ -75,3 +75,4 @@ TestResults/
 /photo-service/
 /messaging-service/
 /dejting-yarp/
+.env.staging

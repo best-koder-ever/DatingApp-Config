@@ -1,0 +1,136 @@
+# Staging overlay — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.staging.yml --env-file .env.staging up -d
+#
+# All traffic goes through YARP on host port 8080.
+# Keycloak is behind YARP at /auth/* (KC_HTTP_RELATIVE_PATH=/auth).
+# Tailscale Funnel exposes host:8080 as HTTPS to the internet.
+#
+# Keycloak uses dynamic hostname (no KC_HOSTNAME set) — it reads
+# X-Forwarded-Host from YARP for external requests and uses the
+# Docker DNS hostname for internal service requests.
+
+services:
+  keycloak:
+    environment:
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+
+  yarp:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://*:80
+    ports: !override
+      - "8080:80"
+    depends_on:
+      - user-service
+      - matchmaking-service
+      - swipe-service
+      - photo-service
+      - messaging-service
+      - safety-service
+
+  user-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+    ports: !reset []
+
+  matchmaking-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+      - Services__MessagingService=http://messaging-service:80
+    ports: !reset []
+
+  swipe-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+    ports: !reset []
+
+  photo-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+    # Override depends_on to drop deepface (dev-only in staging)
+    depends_on: !override
+      photo-service-db:
+        condition: service_healthy
+    ports: !reset []
+
+  messaging-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+    ports: !reset []
+
+  safety-service:
+    image: safety-service:latest
+    build:
+      context: ./safety-service/SafetyService
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+    networks:
+      - app-network
+
+  # Strip DB ports — no external exposure in staging
+  UserService-db:
+    ports: !reset []
+  MatchmakingService-db:
+    ports: !reset []
+  swipe-service-db:
+    ports: !reset []
+  photo-service-db:
+    ports: !reset []
+  messaging-service-db:
+    ports: !reset []
+  keycloak-db:
+    ports: !reset []
+
+  # Dev-only services (not needed for staging alpha)
+  seq:
+    profiles: [dev-only]
+  loki:
+    profiles: [dev-only]
+  promtail:
+    profiles: [dev-only]
+  grafana:
+    profiles: [dev-only]
+  deepface:
+    profiles: [dev-only]
+  mailhog:
+    profiles: [dev-only]
+  debug:
+    profiles: [dev-only]
