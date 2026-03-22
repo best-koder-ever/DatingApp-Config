@@ -184,7 +184,7 @@
 - **File**: `Services/Intelligence/BotReporter.cs`
 - **Depends on**: T326, T327
 
-- [ ] T329 [P1] [API] `GET /api/bot/findings/export` — CSV/JSON export of all findings for analysis. Useful for product meetings.
+- [x] T329 [P1] [API] `GET /api/bot/findings/export` — CSV/JSON export of all findings for analysis. Useful for product meetings.
 - **Estimate**: 1h
 - **File**: `Controllers/BotController.cs`
 - **Depends on**: T326
@@ -224,12 +224,12 @@
 - **Depends on**: T341
 
 ### Swarm Modes
-- [ ] T344 [P0] [Mode] `OnboardingAssistSwarm` — dynamic persona factory picks N bots to match new user's gender preference + age range + location, auto-swipes right on target user, sends opener within 5 min of match. Goal: new user has match within 10 min.
+- [x] T344 [P0] [Mode] `OnboardingAssistSwarm` — dynamic persona factory picks N bots to match new user's gender preference + age range + location, auto-swipes right on target user, sends opener within 5 min of match. Goal: new user has match within 10 min.
 - **Estimate**: 4h
 - **File**: `Services/Swarm/Modes/OnboardingAssistSwarm.cs`
 - **Depends on**: T340
 
-- [ ] T345 [P1] [Mode] `RetentionBoostSwarm` — finds users inactive >48h, sends them a "new match" by having a bot swipe right + send interesting opener. Max 1 retention nudge per user per week.
+- [x] T345 [P1] [Mode] `RetentionBoostSwarm` — finds users inactive >48h, sends them a "new match" by having a bot swipe right + send interesting opener. Max 1 retention nudge per user per week.
 - **Estimate**: 3h
 - **File**: `Services/Swarm/Modes/RetentionBoostSwarm.cs`
 - **Depends on**: T340
