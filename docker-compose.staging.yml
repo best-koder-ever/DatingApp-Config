@@ -40,6 +40,10 @@ services:
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
       - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__2=https://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__3=http://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__4=https://127.0.0.1:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
     ports: !reset []
 
   matchmaking-service:
@@ -50,6 +54,10 @@ services:
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
       - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__2=https://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__3=http://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__4=https://127.0.0.1:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
       - Gateway__BaseUrl=http://yarp:80
       - Services__MessagingService=http://messaging-service:80
     ports: !reset []
@@ -62,6 +70,10 @@ services:
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
       - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__2=https://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__3=http://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__4=https://127.0.0.1:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
       - Gateway__BaseUrl=http://yarp:80
     ports: !reset []
 
@@ -73,6 +85,10 @@ services:
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
       - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__2=https://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__3=http://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__4=https://127.0.0.1:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
       - Gateway__BaseUrl=http://yarp:80
     # Override depends_on to drop deepface (dev-only in staging)
     depends_on: !override
@@ -91,6 +107,10 @@ services:
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
       - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__2=https://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__3=http://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__4=https://127.0.0.1:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
       - Gateway__BaseUrl=http://yarp:80
     ports: !reset []
 
@@ -106,6 +126,10 @@ services:
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
       - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__2=https://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__3=http://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__4=https://127.0.0.1:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
     networks:
       - app-network
 
