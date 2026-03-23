@@ -330,5 +330,8 @@
     "ssl": "",
     "starttls": "",
     "auth": ""
-  }
+  },
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 7200,
+  "ssoSessionMaxLifespan": 86400
 }
