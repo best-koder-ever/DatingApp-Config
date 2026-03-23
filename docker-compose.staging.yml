@@ -35,6 +35,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Staging
       - ASPNETCORE_URLS=http://*:80
+      - Kestrel__Endpoints__Http__Url=http://*:80
       - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
       - Authentication__Keycloak__RequireHttpsMetadata=false
       - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
@@ -80,6 +81,9 @@ services:
     ports: !reset []
 
   messaging-service:
+    build:
+      context: .
+      dockerfile: messaging-service/Dockerfile.staging
     environment:
       - ASPNETCORE_ENVIRONMENT=Staging
       - ASPNETCORE_URLS=http://*:80

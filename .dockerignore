@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.git/
+**/node_modules/
+**/logs/
+**/*.db
+mobile-apps/
+TestDataGenerator/
+infrastructure/
+.venv/
+*.md
