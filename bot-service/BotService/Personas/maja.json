@@ -21,6 +21,6 @@
     "activeStartHourUtc": 6,
     "activeEndHourUtc": 21,
     "maxDailySwipes": 50,
-    "maxDailyMessages": 30
+    "maxDailyMessages": 500
   }
 }

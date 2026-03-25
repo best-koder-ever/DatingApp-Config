@@ -205,6 +205,11 @@ echo "📊 To check status: ./dev-status.sh"
 echo ""
 echo "🎯 Complete Dating App Backend Running!"
 
+# Refresh AI context (injects live state into .github/copilot-instructions.md)
+if [ -f scripts/generate-ai-context.sh ]; then
+    bash scripts/generate-ai-context.sh 2>/dev/null &
+fi
+
 echo "💡 All services: 8080(Gateway), 8082(User), 8083(Matchmaking), 8085(Photo), 8086(Messaging), 8087(Swipe), 8088(Safety), 8089(Bot*)"
 
 

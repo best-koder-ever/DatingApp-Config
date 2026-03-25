@@ -60,6 +60,7 @@ services:
       - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
       - Gateway__BaseUrl=http://yarp:80
       - Services__MessagingService=http://messaging-service:80
+      - Services__UserService__BaseUrl=http://user-service:80
     ports: !reset []
 
   swipe-service:
@@ -112,6 +113,7 @@ services:
       - Authentication__Keycloak__ValidIssuers__4=https://127.0.0.1:8080/auth/realms/DatingApp
       - Authentication__Keycloak__ValidIssuers__5=http://127.0.0.1:8080/auth/realms/DatingApp
       - Gateway__BaseUrl=http://yarp:80
+      - Services__SwipeService__BaseUrl=http://swipe-service:80
     ports: !reset []
 
   safety-service:
