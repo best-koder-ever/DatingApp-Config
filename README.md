@@ -1,115 +1,117 @@
-# DatingApp - Modern Dating Platform
+# DatingApp Platform
 
-[![Auto Tests](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/auto-test.yml/badge.svg)](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/auto-test.yml)
-[![Comprehensive CI/CD](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/comprehensive-ci-cd.yml/badge.svg)](https://github.com/best-koder-ever/DatingApp-Config/actions/workflows/comprehensive-ci-cd.yml)
+A production-style, microservices dating platform built with .NET 8 backend services and a Flutter client.
 
-Modern microservices-based dating platform with .NET 8 backend and Flutter frontend.
+This repository is the platform orchestration and configuration hub. It ties together service repos, local infrastructure, scripts, and integration flows.
 
-**Auto-Testing**: Tests run automatically on every push + every 6 hours  
-**Monitoring**: [View Dashboard](http://localhost:3000) • Run `./start-monitoring.sh`
+## Why This Repo Exists
 
-## Architecture
+This is the control plane for local/dev environments and cross-repo workflows.
+
+It contains:
+- Local infrastructure startup and shutdown scripts
+- Platform-level test orchestration
+- Development automation and quality scripts
+- High-level architecture, specs, and docs
+
+It does **not** contain all feature code for every service. Core implementation lives in the service-specific repositories listed below.
+
+## Repository Map
+
+Core repos in this platform:
+
+- `best-koder-org/mobile_dejtingapp` - Flutter app (mobile/web client)
+- `best-koder-org/UserService` - Profiles, onboarding state, preferences
+- `best-koder-org/MatchmakingService` - Candidate scoring and match logic
+- `best-koder-org/swipe-service` - Swipe ingestion and behavior analytics
+- `best-koder-org/messaging-service` - SignalR + REST messaging stack
+- `best-koder-org/photo-service` - Media storage, image processing, moderation
+- `best-koder-org/dejting-yarp` - API gateway and traffic/routing policies
+- `best-koder-org/DatingAppController` - Multi-repo automation/orchestration
+- `best-koder-ever/DatingApp-Config` (this repo)
+
+## Architecture Snapshot
 
 ### Backend Services
-- **UserService** - User profile management, preferences, bio
-- **MatchmakingService** - ML-powered candidate scoring & matching
-- **SwipeService** - Swipe processing, match verification
-- **PhotoService** - Photo storage, moderation, privacy enforcement
-- **MessagingService** - Real-time messaging via SignalR
-- **dejting-yarp** - API Gateway (YARP reverse proxy)
+- UserService
+- MatchmakingService
+- swipe-service
+- messaging-service
+- photo-service
+- dejting-yarp (gateway)
+- safety-service
+- bot-service
 
-### Frontend
-- **Flutter App** - Cross-platform mobile (iOS/Android) + web client
+### Client
+- Flutter 3.32.1 + Dart 3.5
 
 ### Infrastructure
-- **Keycloak** - OIDC authentication (port 9090)
-- **MySQL 8.0** - All service databases
-- **Seq** - Structured logging (port 5380)
-- **Grafana** - Metrics & dashboards (port 3030)
+- Keycloak (OIDC)
+- MySQL
+- YARP gateway
+- Python-based smoke tests
 
 ## Quick Start
 
 ```bash
-# Start infrastructure (Keycloak, MySQL, Seq, Grafana)
+# 1) Start shared infrastructure (Keycloak + DB)
 ./infrastructure/start.sh
 
-# Start all backend services
+# 2) Start backend services
 ./dev-start.sh
 
-# Run backend API tests
+# 3) Run API smoke tests
 python3 api_tests.py
 
-# Run Flutter app (development)
-cd /home/m/development/mobile-apps/flutter/dejtingapp
-flutter run -d chrome
+# 4) Stop everything
+./dev-stop.sh
+./infrastructure/stop.sh
 ```
 
-**Detailed setup:** See [specs/001-mvp-foundation/quickstart.md](specs/001-mvp-foundation/quickstart.md)
+## Platform Validation
 
-## Development
+```bash
+python3 api_tests.py
+```
 
-### Technologies
-- .NET 8 + ASP.NET Core + Entity Framework Core 8
-- SignalR (real-time messaging)
-- Keycloak OIDC (authentication)
-- ImageSharp (photo processing)
-- ML.NET (matchmaking scoring)
-- Flutter 3.32.1 + Dart 3.5 (client)
-- MySQL 8.0 (Pomelo EF Core provider)
-- Python 3.12 (tooling & API tests)
+What this validates:
+- Auth/login flows
+- Profile and onboarding API paths
+- Match and swipe API behavior
+- Messaging API basics
 
-### Code Style
-- Follow .NET 8 conventions with analyzers enabled
-- Flutter: `analysis_options.yaml` (pedantic + lint)
-- Python: `ruff` defaults
+## Multi-Repo Workflow
 
-### Multi-Repo Workflow
-This project uses 8+ Git repositories. **Always use helper scripts:**
-- **Commits/pushes:** `./gita-workflow.sh` or `./ai-commit-helper.sh`
-- **GitHub operations:** `./gh-multi-repo.sh`
+This platform is intentionally multi-repo. Use provided helpers instead of manual loops:
 
-**Never manually iterate repos** - scripts exist to automate this.
+```bash
+# Commit/push helper for many repos
+./gita-workflow.sh
 
-## CI/CD
+# Multi-repo GitHub operations
+./gh-multi-repo.sh
+```
 
-CI/CD pipeline runs on every push to `main`/`develop` branches:
+## Tech Stack
 
-- .NET unit tests (all services)
-- Flutter unit & integration tests
-- Service builds (Docker images)
-- Security scanning (dependency checks)
-- ~~Integration tests~~ (deferred pending service-to-service auth)
-- ~~E2E tests~~ (deferred pending Flutter stabilization)
+- .NET 8 / ASP.NET Core
+- EF Core 8 + MySQL
+- SignalR
+- Flutter (mobile + web)
+- Keycloak OIDC
+- Python 3.12 tooling
 
-**Workflow:** [.github/workflows/comprehensive-ci-cd.yml](.github/workflows/comprehensive-ci-cd.yml)
+## For Recruiters / Hiring Managers
 
-## Project Status
+Start here, then inspect these repos for deeper examples:
 
-**Current Focus:** Backend Solidification - Week 1 (001-mvp-foundation)
+1. `best-koder-org/mobile_dejtingapp` (frontend architecture + testable services)
+2. `best-koder-org/MatchmakingService` (domain logic and scoring)
+3. `best-koder-org/dejting-yarp` (gateway architecture)
+4. `best-koder-org/messaging-service` (real-time systems)
 
-Recent completions:
-- ✅ T052: PhotoService privacy enforcement (match verification)
-- ✅ T007: Database consolidation (MySQL 8.0 standardization)
-- ✅ T008: Remove AuthService (Keycloak sole auth)
-- ✅ T065: Remove TestDataGenerator (api_tests.py automation)
-- 🔨 T004: CI/CD green builds (in progress)
-
-**Next priorities:**
-- T004: Enable CI/CD green builds with coverage gates
-- Service-to-service authentication (internal API keys)
-- Performance & observability improvements
-- Launch prep (Week 3)
-
-**Roadmap:** See [specs/001-mvp-foundation/tasks.md](specs/001-mvp-foundation/tasks.md)
-
-## Documentation
-
-- **Quickstart:** [specs/001-mvp-foundation/quickstart.md](specs/001-mvp-foundation/quickstart.md)
-- **Architecture:** [specs/001-mvp-foundation/guide.md](specs/001-mvp-foundation/guide.md)
-- **Tasks:** [specs/001-mvp-foundation/tasks.md](specs/001-mvp-foundation/tasks.md)
-- **API Contracts:** [specs/001-mvp-foundation/contracts/](specs/001-mvp-foundation/contracts/)
-- **AI Collaboration:** [AI_COLLABORATION_GUIDE.md](AI_COLLABORATION_GUIDE.md)
+Each repo includes a dedicated README with architecture and run/test instructions.
 
 ## License
 
-Proprietary - All rights reserved
+Proprietary unless stated otherwise.
