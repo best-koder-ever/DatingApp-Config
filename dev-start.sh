@@ -72,42 +72,42 @@ done
 # Start UserService
 echo "👤 Starting UserService on port 8082..."
 cd /home/m/development/DatingApp/UserService
-ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8082 dotnet run > ../logs/user-service.log 2>&1 &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8082 dotnet run > ../logs/user-service.log 2>&1 &
 USER_PID=$!
 sleep 2
 
 # Start MatchmakingService
 echo "� Starting MatchmakingService on port 8083..."
 cd /home/m/development/DatingApp/MatchmakingService
-ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8083 dotnet run > ../logs/matchmaking-service.log 2>&1 &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8083 dotnet run > ../logs/matchmaking-service.log 2>&1 &
 MATCHMAKING_PID=$!
 sleep 2
 
 # Start PhotoService  
 echo "📸 Starting PhotoService on port 8085..."
 cd /home/m/development/DatingApp/photo-service
-ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8085 dotnet run > ../logs/photo-service.log 2>&1 &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8085 dotnet run > ../logs/photo-service.log 2>&1 &
 PHOTO_PID=$!
 sleep 2
 
 # Start MessagingService
 echo "💬 Starting MessagingService on port 8086..."
 cd /home/m/development/DatingApp/messaging-service
-ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8086 dotnet run > ../logs/messaging-service.log 2>&1 &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8086 dotnet run > ../logs/messaging-service.log 2>&1 &
 MESSAGING_PID=$!
 sleep 2
 
 # Start SwipeService
 echo "👆 Starting SwipeService on port 8087..."
 cd /home/m/development/DatingApp/swipe-service
-ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8087 dotnet run --project SwipeService.csproj > ../logs/swipe-service.log 2>&1 &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8087 dotnet run --project SwipeService.csproj > ../logs/swipe-service.log 2>&1 &
 SWIPE_PID=$!
 sleep 2
 
 # Start SafetyService
 echo "🛡️ Starting SafetyService on port 8088..."
 cd /home/m/development/DatingApp/safety-service/SafetyService
-ASPNETCORE_ENVIRONMENT=Development DEMO_MODE=true ASPNETCORE_URLS=http://+:8088 dotnet run > ../../logs/safety-service.log 2>&1 &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8088 dotnet run > ../../logs/safety-service.log 2>&1 &
 SAFETY_PID=$!
 sleep 2
 
