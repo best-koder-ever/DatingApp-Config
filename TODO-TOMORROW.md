@@ -1,9 +1,39 @@
 # TODO — Current State
 
-**Updated**: 2026-03-20
-**MVP Progress**: ~98% (all screens, 7/7 backends, i18n, 676/676 tests passing)
+**Updated**: 2026-05-07
+**MVP Progress**: MVP-Demo v0.1 — real-time match notifications + REST→SignalR message broadcast wired
 **GitHub**: 0 open issues, 0 open PRs on fork
-**Last Commit**: `69bd1e7` — all 676 Flutter tests green
+**Last Commits**:
+- messaging-service `a35f0a5` (origin/main) — broadcast MessageReceived via SignalR on REST send
+- MatchmakingService `bdedc98` (feature/keycloak-auth-updates) — Hub joins user_{profileId} group so MatchCreated reaches Flutter
+- bot-service `d3815cd` (feature/bot-service-improvements) — warn-log when keycloak-id resolution fails
+
+---
+
+## ✅ MVP-Demo v0.1 Wiring — DONE
+
+### B1 — Live match notifications (FIXED)
+`MatchmakingHub` now joins both `user_{keycloakId}` AND `user_{profileId}` groups on connect (resolves profileId via UserService `/api/profiles/me`). `NotificationService` broadcasts to `user_{profileId}` and Flutter's existing `MatchCreated` listener (`main_app.dart:136`) now receives the event and renders the "It's a Match!" dialog.
+**Tests**: 200/200 MatchmakingService green. Commit `bdedc98`.
+
+### B5 — REST message broadcast (FIXED)
+`SendMessageHandler` now injects optional `IHubContext<MessagingHubSpec>` and broadcasts `MessageReceived` to receiver + sender after persist. Bot REST sends now reach Flutter without reload. Try/catch ensures persist succeeds even if hub broadcast fails.
+**Tests**: 3 new + 132 existing pass. Commit `a35f0a5`.
+
+### B2 — keycloak-id silent fail (HARDENED)
+`DatingAppApiClient.GetKeycloakIdForProfileAsync` now logs structured `LogWarning` for null result and missing `keycloakId` (was silent skip). UserService endpoint `GET /api/UserProfiles/{id}` returns `KeycloakId` correctly.
+**Tests**: 298/298 BotService green. Commit `d3815cd`.
+
+### B4 — Photo URLs in match payload (VERIFIED)
+`MatchmakingService/Controllers/ProfilesController.cs:176-177` already includes `photoUrl` and `photoUrls`. No change needed.
+
+### Smoke test
+All 6 backend services boot cleanly with new code. Health endpoints all green. MM logs show normal bot-bot match creation.
+
+### Pending v0.1 acceptance
+- ⏳ Live Flutter UAT on device (signup → wizard → swipe bot → "It's a Match!" → bot replies in chat)
+- ⏳ Tag `mvp-demo-v0.1` post-UAT
+- ⏳ B3 profile sync (deferred)
 
 ---
 
