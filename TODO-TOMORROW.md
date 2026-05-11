@@ -1,94 +1,69 @@
 # TODO — Current State
 
-**Updated**: 2026-05-07
-**MVP Progress**: MVP-Demo v0.1 — real-time match notifications + REST→SignalR message broadcast wired
-**GitHub**: 0 open issues, 0 open PRs on fork
-**Last Commits**:
-- messaging-service `a35f0a5` (origin/main) — broadcast MessageReceived via SignalR on REST send
-- MatchmakingService `bdedc98` (feature/keycloak-auth-updates) — Hub joins user_{profileId} group so MatchCreated reaches Flutter
-- bot-service `d3815cd` (feature/bot-service-improvements) — warn-log when keycloak-id resolution fails
+**Updated**: 2026-05-08
+**Active spec**: `specs/005-core-differentiation` (Compatibility Engine + Match Insight)
+**Tagged**: `mvp-demo-v0.1` (commit `ba559e9`)
 
 ---
 
-## ✅ MVP-Demo v0.1 Wiring — DONE
+## ✅ Recently Shipped (spec 005)
 
-### B1 — Live match notifications (FIXED)
-`MatchmakingHub` now joins both `user_{keycloakId}` AND `user_{profileId}` groups on connect (resolves profileId via UserService `/api/profiles/me`). `NotificationService` broadcasts to `user_{profileId}` and Flutter's existing `MatchCreated` listener (`main_app.dart:136`) now receives the event and renders the "It's a Match!" dialog.
-**Tests**: 200/200 MatchmakingService green. Commit `bdedc98`.
+### Phase 3 — Compatibility Scoring Engine
+- [x] T520-T523, T525 — `CompatibilityScorer`, `CompatibilityScore` entity, `GET /api/compatibility/score/{other}`, unit tests
 
-### B5 — REST message broadcast (FIXED)
-`SendMessageHandler` now injects optional `IHubContext<MessagingHubSpec>` and broadcasts `MessageReceived` to receiver + sender after persist. Bot REST sends now reach Flutter without reload. Try/catch ensures persist succeeds even if hub broadcast fails.
-**Tests**: 3 new + 132 existing pass. Commit `a35f0a5`.
+### Phase 4 — Scoring Integration (backend)
+- [x] T530 — `AdvancedMatchingService.ScoreCandidateAsync` blends compatibility (30% weight)
+- [x] T531 — `ScoringConfiguration.CompatibilityWeight` (default 0.30), weights sum to 1.0
+- [x] T532 — "Why You Matched" reasons + frictions generated during scoring
+- [x] T533 — `MatchInsight` entity + migration
+- [x] T534 — `GET /api/matchmaking/matches/{matchId}/insight` (tiered free/premium)
+- All 217 MatchmakingService tests green. Commits: MatchmakingService `54c2f5a`, `a3fa924` on `feature/keycloak-auth-updates`.
 
-### B2 — keycloak-id silent fail (HARDENED)
-`DatingAppApiClient.GetKeycloakIdForProfileAsync` now logs structured `LogWarning` for null result and missing `keycloakId` (was silent skip). UserService endpoint `GET /api/UserProfiles/{id}` returns `KeycloakId` correctly.
-**Tests**: 298/298 BotService green. Commit `d3815cd`.
-
-### B4 — Photo URLs in match payload (VERIFIED)
-`MatchmakingService/Controllers/ProfilesController.cs:176-177` already includes `photoUrl` and `photoUrls`. No change needed.
-
-### Smoke test
-All 6 backend services boot cleanly with new code. Health endpoints all green. MM logs show normal bot-bot match creation.
-
-### Pending v0.1 acceptance
-- ⏳ Live Flutter UAT on device (signup → wizard → swipe bot → "It's a Match!" → bot replies in chat)
-- ⏳ Tag `mvp-demo-v0.1` post-UAT
-- ⏳ B3 profile sync (deferred)
+### Phase 5 — Match Insight Flutter UI (partial)
+- [x] T519 — Widget tests for `compatibility_questions_screen`
+- [x] T540 — `MatchInsightService` API client with LRU cache (shipped by Copilot coding agent PR #23)
+- [x] T541 — `CompatibilityBadge` circular gradient widget (shipped PR #18)
+- [x] T542 — `CompatibilityBarComparison` widget (shipped PR #24)
+- [x] T547 — Widget tests for badge + bars
+- [~] T545 — Badge overlay on matches list (visible); tap-to-insight-card pending T543. Commit `2cac3d3` on `main`.
 
 ---
 
-## ✅ P0 DONE — All Test Failures Fixed
+## ⏳ Up Next
 
-**676/676 tests pass** (was 597/636). All 39+ failures resolved in commit `69bd1e7`.
+### Spec 005 — finish Phase 5
+- [ ] **T543** [P0] [Flutter] `MatchInsightScreen` — full 4-section card (Why Connected, Friction, Growth, Premium). Wire `enhanced_matches_screen` badge tap → this screen.
+- [ ] **T544** [P1] [Flutter] Integrate badge into `profile_card.dart` (discover deck).
+- [ ] **T546** [P0] [Test] Widget tests for `MatchInsightScreen`.
 
----
+### Spec 005 — finish Phase 4
+- [ ] **T535** [P1] [Backend] `DailyPickGenerationService` uses compatibility-blended scoring.
+- [ ] **T536** [P0] [Test] Integration tests for `AdvancedMatchingService` compatibility integration.
+- [ ] **T537** [P0] [Test] Unit tests for `MatchInsight` generation (asymmetric per-user reasons).
 
-## ⏳ NEXT SESSION PRIORITIES
-
-### P1 — Device Verification of Fixes
-Verify on physical device that past bug fixes (from Copilot agent PRs) actually work:
-1. Verification code screen overflow (was #9)
-2. Auth-required badge on Matches tab (was #10)
-3. Bottom buttons cut off in onboarding (was #11)
-4. Discover filter icon functionality (was #12)
-
-### P2 — Post-Onboarding E2E Testing (needs backend running)
-1. **Discover → Like → Match → Chat** — need test data seeded, verify full flow
-2. **Photo upload E2E** — verify photos visible in wizard + profile
-3. **Chat moderation UX** — safety agent amber warning on device
-
-### P3 — Missing Features
-1. **Push notifications** — no Firebase Cloud Messaging integrated yet
-2. **Geolocation** — location_permission screen exists but no actual location service
-3. **Error boundary** — no global error handling / crash reporting
-4. **Phase 002 Wave 2** — Matchmaking Intelligence Agent, Profile Enhancement Agent
+### Verification
+- [ ] **Emulator UAT**: spin up `./infrastructure/start.sh && ./dev-start.sh`, run flutter on emulator, verify badge appears on real match between demo-user + Maja.
+- [ ] **PR cleanup**: merge `feature/keycloak-auth-updates` → `004-multi-app-architecture` for MatchmakingService once T536/T537 land.
 
 ---
 
-## ✅ DONE (Mar 20)
+## 🔮 Future Phases
 
-### Fixed All 39+ Remaining Test Failures → 676/676 Green
-Root causes:
-- `bySemanticsLabel` → `byWidgetPredicate` (21 files)
-- Viewport resize for tall screens (selfie, photo, settings, home filter)
-- `pumpAndSettle` → `pump(Duration)` for async screens
-- `HttpOverrides.global` → `.current` (Dart 3.8 breaking change)
-- `settings_screen_test` syntax corruption from PR #94 repaired
-- `url_launcher` mock for Rate Us snackbar test
-- Navigation route transition pump patterns
-- Platform channel mocks (secure storage, shared prefs)
-- Manual scroll-and-pump for off-screen ListView items
-
-### Commit: `69bd1e7` pushed to fork/main
+- **Phase 6** — AI Psykolog (LLM-generated nuance, weekly insights digest, premium gating)
+- **Phase 7** — Voice Prompts integration with insight ("She mentioned X in her voice prompt — try asking about that")
+- **Phase 8** — Daily Picks UI surface (mailbox metaphor, T535 prerequisite)
 
 ---
 
-## ✅ DONE (Mar 19) — Fixed 52 UC Widget Tests
+## 📁 Where Things Live
 
-### Commit: `08bd073` pushed to fork/main
+| Concern | Repo / Path |
+|---|---|
+| Backend compatibility | `MatchmakingService/Services/CompatibilityScorer.cs` + `MatchInsightService.cs` |
+| Backend endpoint | `MatchmakingService/Controllers/MatchmakingController.cs` (`GET /matches/{id}/insight`) |
+| Flutter service | `mobile-apps/flutter/dejtingapp/lib/services/match_insight_service.dart` |
+| Flutter badge | `lib/widgets/compatibility_badge.dart` |
+| Flutter bars | `lib/widgets/compatibility_bar_comparison.dart` |
+| Matches screen | `lib/screens/enhanced_matches_screen.dart` |
+| Spec tasks | `DatingApp/specs/005-core-differentiation/tasks.md` |
 
----
-
-## ✅ DONE (Mar 18) — Device Walkthrough + Visual QA
-
-### 72 screenshots, 4 bugs filed (#9-#12), PRs #100-#103 merged

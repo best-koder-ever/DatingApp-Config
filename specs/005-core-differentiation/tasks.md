@@ -126,7 +126,7 @@
 - **Depends on**: T510
 - **Evidence**: `dotnet test` passes, all endpoints covered
 
-- [ ] T519 [P0] [Test] Widget tests for compatibility_questions_screen — test question rendering, slider interaction, category grouping, submit flow, skip behavior
+- [x] T519 [P0] [Test] Widget tests for compatibility_questions_screen — test question rendering, slider interaction, category grouping, submit flow, skip behavior
 - **Estimate**: 3h
 - **File**: `mobile-apps/flutter/dejtingapp/test/screens/wizard/compatibility_questions_screen_test.dart`
 - **Depends on**: T515
@@ -243,18 +243,18 @@
 **Goal**: Show users WHY they matched. Progressive disclosure from discover card to full insight.
 
 ### Flutter Components
-- [ ] T540 [P0] [Flutter] Create `MatchInsightService` — API client for `/api/matchmaking/matches/{matchId}/insight`. Caches insight data locally.
+- [x] T540 [P0] [Flutter] Create `MatchInsightService` — API client for `/api/matchmaking/matches/{matchId}/insight`. Caches insight data locally.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/services/match_insight_service.dart`
 - **Depends on**: T534
 - **Evidence**: Service compiles, returns parsed insight data
 
-- [ ] T541 [P0] [Flutter] Create compatibility badge widget — circular gradient badge showing overall % score. Coral→teal gradient. Used on discover card and match list.
+- [x] T541 [P0] [Flutter] Create compatibility badge widget — circular gradient badge showing overall % score. Coral→teal gradient. Used on discover card and match list.
 - **Estimate**: 3h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/widgets/discovery/compatibility_badge.dart`
 - **Evidence**: Badge renders with score, gradient correct, responsive to different sizes
 
-- [ ] T542 [P0] [Flutter] Create compatibility bar comparison widget — horizontal bars comparing user vs match on Big Five, Attachment, Values dimensions. Used on profile preview.
+- [x] T542 [P0] [Flutter] Create compatibility bar comparison widget — horizontal bars comparing user vs match on Big Five, Attachment, Values dimensions. Used on profile preview.
 - **Estimate**: 4h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/widgets/discovery/compatibility_bars.dart`
 - **Evidence**: Bars render, coral/teal colors, responsive layout
@@ -271,7 +271,7 @@
 - **Depends on**: T541
 - **Evidence**: Badge visible on discover card when compatibility data exists
 
-- [ ] T545 [P1] [Flutter] Integrate insight into matches screen — add compatibility % to match list items in `enhanced_matches_screen.dart`. Tap navigates to Match Insight Card.
+- [~] T545 [P1] [Flutter] Integrate insight into matches screen (badge overlay on avatar) — badge visible; tap-to-insight-card pending T543 — add compatibility % to match list items in `enhanced_matches_screen.dart`. Tap navigates to Match Insight Card.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/enhanced_matches_screen.dart`
 - **Depends on**: T540, T543
@@ -284,7 +284,7 @@
 - **Depends on**: T543
 - **Evidence**: `flutter test` passes
 
-- [ ] T547 [P0] [Test] Widget tests for compatibility badge and bars — test rendering, score display, gradient, responsive
+- [x] T547 [P0] [Test] Widget tests for compatibility badge and bars — test rendering, score display, gradient, responsive
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/test/widgets/discovery/compatibility_widgets_test.dart`
 - **Depends on**: T541, T542
