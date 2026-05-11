@@ -15,11 +15,14 @@ Env / flags:
     --base-url   default http://localhost:8080  (the YARP gateway)
     --model      faster-whisper model size (tiny/base/small/medium/large-v3)
     --language   ISO code or 'auto'
+    --gh-issue OWNER/REPO  open a GitHub issue per transcribed feedback
+                           (requires `gh` CLI authed; needs `repo` scope)
 """
 from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -65,6 +68,46 @@ def patch_transcript(base_url: str, feedback_id: int, transcript: str) -> None:
     r.raise_for_status()
 
 
+def open_github_issue(repo: str, item: dict, transcript: str) -> str | None:
+    """Open a GitHub issue via `gh` CLI. Returns issue URL or None on failure."""
+    fid = item["id"]
+    screen = item.get("screen") or "unknown"
+    app_version = item.get("appVersion") or "unknown"
+    submitter = item.get("submitterKeycloakId") or "anonymous"
+    received = item.get("receivedAt") or "?"
+    title = f"[tester-feedback #{fid}] {transcript[:60] or '(no transcript)'}"
+    body = (
+        f"**Feedback id:** {fid}\n"
+        f"**Received:** {received}\n"
+        f"**Screen:** `{screen}`\n"
+        f"**App version:** `{app_version}`\n"
+        f"**Submitter:** `{submitter}`\n\n"
+        f"### Transcript\n\n{transcript or '_(empty)_'}\n\n"
+        f"### Note (typed)\n\n{item.get('noteText') or '_(none)_'}\n"
+    )
+    try:
+        result = subprocess.run(
+            [
+                "gh", "issue", "create",
+                "--repo", repo,
+                "--title", title,
+                "--body", body,
+                "--label", "tester-feedback",
+            ],
+            capture_output=True, text=True, timeout=30, check=True,
+        )
+        url = result.stdout.strip().splitlines()[-1] if result.stdout else None
+        return url
+    except FileNotFoundError:
+        print("  WARN: `gh` CLI not installed — skipping issue creation.",
+              file=sys.stderr)
+        return None
+    except subprocess.CalledProcessError as e:
+        print(f"  WARN: gh issue create failed: {e.stderr.strip()}",
+              file=sys.stderr)
+        return None
+
+
 def transcribe(audio_path: Path, model_name: str, language: str) -> str:
     try:
         from faster_whisper import WhisperModel  # type: ignore
@@ -82,7 +125,8 @@ def transcribe(audio_path: Path, model_name: str, language: str) -> str:
     return " ".join(seg.text.strip() for seg in segments).strip()
 
 
-def process_once(base_url: str, model_name: str, language: str) -> int:
+def process_once(base_url: str, model_name: str, language: str,
+                 gh_repo: str | None = None) -> int:
     items = fetch_unprocessed(base_url)
     if not items:
         print(f"No unprocessed feedback at {base_url}.")
@@ -100,6 +144,10 @@ def process_once(base_url: str, model_name: str, language: str) -> int:
             transcript = note or ""
             patch_transcript(base_url, fid, transcript)
             print(f"  #{fid} text-only — marked processed.")
+            if gh_repo and transcript:
+                url = open_github_issue(gh_repo, item, transcript)
+                if url:
+                    print(f"  #{fid} issue → {url}")
             handled += 1
             continue
 
@@ -113,6 +161,10 @@ def process_once(base_url: str, model_name: str, language: str) -> int:
             transcript = transcribe(tmp_path, model_name, language)
             print(f"  #{fid} → {transcript!r}")
             patch_transcript(base_url, fid, transcript)
+            if gh_repo:
+                url = open_github_issue(gh_repo, item, transcript)
+                if url:
+                    print(f"  #{fid} issue → {url}")
             handled += 1
         finally:
             tmp_path.unlink(missing_ok=True)
@@ -124,6 +176,9 @@ def main() -> int:
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL)
     ap.add_argument("--model", default="base")
     ap.add_argument("--language", default="auto")
+    ap.add_argument("--gh-issue", metavar="OWNER/REPO",
+                    help="Open a GitHub issue per transcribed feedback "
+                         "(requires `gh` CLI authed).")
     grp = ap.add_mutually_exclusive_group()
     grp.add_argument("--once", action="store_true", default=True)
     grp.add_argument("--watch", type=int, metavar="SECONDS",
@@ -134,12 +189,13 @@ def main() -> int:
         print(f"Watching {args.base_url} every {args.watch}s — Ctrl-C to stop.")
         while True:
             try:
-                process_once(args.base_url, args.model, args.language)
+                process_once(args.base_url, args.model, args.language,
+                             args.gh_issue)
             except Exception as e:
                 print(f"WARN: {e}", file=sys.stderr)
             time.sleep(args.watch)
     else:
-        process_once(args.base_url, args.model, args.language)
+        process_once(args.base_url, args.model, args.language, args.gh_issue)
     return 0
 
 
