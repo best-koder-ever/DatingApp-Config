@@ -164,7 +164,7 @@
 - **Depends on**: T520, T522
 - **Evidence**: API returns score, second call returns cached, answer update invalidates
 
-- [ ] T524 [P0] [Core] Background pre-computation — background service that pre-calculates compatibility scores for users in same geographic area who both have answers. Runs on schedule or triggered by new answer submission.
+- [x] T524 [P0] [Core] Background pre-computation — background service that pre-calculates compatibility scores for users in same geographic area who both have answers. Runs on schedule or triggered by new answer submission.
 - **Estimate**: 4h
 - **File**: `MatchmakingService/Services/Background/CompatibilityPrecomputeService.cs`
 - **Depends on**: T520, T522
@@ -222,7 +222,7 @@
 - **Evidence**: Daily picks favor users with high compatibility scores
 
 ### Tests
-- [ ] T536 [P0] [Test] Integration tests for scoring integration — verify AdvancedMatchingService uses compatibility, verify fallback when no answers, verify weight configuration works
+- [x] T536 [P0] [Test] Integration tests for scoring integration — verify AdvancedMatchingService uses compatibility, verify fallback when no answers, verify weight configuration works
 - **Estimate**: 4h
 - **File**: `MatchmakingService/MatchmakingService.Tests/Services/AdvancedMatchingServiceTests.cs`
 - **Depends on**: T530, T531
