@@ -38,8 +38,8 @@
 ## ⏳ Up Next
 
 ### Spec 005 — final loose ends
-- [ ] **T524** [P0] [Backend] `CompatibilityPrecomputeService` background pre-computation of scores for geographically-near users.
-- [ ] **T536** [P0] [Test] Integration tests for `AdvancedMatchingService` compatibility integration (end-to-end candidate ranking with answers vs without).
+- [x] **T524** [P0] [Backend] `CompatibilityPrecomputeService` background pre-computation of scores for users who have answered questions. Shipped in `MatchmakingService` `36413fe`. Configurable via `CompatibilityPrecompute` options (Enabled / IntervalMinutes / MaxUsersPerCycle / MaxPairsPerCycle / StaleAfterHours). 8 unit tests.
+- [x] **T536** [P0] [Test] Integration tests for `AdvancedMatchingService` compatibility integration — verified existing `AdvancedMatchingCompatibilityTests` (7 scenarios: no-scorer, no-keycloak, neutral, high compat, low compat, zero-weight, scorer-throws). All pass.
 
 ### Verification / Cleanup
 - [ ] **Emulator UAT**: spin up `./infrastructure/start.sh && ./dev-start.sh`, run Flutter on emulator, verify the full flow: bot match → badge appears on matches list → tap → insight card renders with real reasons/frictions from `/api/matchmaking/matches/{id}/insight`.
