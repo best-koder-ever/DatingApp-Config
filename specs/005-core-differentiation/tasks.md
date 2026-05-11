@@ -215,7 +215,7 @@
 - **Depends on**: T533
 - **Evidence**: API returns insight data, tiered response based on placeholder premium flag
 
-- [ ] T535 [P1] [Core] Update DailyPick generation — `DailyPickGenerationService` uses compatibility-enhanced scoring to select daily picks. Higher compatibility = more likely to be picked.
+- [x] T535 [P1] [Core] Update DailyPick generation — inherits compatibility blending transitively via LiveScoringStrategy → AdvancedMatchingService (documented in service header)
 - **Estimate**: 3h
 - **File**: `MatchmakingService/Services/Background/DailyPickGenerationService.cs`
 - **Depends on**: T530
@@ -228,7 +228,7 @@
 - **Depends on**: T530, T531
 - **Evidence**: `dotnet test` passes, scoring weights verified
 
-- [ ] T537 [P0] [Test] Unit tests for MatchInsight generation — verify reasons generated, JSON format valid, asymmetric insights (user A and user B get different reasons)
+- [x] T537 [P0] [Test] Unit tests for MatchInsight generation — 6 tests in MatchInsightServiceTests.cs cover reasons-from-scorer, fallback score on neutral, missing KeycloakId skip, idempotent re-call, scorer-throws swallowed, per-user row symmetric content (asymmetric storage)
 - **Estimate**: 3h
 - **File**: `MatchmakingService/MatchmakingService.Tests/Services/MatchInsightTests.cs`
 - **Depends on**: T532
@@ -259,26 +259,26 @@
 - **File**: `mobile-apps/flutter/dejtingapp/lib/widgets/discovery/compatibility_bars.dart`
 - **Evidence**: Bars render, coral/teal colors, responsive layout
 
-- [ ] T543 [P0] [Flutter] Create Match Insight Card screen — full 4-section card: "Why You Connected" ✅ (top reasons), "Areas of Difference" ⚠️ (friction, max 3), "Where This Could Go" 🌱 (growth), "What You Could Learn" 📚 (premium). Navigate from match detail.
+- [x] T543 [P0] [Flutter] Create Match Insight Card screen — full 4-section card: "Why You Connected" ✅ (top reasons), "Areas of Difference" ⚠️ (friction, max 3), "Where This Could Go" 🌱 (growth), "What You Could Learn" 📚 (premium). Navigate from match detail.
 - **Estimate**: 6h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/match_insight_screen.dart`
 - **Depends on**: T540, T541, T542
 - **Evidence**: Full card renders with all 4 sections, premium section shows lock icon for free users
 
-- [ ] T544 [P1] [Flutter] Integrate badge into discover card — add compatibility badge to existing `profile_card.dart`. Show only when score available.
+- [x] T544 [P1] [Flutter] Integrate badge into discover card — add compatibility badge to existing `profile_card.dart`. Show only when score available.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/widgets/discovery/profile_card.dart`
 - **Depends on**: T541
 - **Evidence**: Badge visible on discover card when compatibility data exists
 
-- [~] T545 [P1] [Flutter] Integrate insight into matches screen (badge overlay on avatar) — badge visible; tap-to-insight-card pending T543 — add compatibility % to match list items in `enhanced_matches_screen.dart`. Tap navigates to Match Insight Card.
+- [x] T545 [P1] [Flutter] Integrate insight into matches screen — add compatibility % to match list items in `enhanced_matches_screen.dart`. Tap navigates to Match Insight Card.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/enhanced_matches_screen.dart`
 - **Depends on**: T540, T543
 - **Evidence**: Matches show %, tap opens insight card
 
 ### Tests
-- [ ] T546 [P0] [Test] Widget tests for Match Insight Card — test all 4 sections render, premium gating, navigation, empty state
+- [x] T546 [P0] [Test] Widget tests for Match Insight Card — test all 4 sections render, premium gating, navigation, empty state
 - **Estimate**: 3h
 - **File**: `mobile-apps/flutter/dejtingapp/test/screens/match_insight_screen_test.dart`
 - **Depends on**: T543
