@@ -198,18 +198,18 @@
 - **Depends on**: T530
 - **Evidence**: Weights configurable, default weights sum to 1.0
 
-- [ ] T532 [P1] [Core] Generate "Why You Matched" reasons during scoring — when `AdvancedMatchingService` creates a match, generate top-3 positive reasons and top-2 friction points from `CompatibilityResult`. Store as JSON in `MatchInsight` entity.
+- [x] T532 [P1] [Core] Generate "Why You Matched" reasons during scoring — when `AdvancedMatchingService` creates a match, generate top-3 positive reasons and top-2 friction points from `CompatibilityResult`. Store as JSON in `MatchInsight` entity.
 - **Estimate**: 4h
 - **File**: `MatchmakingService/Services/AdvancedMatchingService.cs`, `MatchmakingService/Models/MatchInsight.cs`
 - **Depends on**: T530, T520
 - **Evidence**: New matches have populated MatchInsight records
 
-- [ ] T533 [P0] [Infra] Create `MatchInsight` entity + migration — `Id`, `MatchId (FK)`, `ForKeycloakId (string)`, `ReasonsJson` (top positive signals), `FrictionJson` (areas of difference), `GrowthJson` (complementary strengths), `OverallScore`, `CreatedAt`
+- [x] T533 [P0] [Infra] Create `MatchInsight` entity + migration — `Id`, `MatchId (FK)`, `ForKeycloakId (string)`, `ReasonsJson` (top positive signals), `FrictionJson` (areas of difference), `GrowthJson` (complementary strengths), `OverallScore`, `CreatedAt`
 - **Estimate**: 2h
 - **File**: `MatchmakingService/Models/MatchInsight.cs`, `MatchmakingService/Data/MatchmakingDbContext.cs`
 - **Evidence**: Migration applies, entity registered
 
-- [ ] T534 [P1] [API] Add `GET /api/matchmaking/matches/{matchId}/insight` — returns MatchInsight for authenticated user. Tiered: free users get score + top 2 reasons. Premium (future) gets full 4-section card.
+- [x] T534 [P1] [API] Add `GET /api/matchmaking/matches/{matchId}/insight` — returns MatchInsight for authenticated user. Tiered: free users get score + top 2 reasons. Premium (future) gets full 4-section card.
 - **Estimate**: 3h
 - **File**: `MatchmakingService/Controllers/MatchmakingController.cs`
 - **Depends on**: T533
