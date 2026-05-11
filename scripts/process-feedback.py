@@ -158,7 +158,18 @@ def process_once(base_url: str, model_name: str, language: str,
                 print(f"  #{fid} audio missing on server — skipping.")
                 continue
             print(f"  #{fid} transcribing ({tmp_path.stat().st_size} bytes)…")
-            transcript = transcribe(tmp_path, model_name, language)
+            try:
+                transcript = transcribe(tmp_path, model_name, language)
+            except Exception as e:
+                # Garbage / corrupt audio (e.g. early smoke-test rows containing
+                # a few raw bytes). Mark with the note as transcript so it
+                # stops re-appearing in the unprocessed queue.
+                fallback = note or f"[unreadable audio: {type(e).__name__}]"
+                print(f"  #{fid} transcribe failed ({e.__class__.__name__}); "
+                      f"marking with fallback: {fallback!r}")
+                patch_transcript(base_url, fid, fallback)
+                handled += 1
+                continue
             print(f"  #{fid} → {transcript!r}")
             patch_transcript(base_url, fid, transcript)
             if gh_repo:
