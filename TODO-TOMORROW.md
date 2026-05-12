@@ -1,8 +1,83 @@
 # TODO — Current State
 
-**Updated**: 2026-05-11
-**Active spec**: `specs/005-core-differentiation` (Compatibility Engine + Match Insight)
-**Tagged**: `mvp-demo-v0.1` (commit `ba559e9`)
+**Updated**: 2026-05-12
+**Active spec**: `specs/005-core-differentiation` (Compatibility Engine + Match Insight) — **SHIPPED `mvp-005-insight-v1`**
+**Active track**: Zero-cost tester APK + in-app voice feedback — **SHIPPED `mvp-tester-v0.2`**
+**Tagged**: `mvp-demo-v0.1` (commit `ba559e9`), `mvp-005-insight-v1`, `mvp-tester-v0.2`
+
+---
+
+## 🟢 Where We Are Right Now (2026-05-12)
+
+**Zero-cost tester pipeline is LIVE and fully verified end-to-end through the tunnel.**
+
+- Public HTTPS: `https://fastdev.tail45c6a7.ts.net` → Tailscale Funnel → laptop YARP `:8080` → backend services.
+- ✅ **Keycloak hostname fix applied** (2026-05-12). Tokens now issued with `iss=https://fastdev.tail45c6a7.ts.net/auth/realms/DatingApp`. Verified by acquiring a token via the tunnel and successfully hitting `/api/messages/conversations` (200) and other authenticated endpoints.
+- Helper script: `scripts/start-keycloak-tunnel.sh` — re-runs the hostname override after any `./infrastructure/start.sh` (which would otherwise reset to plain dev mode).
+- Tester credentials available: `demo-user` / `DemoTest123!` (resetable via Keycloak admin).
+- Feedback FAB shipped in Flutter (debug builds or `--dart-define=DEJTING_FEEDBACK_VISIBLE=true`).
+- Whisper transcription pump (`scripts/process-feedback.py`) runs locally, tolerates corrupt audio, optional `--gh-issue OWNER/REPO`.
+
+### Commits shipped previously (all pushed, see git log)
+
+| Repo | Commit | Branch | Summary |
+|---|---|---|---|
+| bot-service | `8ee032f` | `feature/bot-service-improvements` | UserFeedback entity/controller/tests + idempotent `CREATE TABLE IF NOT EXISTS` startup SQL |
+| dejting-yarp | `675e5e8` | `feature/keycloak-auth-updates` | `/api/userfeedback` route + anonymous bypass |
+| dejting-yarp | `e12d6c9` | `feature/keycloak-auth-updates` | Tunnel support: `/auth/{**}` → Keycloak with `PathRemovePrefix`, funnel issuer in `ValidIssuers`, 30/h userfeedback rate limit |
+| mobile_dejtingapp | `7205001` | `main` | Feedback FAB widget + service + 5 widget tests |
+| mobile_dejtingapp | `aacf56c` | `main` | "Submitting as <name>" identity hint, +1 test (6/6 green) |
+| DatingApp meta | `2c5eee1` | `004-multi-app-architecture` | `scripts/process-feedback.py` Whisper pump |
+| DatingApp meta | `7007116` | `004-multi-app-architecture` | `scripts/build-tester-apk.sh` + `--gh-issue` flag |
+| DatingApp meta | `faa7c1b` | `004-multi-app-architecture` | Tolerate corrupt audio in transcription pump |
+
+### Then ship the APK
+
+```bash
+./scripts/build-tester-apk.sh
+adb install -r mobile-apps/flutter/dejtingapp/build/app/outputs/flutter-apk/app-release.apk
+# Or scp to phone /sdcard/Download/
+```
+
+Tester opens APK → logs in via funnel (demo-user / DemoTest123!) → mic FAB visible → records voice memo → POSTs to laptop.
+
+### Then transcribe on your laptop
+
+```bash
+cd /home/m/development/DatingApp
+source .venv/bin/activate
+python3 scripts/process-feedback.py --watch 600 \
+  --base-url https://fastdev.tail45c6a7.ts.net \
+  --model base \
+  --gh-issue best-koder-ever/DatingApp-Feedback   # optional, requires gh CLI authed
+```
+
+### Optional follow-ups (not blocking)
+
+- [ ] **Audio retention policy** — currently keeps `BotService/Data/UserFeedback/*.m4a` forever. Add a nightly job in bot-service to delete files older than 30 days (keep transcript row).
+- [ ] **Crash/error capture** — attach last 50 log lines + current route name alongside voice memos.
+- [ ] **Phone-side test** — record real speech via the mic FAB on a real Android phone (not just curl).
+- [ ] **Onboard 2-3 real testers** — Keycloak fix is done; pipeline is ready.
+- [ ] **Persist Keycloak overrides in dev compose** — if you stop running `start-keycloak-tunnel.sh` after every infra restart, edit `docker-compose.yml` keycloak service env to include `KC_HOSTNAME`/`KC_HOSTNAME_STRICT`/`KC_PROXY_HEADERS` permanently. Side-effect: all local dev tokens get the funnel iss. Backend service `ValidIssuers` configs may need the funnel URL added (currently only YARP has it).
+
+### Useful inspection commands
+
+```bash
+# Tunnel status
+tailscale funnel status
+
+# Service health through tunnel
+curl -sS https://fastdev.tail45c6a7.ts.net/health
+
+# Inspect feedback queue
+curl -sS https://fastdev.tail45c6a7.ts.net/api/userfeedback?pageSize=20 | python3 -m json.tool
+
+# Verify Keycloak issuer (should be funnel URL, not localhost)
+curl -sS https://fastdev.tail45c6a7.ts.net/auth/realms/DatingApp/.well-known/openid-configuration | python3 -c "import sys,json; print(json.load(sys.stdin)['issuer'])"
+
+# Re-apply Keycloak hostname overrides after infra restart
+./scripts/start-keycloak-tunnel.sh
+```
 
 ---
 
@@ -43,8 +118,8 @@
 
 ### Verification / Cleanup
 - [ ] **Emulator UAT**: spin up `./infrastructure/start.sh && ./dev-start.sh`, run Flutter on emulator, verify the full flow: bot match → badge appears on matches list → tap → insight card renders with real reasons/frictions from `/api/matchmaking/matches/{id}/insight`.
-- [ ] **PR cleanup**: open PR `feature/keycloak-auth-updates` → `004-multi-app-architecture` once T536 lands.
-- [ ] Tag `mvp-005-insight-v1` once UAT passes.
+- [ ] **PR cleanup**: open PR `feature/keycloak-auth-updates` → `004-multi-app-architecture`.
+- [x] Tag `mvp-005-insight-v1` — DONE this session (all 4 repos).
 
 ---
 
