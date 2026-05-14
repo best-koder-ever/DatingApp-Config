@@ -249,7 +249,13 @@ public class DatingAppApiClient
     public async Task<string?> GetKeycloakIdForProfileAsync(int profileId, string token, CancellationToken ct)
     {
         var result = await GetAsync($"{_endpoints.UserService}/api/UserProfiles/{profileId}", token, ct);
-        if (result == null) return null;
+        if (result == null)
+        {
+            _logger.LogWarning(
+                "GetKeycloakIdForProfile: UserService returned null/error for profileId={ProfileId}",
+                profileId);
+            return null;
+        }
 
         // Unwrap {success, data: {...}} envelope
         var profile = result.Value;
@@ -264,6 +270,9 @@ public class DatingAppApiClient
                 return kcId;
         }
 
+        _logger.LogWarning(
+            "GetKeycloakIdForProfile: profileId={ProfileId} response missing/empty keycloakId — bot cannot send messages to this user",
+            profileId);
         return null;
     }
 

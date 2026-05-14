@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Dating App — UI/UX Mockups</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0D0A14;
+    --surface: #1A1428;
+    --surface-elevated: #251E38;
+    --divider: #2E2645;
+    --primary: #9C27B0;
+    --primary-light: #CE93D8;
+    --secondary: #5C6BC0;
+    --tertiary: #FF4081;
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255,255,255,0.7);
+    --text-hint: rgba(255,255,255,0.4);
+    --green: #4CAF50;
+    --card-radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text-primary);
+    padding: 40px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 300;
+    margin-bottom: 8px;
+    color: var(--primary-light);
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 40px;
+  }
+
+  .gallery {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 40px;
+  }
+
+  .mockup-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .mockup-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-light);
+  }
+  .mockup-desc {
+    font-size: 12px;
+    color: var(--text-hint);
+    max-width: 340px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .phone {
+    width: 375px;
+    height: 812px;
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    border: 3px solid #333;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .phone-inner {
+    width: 100%;
+    height: 100%;
+    padding: 50px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Notch */
+  .notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 30px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 24px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* App bar */
+  .app-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    min-height: 56px;
+  }
+  .app-bar-title {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .app-bar-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  /* Content */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 12px 0 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--divider);
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-hint);
+  }
+  .nav-item.active {
+    color: var(--primary);
+  }
+  .nav-icon {
+    font-size: 22px;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    display: flex;
+    gap: 6px;
+    padding: 0 20px;
+    margin-bottom: 24px;
+  }
+  .progress-segment {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--divider);
+  }
+  .progress-segment.done { background: var(--primary); }
+  .progress-segment.active {
+    background: linear-gradient(90deg, var(--primary), var(--divider));
+  }
+
+  /* ==================== SCREEN 1: VOICE ONBOARDING ==================== */
+  .question-text {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+    padding: 20px 10px;
+    min-height: 100px;
+  }
+  .question-instruction {
+    text-align: center;
+    color: var(--text-hint);
+    font-size: 13px;
+    margin-bottom: 40px;
+  }
+  .timer {
+    text-align: center;
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-label {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-bottom: 50px;
+  }
+  .mic-button-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+  .mic-button {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), #7B1FA2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 0 40px rgba(156, 39, 176, 0.4), 0 0 80px rgba(156, 39, 176, 0.15);
+    cursor: pointer;
+    transition: transform 0.2s;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 40px rgba(156, 39, 176, 0.4), 0 0 80px rgba(156, 39, 176, 0.15); }
+    50% { box-shadow: 0 0 50px rgba(156, 39, 176, 0.6), 0 0 100px rgba(156, 39, 176, 0.25); transform: scale(1.05); }
+  }
+  .skip-btn {
+    text-align: center;
+    color: var(--text-hint);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 12px;
+  }
+
+  /* ==================== SCREEN 2: BLIND DISCOVERY ==================== */
+  .discovery-card {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 32px 20px 24px;
+    margin-bottom: 16px;
+  }
+  .silhouette {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, var(--surface-elevated), var(--divider));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    opacity: 0.6;
+  }
+  .profile-name {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .profile-location {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+  .voice-card {
+    background: var(--surface-elevated);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .voice-card-question {
+    font-size: 11px;
+    color: var(--primary-light);
+    font-weight: 500;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .voice-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .play-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .waveform {
+    flex: 1;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .wave-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+    opacity: 0.6;
+  }
+  .voice-duration {
+    font-size: 12px;
+    color: var(--text-hint);
+    flex-shrink: 0;
+  }
+  .action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    padding: 20px 0 8px;
+  }
+  .action-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .action-btn.pass {
+    background: var(--surface);
+    border: 2px solid var(--divider);
+  }
+  .action-btn.like {
+    background: linear-gradient(135deg, var(--tertiary), #E91E63);
+    box-shadow: 0 4px 20px rgba(255, 64, 129, 0.3);
+  }
+  .action-btn.superlike {
+    background: linear-gradient(135deg, var(--secondary), #3F51B5);
+    box-shadow: 0 4px 20px rgba(92, 107, 192, 0.3);
+  }
+
+  /* ==================== SCREEN 3: BLIND CHAT ==================== */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--surface-elevated), var(--divider));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    opacity: 0.7;
+  }
+  .chat-name {
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .blind-badge {
+    background: var(--primary);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .chat-messages {
+    flex: 1;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  .msg {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .msg.received {
+    background: var(--surface-elevated);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .msg.sent {
+    background: var(--primary);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .msg-voice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 18px;
+    max-width: 70%;
+  }
+  .msg-voice.received {
+    background: var(--surface-elevated);
+    align-self: flex-start;
+  }
+  .msg-voice.sent {
+    background: var(--primary);
+    align-self: flex-end;
+  }
+  .msg-voice .mini-play {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .mini-waveform {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+  }
+  .mini-wave-bar {
+    width: 2px;
+    border-radius: 1px;
+    background: rgba(255,255,255,0.5);
+  }
+  .msg-voice-dur {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+  }
+  .reveal-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--divider);
+    padding: 12px 20px;
+  }
+  .reveal-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .reveal-track {
+    flex: 1;
+    height: 6px;
+    background: var(--divider);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .reveal-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--tertiary));
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .reveal-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .reveal-text span { color: var(--primary-light); font-weight: 600; }
+  .chat-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px 28px;
+    background: var(--surface);
+  }
+  .chat-input-field {
+    flex: 1;
+    height: 40px;
+    background: var(--surface-elevated);
+    border: none;
+    border-radius: 20px;
+    padding: 0 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+  }
+  .chat-mic-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  /* ==================== SCREEN 4: REVEAL MOMENT ==================== */
+  .reveal-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px 20px;
+    background: radial-gradient(ellipse at center, rgba(156,39,176,0.15) 0%, var(--bg) 70%);
+  }
+  .reveal-photo-ring {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, var(--primary), var(--tertiary), var(--secondary));
+    margin-bottom: 32px;
+    animation: spin-ring 3s linear infinite;
+    position: relative;
+  }
+  @keyframes spin-ring {
+    0% { background: linear-gradient(0deg, var(--primary), var(--tertiary), var(--secondary)); }
+    33% { background: linear-gradient(120deg, var(--primary), var(--tertiary), var(--secondary)); }
+    66% { background: linear-gradient(240deg, var(--primary), var(--tertiary), var(--secondary)); }
+    100% { background: linear-gradient(360deg, var(--primary), var(--tertiary), var(--secondary)); }
+  }
+  .reveal-photo-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3a2d5f, #5a3d7f);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .reveal-photo-face {
+    font-size: 80px;
+    opacity: 0.9;
+    filter: none;
+  }
+  .sparkles {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .sparkle {
+    position: absolute;
+    font-size: 20px;
+    animation: sparkle-float 2s ease-in-out infinite;
+  }
+  .sparkle:nth-child(1) { top: 0; left: 30%; animation-delay: 0s; }
+  .sparkle:nth-child(2) { top: 10%; right: 10%; animation-delay: 0.3s; }
+  .sparkle:nth-child(3) { bottom: 15%; left: 5%; animation-delay: 0.6s; }
+  .sparkle:nth-child(4) { bottom: 5%; right: 20%; animation-delay: 0.9s; }
+  .sparkle:nth-child(5) { top: 40%; left: 0; animation-delay: 1.2s; }
+  .sparkle:nth-child(6) { top: 20%; right: 0; animation-delay: 1.5s; }
+  @keyframes sparkle-float {
+    0%, 100% { opacity: 0.3; transform: scale(0.8) translateY(0); }
+    50% { opacity: 1; transform: scale(1.2) translateY(-8px); }
+  }
+  .reveal-title {
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .reveal-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .reveal-btn {
+    background: linear-gradient(135deg, var(--primary), #7B1FA2);
+    color: white;
+    border: none;
+    padding: 16px 48px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(156, 39, 176, 0.4);
+  }
+
+  /* ==================== SCREEN 5: CONVERSATIONS ==================== */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 12px;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+  }
+  .section-count {
+    background: var(--primary);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .convo-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(46, 38, 69, 0.5);
+  }
+  .convo-avatar {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .convo-avatar-img {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--surface-elevated), var(--divider));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    opacity: 0.7;
+  }
+  .convo-avatar-img.revealed {
+    background: linear-gradient(135deg, #3a2d5f, #5a3d7f);
+    opacity: 1;
+  }
+  .online-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid var(--bg);
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+  .convo-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .convo-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+  .convo-preview {
+    font-size: 13px;
+    color: var(--text-hint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .convo-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .convo-time {
+    font-size: 11px;
+    color: var(--text-hint);
+  }
+  .unread-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .reveal-progress-mini {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-hint);
+  }
+  .reveal-mini-track {
+    width: 40px;
+    height: 3px;
+    background: var(--divider);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .reveal-mini-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+  .daily-question-banner {
+    background: linear-gradient(135deg, var(--surface-elevated), rgba(156,39,176,0.15));
+    border: 1px solid var(--divider);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+  }
+  .dq-emoji { font-size: 24px; margin-bottom: 8px; }
+  .dq-title { font-size: 13px; font-weight: 600; color: var(--primary-light); margin-bottom: 4px; }
+  .dq-text { font-size: 12px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<h1>✨ Voice — Love is Blind</h1>
+<p class="subtitle">UI/UX Mockups · Dark Purple Theme · 5 Core Screens</p>
+
+<div class="gallery">
+
+<!-- ==================== SCREEN 1: VOICE ONBOARDING ==================== -->
+<div class="mockup-container">
+  <div class="mockup-label">1. Voice Onboarding</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>📶 🔋</span>
+      </div>
+      <div class="app-bar">
+        <div class="app-bar-icon">✕</div>
+        <div class="app-bar-title">Voice Intro</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-segment done"></div>
+        <div class="progress-segment active"></div>
+        <div class="progress-segment"></div>
+      </div>
+      <div class="content" style="display:flex;flex-direction:column;align-items:center;">
+        <div class="question-text">Berätta om ditt bästa minne från i somras</div>
+        <div class="question-instruction">Tap the mic and answer in your own voice</div>
+        <div class="timer">0:00</div>
+        <div class="timer-label">3–30 seconds</div>
+        <div class="mic-button-wrapper">
+          <div class="mic-button">🎤</div>
+        </div>
+        <div class="skip-btn">Skip this question →</div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup-desc">Sequential recording flow. User answers 3 voice questions during onboarding. Pulsing mic button, progress segments, 3-30s limit per answer.</div>
+</div>
+
+<!-- ==================== SCREEN 2: BLIND DISCOVERY ==================== -->
+<div class="mockup-container">
+  <div class="mockup-label">2. Blind Discovery</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>📶 🔋</span>
+      </div>
+      <div class="app-bar">
+        <div class="app-bar-title" style="color:var(--primary-light)">Voice</div>
+        <div class="app-bar-icon">⚙</div>
+      </div>
+      <div class="content">
+        <div class="discovery-card">
+          <div class="silhouette">👤</div>
+          <div class="profile-name">Maja, 27</div>
+          <div class="profile-location">📍 Stockholm · 3 km</div>
+          <div class="voice-card">
+            <div class="voice-card-question">Bästa sommarminnet</div>
+            <div class="voice-player">
+              <div class="play-btn">▶</div>
+              <div class="waveform" id="wf1"></div>
+              <div class="voice-duration">0:12</div>
+            </div>
+          </div>
+          <div class="voice-card">
+            <div class="voice-card-question">En sak du brinner för</div>
+            <div class="voice-player">
+              <div class="play-btn">▶</div>
+              <div class="waveform" id="wf2"></div>
+              <div class="voice-duration">0:18</div>
+            </div>
+          </div>
+          <div class="voice-card">
+            <div class="voice-card-question">Perfekta fredagskvällen</div>
+            <div class="voice-player">
+              <div class="play-btn">▶</div>
+              <div class="waveform" id="wf3"></div>
+              <div class="voice-duration">0:09</div>
+            </div>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <div class="action-btn pass">✕</div>
+          <div class="action-btn superlike">⭐</div>
+          <div class="action-btn like">❤</div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item active"><span class="nav-icon">🔮</span>Discover</div>
+        <div class="nav-item"><span class="nav-icon">💬</span>Matches</div>
+        <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup-desc">No photos — just silhouette + voice answers. Listen to 3 voice clips, then decide. Heart/pass/superlike actions. Daily limit: 8 swipes.</div>
+</div>
+
+<!-- ==================== SCREEN 3: BLIND CHAT ==================== -->
+<div class="mockup-container">
+  <div class="mockup-label">3. Blind Chat</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>📶 🔋</span>
+      </div>
+      <div class="chat-header">
+        <div class="app-bar-icon" style="font-size:16px">←</div>
+        <div class="chat-avatar">👤</div>
+        <div>
+          <div class="chat-name">Maja</div>
+          <div style="font-size:11px;color:var(--text-hint)">Active now</div>
+        </div>
+        <div class="blind-badge" style="margin-left:auto">Blind</div>
+      </div>
+      <div class="chat-messages">
+        <div class="msg-voice received">
+          <div class="mini-play">▶</div>
+          <div class="mini-waveform" id="cwf1"></div>
+          <div class="msg-voice-dur">0:08</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-hint);align-self:flex-start;margin-top:-8px">First message was voice 🎤</div>
+        <div class="msg received">Haha tack! Jag gillade din röst också 😊</div>
+        <div class="msg sent">Vad gör du en vanlig tisdagkväll?</div>
+        <div class="msg received">Hmm, oftast lagar jag mat och lyssnar på podcasts. Du?</div>
+        <div class="msg-voice sent">
+          <div class="mini-play">▶</div>
+          <div class="mini-waveform" id="cwf2"></div>
+          <div class="msg-voice-dur">0:05</div>
+        </div>
+        <div class="msg received">Gillar du att resa? ✈️</div>
+        <div class="msg sent">Absolut! Var i Lissabon i höstas 🇵🇹</div>
+        <div class="msg received">Åh jag har alltid velat åka dit!</div>
+        <div class="msg sent">Vi kanske kan åka nån gång 😏</div>
+        <div class="msg received">Haha, bold move! Men kanske... 😄</div>
+        <div class="msg sent">Man måste våga 💜</div>
+        <div class="msg received">Sant! Berätta mer om din resa?</div>
+      </div>
+      <div class="reveal-bar">
+        <div class="reveal-progress">
+          <div class="reveal-track"><div class="reveal-fill" style="width:80%"></div></div>
+          <span style="font-size:13px;font-weight:600;color:var(--primary-light)">12/15</span>
+        </div>
+        <div class="reveal-text"><span>3 more messages</span> to unlock photo reveal ✨</div>
+      </div>
+      <div class="chat-input">
+        <div class="chat-mic-btn">🎤</div>
+        <input class="chat-input-field" placeholder="Write a message..." />
+        <div style="font-size:20px;cursor:pointer">➤</div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup-desc">Blind chat with silhouette avatar. First message must be voice. Progress bar shows 12/15 messages toward reveal. Mix of text + voice bubbles.</div>
+</div>
+
+<!-- ==================== SCREEN 4: REVEAL MOMENT ==================== -->
+<div class="mockup-container">
+  <div class="mockup-label">4. Reveal Moment</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner" style="background:var(--bg);">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>📶 🔋</span>
+      </div>
+      <div class="reveal-screen">
+        <div class="sparkles">
+          <div class="sparkle">✨</div>
+          <div class="sparkle">💫</div>
+          <div class="sparkle">⭐</div>
+          <div class="sparkle">✨</div>
+          <div class="sparkle">💜</div>
+          <div class="sparkle">✨</div>
+        </div>
+        <div class="reveal-photo-ring">
+          <div class="reveal-photo-inner">
+            <div class="reveal-photo-face">👩</div>
+          </div>
+        </div>
+        <div class="reveal-title">Maja revealed herself! 💜</div>
+        <div class="reveal-subtitle">You've exchanged 15 messages and can now<br>see each other's photos</div>
+        <div class="reveal-btn">View Full Profile</div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup-desc">Celebratory reveal after 15 messages + mutual consent. Animated ring, sparkle particles, photo emerges. Emotional milestone moment.</div>
+</div>
+
+<!-- ==================== SCREEN 5: CONVERSATIONS DASHBOARD ==================== -->
+<div class="mockup-container">
+  <div class="mockup-label">5. Conversations</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="phone-inner">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>📶 🔋</span>
+      </div>
+      <div class="app-bar">
+        <div class="app-bar-title">Matches</div>
+        <div class="app-bar-icon">🔍</div>
+      </div>
+      <div class="content">
+        <div class="daily-question-banner">
+          <div class="dq-emoji">💬</div>
+          <div class="dq-title">Daily Question</div>
+          <div class="dq-text">"Vad är din guilty pleasure-låt?" — Answer and share!</div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">🔮 Blind Conversations</span>
+          <span class="section-count">3</span>
+        </div>
+
+        <div class="convo-card">
+          <div class="convo-avatar">
+            <div class="convo-avatar-img">👤</div>
+            <div class="online-dot"></div>
+          </div>
+          <div class="convo-info">
+            <div class="convo-name">Maja</div>
+            <div class="convo-preview">Man måste våga 💜</div>
+            <div class="reveal-progress-mini">
+              <div class="reveal-mini-track"><div class="reveal-mini-fill" style="width:80%"></div></div>
+              <span>12/15</span>
+            </div>
+          </div>
+          <div class="convo-meta">
+            <div class="convo-time">2m</div>
+            <div class="unread-dot"></div>
+          </div>
+        </div>
+
+        <div class="convo-card">
+          <div class="convo-avatar">
+            <div class="convo-avatar-img">👤</div>
+          </div>
+          <div class="convo-info">
+            <div class="convo-name">Elsa</div>
+            <div class="convo-preview">🎤 Voice message</div>
+            <div class="reveal-progress-mini">
+              <div class="reveal-mini-track"><div class="reveal-mini-fill" style="width:40%"></div></div>
+              <span>6/15</span>
+            </div>
+          </div>
+          <div class="convo-meta">
+            <div class="convo-time">1h</div>
+          </div>
+        </div>
+
+        <div class="convo-card">
+          <div class="convo-avatar">
+            <div class="convo-avatar-img">👤</div>
+            <div class="online-dot"></div>
+          </div>
+          <div class="convo-info">
+            <div class="convo-name">Linnea</div>
+            <div class="convo-preview">Hej, kul att matcha!</div>
+            <div class="reveal-progress-mini">
+              <div class="reveal-mini-track"><div class="reveal-mini-fill" style="width:13%"></div></div>
+              <span>2/15</span>
+            </div>
+          </div>
+          <div class="convo-meta">
+            <div class="convo-time">3h</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">📸 Revealed</span>
+          <span class="section-count">1</span>
+        </div>
+
+        <div class="convo-card">
+          <div class="convo-avatar">
+            <div class="convo-avatar-img revealed">👩</div>
+            <div class="online-dot"></div>
+          </div>
+          <div class="convo-info">
+            <div class="convo-name">Saga</div>
+            <div class="convo-preview">Ska vi ses på fredag? 😊</div>
+          </div>
+          <div class="convo-meta">
+            <div class="convo-time">5m</div>
+            <div class="unread-dot"></div>
+          </div>
+        </div>
+
+        <div style="height: 20px;"></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item"><span class="nav-icon">🔮</span>Discover</div>
+        <div class="nav-item active"><span class="nav-icon">💬</span>Matches</div>
+        <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup-desc">Two sections: Blind (silhouettes with reveal progress) and Revealed (actual photos). Daily question banner. Online indicators, unread dots, 72h timer context.</div>
+</div>
+
+</div>
+
+<script>
+// Generate random waveform bars
+function generateWaveform(containerId, barCount = 30) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  for (let i = 0; i < barCount; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'wave-bar';
+    bar.style.height = (4 + Math.random() * 20) + 'px';
+    bar.style.opacity = 0.4 + Math.random() * 0.6;
+    container.appendChild(bar);
+  }
+}
+
+function generateMiniWaveform(containerId, barCount = 20) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  for (let i = 0; i < barCount; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'mini-wave-bar';
+    bar.style.height = (3 + Math.random() * 12) + 'px';
+    container.appendChild(bar);
+  }
+}
+
+// Discovery waveforms
+generateWaveform('wf1', 35);
+generateWaveform('wf2', 35);
+generateWaveform('wf3', 35);
+
+// Chat waveforms
+generateMiniWaveform('cwf1', 22);
+generateMiniWaveform('cwf2', 22);
+</script>
+
+</body>
+</html>

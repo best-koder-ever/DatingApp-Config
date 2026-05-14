@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="sv"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reveal Moment - Voice Dating App</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-container": "#f5d1fb",
+              "primary-container": "#e770f8",
+              "outline-variant": "#4a4652",
+              "tertiary-dim": "#e7c3ed",
+              "on-primary": "#540062",
+              "surface-variant": "#282332",
+              "on-secondary-fixed": "#10268d",
+              "on-error-container": "#ffb2b9",
+              "on-error": "#490013",
+              "on-primary-fixed-variant": "#540062",
+              "on-background": "#f6eefd",
+              "surface-dim": "#100d17",
+              "primary-fixed": "#ea73fb",
+              "surface-container-highest": "#282332",
+              "error-dim": "#d73357",
+              "error": "#ff6e84",
+              "surface": "#100d17",
+              "surface-container-lowest": "#000000",
+              "inverse-primary": "#9b26af",
+              "inverse-on-surface": "#58535f",
+              "on-surface-variant": "#afa8b7",
+              "on-tertiary-container": "#604567",
+              "surface-tint": "#f183ff",
+              "primary-fixed-dim": "#db65ec",
+              "on-tertiary-fixed": "#4c3253",
+              "inverse-surface": "#fef7ff",
+              "tertiary": "#fde3ff",
+              "secondary-fixed-dim": "#b7c0ff",
+              "on-secondary": "#001367",
+              "on-surface": "#f6eefd",
+              "on-tertiary": "#694d70",
+              "on-primary-container": "#41004c",
+              "secondary": "#8596ff",
+              "on-secondary-container": "#c7cdff",
+              "surface-container": "#1b1824",
+              "surface-container-low": "#15121d",
+              "surface-container-high": "#221d2b",
+              "primary": "#f183ff",
+              "tertiary-fixed-dim": "#e7c3ed",
+              "on-secondary-fixed-variant": "#3447ab",
+              "on-primary-fixed": "#010002",
+              "on-tertiary-fixed-variant": "#6a4e71",
+              "surface-bright": "#2f2a3a",
+              "tertiary-fixed": "#f5d1fb",
+              "background": "#100d17",
+              "secondary-container": "#293ca0",
+              "error-container": "#a70138",
+              "primary-dim": "#e46df5",
+              "secondary-dim": "#8596ff",
+              "outline": "#797380",
+              "secondary-fixed": "#c9cfff"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .bg-ceremony {
+        background: radial-gradient(circle at center, #293ca0 0%, #100d17 100%);
+      }
+      .reveal-glow {
+        box-shadow: 0 0 60px -10px rgba(241, 131, 255, 0.6);
+      }
+      .glass-card {
+        background: rgba(40, 35, 50, 0.4);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+      }
+      .sparkle-dot {
+        position: absolute;
+        background: white;
+        border-radius: 50%;
+        opacity: 0.3;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary overflow-hidden">
+<!-- Background Layer with Particles -->
+<div class="fixed inset-0 bg-ceremony z-0">
+<!-- Manually placed sparkles for a ceremonial feel -->
+<div class="sparkle-dot w-1 h-1 top-20 left-[10%]"></div>
+<div class="sparkle-dot w-0.5 h-0.5 top-40 left-[80%]"></div>
+<div class="sparkle-dot w-1.5 h-1.5 top-60 left-[25%]"></div>
+<div class="sparkle-dot w-0.5 h-0.5 top-80 left-[60%]"></div>
+<div class="sparkle-dot w-1 h-1 top-[90%] left-[15%]"></div>
+<div class="sparkle-dot w-0.5 h-0.5 top-[15%] left-[50%]"></div>
+<div class="sparkle-dot w-1 h-1 top-[70%] left-[85%]"></div>
+</div>
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 w-full bg-transparent">
+<button class="hover:opacity-80 transition-opacity scale-95 duration-200 text-[#f183ff]">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<h1 class="font-['Space_Grotesk'] font-light tracking-tight text-[#f183ff] uppercase text-xl font-bold tracking-widest">Reveal Moment</h1>
+<div class="w-10"></div> <!-- Spacer for center alignment -->
+</header>
+<main class="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 pt-20 pb-24">
+<!-- Header Section -->
+<div class="text-center mb-12">
+<h2 class="text-4xl md:text-5xl font-headline font-bold text-on-surface mb-3 tracking-tight">Avslöjandets ögonblick</h2>
+<p class="text-on-surface-variant text-lg font-medium opacity-80">Ni har delat 15 meddelanden</p>
+</div>
+<!-- The Reveal Focal Point -->
+<div class="relative group mb-12">
+<!-- Animated Gradient Ring -->
+<div class="absolute -inset-4 rounded-full bg-gradient-to-tr from-primary via-primary-container to-secondary-container opacity-75 blur-md reveal-glow"></div>
+<!-- Main Circular Frame -->
+<div class="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-4 border-primary/30 p-2 overflow-hidden bg-surface-container">
+<div class="w-full h-full rounded-full overflow-hidden relative">
+<!-- The User Photo -->
+<img alt="Maja" class="w-full h-full object-cover filter brightness-110 saturate-110" data-alt="Close-up portrait of a woman named Maja with soft warm lighting, cinematic depth of field, gentle smile, and soft focus edges representing a magical reveal" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkqEk_xEVzp8S36GvaMAN4m9jP2SzB96S1rZGOAInM22Q6YJQkF_NVhMu2Yj4zWkMFjnwG5f4kyc5Vb53ZC5ZWokcCINBuRynCQ5xdbKVv2ZlkUkTRe_P2Sxbw-rqvnQ8BoncLQwTFUD2kg-DTp4-92eAsI5IThLy9GlUs0vBBTekCGbENSePliOXO8mm7BDNz7OFUX8z_H7eG9bWDnKUMhyXlIliRLt4eChUhbvzbNaSSCqvfZm_rCNM4dd0CSp3oigWTBCzCYbrt"/>
+<!-- Reveal Overlay/Dissolve Effect -->
+<div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary/20 mix-blend-overlay"></div>
+<div class="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_transparent_0%,_#100d17_100%)]"></div>
+</div>
+</div>
+<!-- Identity Label -->
+<div class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-center w-full">
+<span class="text-3xl font-headline font-bold text-on-surface drop-shadow-lg">Maja, 28</span>
+</div>
+</div>
+<!-- Match Stats Card -->
+<div class="glass-card w-full max-w-md rounded-lg p-8 mb-10 flex flex-col gap-6">
+<div class="flex items-center gap-5">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl" data-icon="mic" style="font-variation-settings: 'FILL' 1;">mic</span>
+</div>
+<div>
+<p class="text-on-surface font-semibold text-lg leading-tight">23 röstmeddelanden utbytta</p>
+<p class="text-on-surface-variant text-sm">En djupare kontakt</p>
+</div>
+</div>
+<div class="flex items-center gap-5">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl" data-icon="calendar_today" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+</div>
+<div>
+<p class="text-on-surface font-semibold text-lg leading-tight">5 dagars konversation</p>
+<p class="text-on-surface-variant text-sm">Tid väl spenderad</p>
+</div>
+</div>
+<div class="flex items-center gap-5">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div>
+<p class="text-on-surface font-semibold text-lg leading-tight">92% kompatibilitet</p>
+<p class="text-on-surface-variant text-sm">Matchade intressen</p>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="w-full max-w-md flex flex-col gap-4">
+<button class="w-full py-5 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-xl shadow-[0_10px_40px_rgba(241,131,255,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-300">
+                Fortsätt chatta
+            </button>
+<button class="w-full py-2 text-on-surface-variant font-medium hover:text-on-surface transition-colors">
+                Pausa konversationen
+            </button>
+</div>
+</main>
+<!-- Bottom Navigation Shell (Suppressed for transactional reveal focus but included as requested by system logic for Top Level if needed - though here suppressed via relevance check for 'Reveal') -->
+<!-- Applying Suppression: This is a task-focused reveal moment, global nav is hidden to prioritize the canvas. -->
+</body></html>

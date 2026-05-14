@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="sv"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Space+Grotesk:wght@300;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-error": "#490013",
+              "inverse-surface": "#fef7ff",
+              "primary-container": "#e770f8",
+              "on-secondary-fixed": "#10268d",
+              "on-primary-container": "#41004c",
+              "on-primary-fixed-variant": "#540062",
+              "tertiary-container": "#f5d1fb",
+              "primary": "#f183ff",
+              "tertiary-dim": "#e7c3ed",
+              "background": "#100d17",
+              "error-dim": "#d73357",
+              "on-tertiary-fixed": "#4c3253",
+              "on-tertiary-container": "#604567",
+              "surface-container-low": "#15121d",
+              "secondary-fixed": "#c9cfff",
+              "on-error-container": "#ffb2b9",
+              "inverse-on-surface": "#58535f",
+              "on-primary": "#540062",
+              "surface": "#100d17",
+              "secondary-container": "#293ca0",
+              "outline-variant": "#4a4652",
+              "surface-container": "#1b1824",
+              "on-surface": "#f6eefd",
+              "inverse-primary": "#9b26af",
+              "on-secondary-fixed-variant": "#3447ab",
+              "surface-dim": "#100d17",
+              "on-background": "#f6eefd",
+              "outline": "#797380",
+              "tertiary-fixed": "#f5d1fb",
+              "tertiary-fixed-dim": "#e7c3ed",
+              "surface-container-lowest": "#000000",
+              "on-primary-fixed": "#010002",
+              "tertiary": "#fde3ff",
+              "secondary": "#8596ff",
+              "surface-container-high": "#221d2b",
+              "primary-dim": "#e46df5",
+              "secondary-dim": "#8596ff",
+              "on-secondary": "#001367",
+              "on-secondary-container": "#c7cdff",
+              "on-tertiary-fixed-variant": "#6a4e71",
+              "surface-variant": "#282332",
+              "error-container": "#a70138",
+              "error": "#ff6e84",
+              "secondary-fixed-dim": "#b7c0ff",
+              "primary-fixed": "#ea73fb",
+              "surface-tint": "#f183ff",
+              "surface-bright": "#2f2a3a",
+              "on-tertiary": "#694d70",
+              "primary-fixed-dim": "#db65ec",
+              "on-surface-variant": "#afa8b7",
+              "surface-container-highest": "#282332"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .glass {
+        background: rgba(27, 24, 36, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .glow-shadow {
+        box-shadow: 0 0 40px -5px rgba(241, 131, 255, 0.15);
+      }
+      .progress-ring {
+        transition: stroke-dashoffset 0.35s;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+      }
+      ::-webkit-scrollbar {
+        display: none;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/30">
+<!-- Top App Bar -->
+<header class="w-full top-0 sticky z-50 glass">
+<div class="flex justify-between items-center px-6 py-4 w-full">
+<h1 class="font-headline font-light tracking-tight text-xl text-primary">Konversationer</h1>
+<div class="relative hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-primary text-2xl">notifications</span>
+<span class="absolute top-0 right-0 w-2.5 h-2.5 bg-primary border-2 border-surface rounded-full"></span>
+</div>
+</div>
+</header>
+<main class="px-6 pt-6 pb-32 space-y-10">
+<!-- Daily Voice Question Banner -->
+<section class="relative overflow-hidden rounded-lg glass glow-shadow border-l-4 border-primary">
+<div class="p-6 space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold uppercase tracking-widest text-primary-fixed-dim font-label">Dagens fråga</span>
+<span class="material-symbols-outlined text-primary/40 text-sm">auto_awesome</span>
+</div>
+<h2 class="text-xl font-medium font-body leading-tight text-on-surface">Beskriv din perfekta semester</h2>
+<button class="flex items-center gap-3 bg-gradient-to-r from-primary to-primary-container text-on-primary-container px-5 py-3 rounded-full font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span class="text-sm">Spela in ditt svar</span>
+</button>
+</div>
+<!-- Decorative grain/glow -->
+<div class="absolute -right-10 -top-10 w-32 h-32 bg-primary/10 blur-3xl rounded-full"></div>
+</section>
+<!-- Blinda Samtal Section -->
+<section class="space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="font-headline text-lg font-bold tracking-tight uppercase text-on-surface-variant">Blinda samtal</h3>
+<span class="text-xs text-primary font-medium">Se alla</span>
+</div>
+<div class="flex gap-6 overflow-x-auto pb-2 -mx-2 px-2">
+<!-- User: Maja -->
+<div class="flex flex-col items-center gap-3 shrink-0">
+<div class="relative w-20 h-20 flex items-center justify-center">
+<svg class="absolute inset-0 w-full h-full" viewbox="0 0 100 100">
+<circle class="text-surface-container-highest stroke-current" cx="50" cy="50" fill="transparent" r="46" stroke-width="4"></circle>
+<circle class="text-primary stroke-current progress-ring" cx="50" cy="50" fill="transparent" r="46" stroke-linecap="round" stroke-width="4" style="stroke-dasharray: 289.027; stroke-dashoffset: 135.842;"></circle>
+</svg>
+<div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high border-2 border-surface">
+<img alt="Maja" class="w-full h-full object-cover grayscale brightness-50" data-alt="stylized silhouette of a young woman with soft rim lighting against a deep dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVIHk2IGbf7OLuR79qnWLqIiErYRfRa9CZCygddQarNjiqL0eKZuGETHApJatYADASJeNH4fhklK_fQiR5tS7XbCdcPBimk4VH1NgnX2euY7d0hksP1hHyLr362SoHnn2qzEvwLdDMpZl8gVNHWlpsJuiNUamlFAhocbTPJTTHodku1LxQ5b_IonoWdYef0EIuYyGO664DMc26ZNDWES8K4-wQvb1oLu7gOiOHf2BmasPpZsqi6h51QcjFBspdJMPHHIZFnYW96178"/>
+</div>
+<div class="absolute -bottom-1 bg-surface-bright text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/20 font-bold text-on-surface">8/15</div>
+</div>
+<span class="text-xs font-medium text-on-surface">Maja</span>
+</div>
+<!-- User: Erik -->
+<div class="flex flex-col items-center gap-3 shrink-0">
+<div class="relative w-20 h-20 flex items-center justify-center">
+<svg class="absolute inset-0 w-full h-full" viewbox="0 0 100 100">
+<circle class="text-surface-container-highest stroke-current" cx="50" cy="50" fill="transparent" r="46" stroke-width="4"></circle>
+<circle class="text-primary stroke-current progress-ring" cx="50" cy="50" fill="transparent" r="46" stroke-linecap="round" stroke-width="4" style="stroke-dasharray: 289.027; stroke-dashoffset: 57.805; shadow: 0 0 10px #f183ff;"></circle>
+</svg>
+<div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high border-2 border-surface">
+<img alt="Erik" class="w-full h-full object-cover grayscale brightness-50" data-alt="shadowy silhouette profile of a man with minimalist lighting against a dark violet void" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXINfJZ_vWG3fFuHfuoMYJ30aiOu_jFwLlIH34DKyWgPaBleooU-Ofnu527ORdKutthkWrHPwnV8MiwUYhSBBSQa62PwgaoMo-WgaiqiOl7m9pKUihiQGbOtU59irmxLtaQ07UP4RMWiNgHm9AWIqtfuBYTiVZaCWzMcwh5o6-ZAKtB5NcOePHYVKst81-s_zXRa0kJPY7ASjh4oF6JxmbQYRPsGhRPQPCY9Fx_rAu2FpBVU5MRCv88F8KI6YhwpmAtFOtGcw4QaTq"/>
+</div>
+<div class="absolute -bottom-1 bg-primary text-[10px] px-2 py-0.5 rounded-full font-bold text-on-primary shadow-lg shadow-primary/40">12/15</div>
+<!-- Typing Indicator -->
+<div class="absolute -top-1 -right-1 bg-surface-container rounded-full p-1.5 flex gap-0.5">
+<div class="w-1 h-1 bg-primary rounded-full animate-pulse"></div>
+<div class="w-1 h-1 bg-primary rounded-full animate-pulse delay-75"></div>
+<div class="w-1 h-1 bg-primary rounded-full animate-pulse delay-150"></div>
+</div>
+</div>
+<span class="text-xs font-medium text-on-surface">Erik</span>
+</div>
+<!-- User: Linnea -->
+<div class="flex flex-col items-center gap-3 shrink-0 opacity-70">
+<div class="relative w-20 h-20 flex items-center justify-center">
+<svg class="absolute inset-0 w-full h-full" viewbox="0 0 100 100">
+<circle class="text-surface-container-highest stroke-current" cx="50" cy="50" fill="transparent" r="46" stroke-width="4"></circle>
+<circle class="text-primary stroke-current progress-ring" cx="50" cy="50" fill="transparent" r="46" stroke-linecap="round" stroke-width="4" style="stroke-dasharray: 289.027; stroke-dashoffset: 231.221;"></circle>
+</svg>
+<div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high border-2 border-surface">
+<img alt="Linnea" class="w-full h-full object-cover grayscale brightness-50" data-alt="mysterious female silhouette with soft purple backlight hair detail in an atmospheric dark room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfZjzHHYSYGZHglS9_97C0jsAxP71VDLbNsNXzvMook6jP1fU4r850pNUXE31AUNpKyiVl333I9ytsv668QNfGSCTNfO_DdxfD6seQnmCLRwbgCadjExBkMY_8MgdYvQ_ux4B29jYZr3cT0XR_-eiMsoH_UIYH45qPLBASynWUY6fwKg6j1i681lHCUd1DE_1uEvUAtQAFVPydKddA0NRcG9fdsdV0u-u9Q5AFcu7UqKu-7yhX3rZWjVfwK9NAgkb71vz7SYDqrG7f"/>
+</div>
+<div class="absolute -bottom-1 bg-surface-bright text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/20 font-bold text-on-surface">3/15</div>
+</div>
+<span class="text-xs font-medium text-on-surface">Linnea</span>
+</div>
+</div>
+</section>
+<!-- Avslöjade Section -->
+<section class="space-y-6">
+<h3 class="font-headline text-lg font-bold tracking-tight uppercase text-on-surface-variant">Avslöjade</h3>
+<div class="space-y-2">
+<!-- Chat Row: Oscar -->
+<div class="flex items-center gap-4 p-4 rounded-xl transition-colors hover:bg-surface-container-high active:bg-surface-container-highest">
+<div class="relative w-14 h-14 shrink-0">
+<img alt="Oscar" class="w-full h-full rounded-full object-cover border-2 border-primary/20" data-alt="portrait of a young smiling man with warm lighting in an urban outdoor setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGj6bAIf6GBBbKiB8eUQkxRfP04ZeXh__hcn2WXIL-CS6J3RKUl6nhDlegQ0D4QTV0EML45LjOWn74b2YnL0wJMka5KlvPIqRfU10x2noQqK14Du1fOTi3tXDGQNV1W-K0WwTIUjA6Tq58QecsmrQDiZBG9pAUp6mWizh4h3AuMTjYD7wvwmN3a2RNqV2JtuNIhNqQwO3eq5bMV8wBe5I5sQV0UTMgkYS-WSSwR4tUrWiBLC-mLCdV1d6xsHnmqA8zCLUxxKhoLQn4"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h4 class="font-bold text-on-surface truncate">Oscar</h4>
+<span class="text-[10px] text-primary font-medium">14:30</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-sm text-on-surface font-medium truncate">Det var en fantastisk vandring!</p>
+<span class="ml-2 px-1.5 py-0.5 bg-primary text-on-primary text-[10px] font-bold rounded-full">2</span>
+</div>
+</div>
+</div>
+<!-- Chat Row: Saga -->
+<div class="flex items-center gap-4 p-4 rounded-xl transition-colors hover:bg-surface-container-high">
+<div class="relative w-14 h-14 shrink-0">
+<img alt="Saga" class="w-full h-full rounded-full object-cover border-2 border-outline-variant/10" data-alt="candid portrait of a young woman with natural light laughing softly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAju6V0TrfHtpSA75KvDgXqKZd-xKWWjpAedLA1PoFtQOOTDGCRu5p4hM5_19pz_1veM5GdhW7XDMYX1cY92FWYqiV8cvrQu07HshrzWVom2c5verpjWoI47HrHiKG7GcoUKGg4Dj1IpYZQHZcHEh6lGgotPk-5AnvhHhrq1jvNcPgVNFBgT4RPjL2V_LyzTaBwpQCLSD3Y4IIZWWLa3dPTkTaIqZ5KzEcKA2Auseu77mCeRe5qoIg0-Awv9BWqWMgdt5Nq2j5sDvXG"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h4 class="font-bold text-on-surface truncate">Saga</h4>
+<span class="text-[10px] text-on-surface-variant">igår</span>
+</div>
+<div class="flex items-center gap-2 text-sm text-on-surface-variant truncate">
+<span class="material-symbols-outlined text-base text-primary" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span>Röstmeddelande</span>
+</div>
+</div>
+</div>
+<!-- Chat Row: Gustav -->
+<div class="flex items-center gap-4 p-4 rounded-xl transition-colors hover:bg-surface-container-high">
+<div class="relative w-14 h-14 shrink-0">
+<img alt="Gustav" class="w-full h-full rounded-full object-cover border-2 border-outline-variant/10" data-alt="professional portrait of a confident young man in a modern office space with soft bokeh background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2z-2Wm1rcsefGUId3wt14KCYGd-H3D8OAbFpVhaM3Gro5eQADMgRKIFV0u_0hda4u3A89DOtCUdeXimmPD7qahlNRj7hb_o5FMSGlf6SGPPQtqgqK3Q7ZQgKBdNVTeam7uxNSlP6bty18F3FjwV2C6GC_4s4IxLssM49ptP70Gd46kfYWFdeuuEfHX-jgPyohpHWleO2pwUC7yAlmgaS6amiQthsW_WVaEbvtsw1yPGtYIQPYDQwy2OYaSGXOt4Z4-kVK9KrxfBVq"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h4 class="font-bold text-on-surface truncate">Gustav</h4>
+<span class="text-[10px] text-on-surface-variant">mån</span>
+</div>
+<p class="text-sm text-on-surface-variant truncate">Vi borde ses snart! 😊</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-6 pb-8 pt-4 glass rounded-t-[32px] glow-shadow">
+<!-- Discovery -->
+<div class="flex flex-col items-center justify-center text-gray-500 p-3 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+</div>
+<!-- Matches -->
+<div class="flex flex-col items-center justify-center text-gray-500 p-3 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+</div>
+<!-- Messages (Active) -->
+<div class="relative flex flex-col items-center justify-center bg-primary/10 text-primary rounded-full p-4 active:scale-90 duration-200">
+<span class="material-symbols-outlined" data-icon="forum" style="font-variation-settings: 'FILL' 1;">forum</span>
+<div class="absolute top-2 right-2 w-5 h-5 bg-primary text-on-primary text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-surface-container">4</div>
+</div>
+<!-- Profile -->
+<div class="flex flex-col items-center justify-center text-gray-500 p-3 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</div>
+</nav>
+</body></html>

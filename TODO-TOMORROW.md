@@ -147,3 +147,25 @@ curl -sS https://fastdev.tail45c6a7.ts.net/auth/realms/DatingApp/.well-known/ope
 | Discover card | `lib/widgets/discovery/profile_card.dart` |
 | Matches screen | `lib/screens/enhanced_matches_screen.dart` |
 | Spec tasks | `DatingApp/specs/005-core-differentiation/tasks.md` |
+
+# TODO for Tomorrow (2026-05-13)
+
+## Feedback FAB Rewrite
+- [x] All widget tests pass (feedback_fab_test.dart)
+- [x] Static analysis complete (only warnings, no blocking errors)
+- [ ] Commit all staged changes using ./ai-commit-helper.sh or ./gita-workflow.sh
+- [ ] Push to remote and verify CI
+
+## Next Steps
+- [ ] Address analysis warnings (optional, mostly info/unrelated)
+- [ ] Review UAT swipe-service contract blocker (see /memories/repo/uat-findings-2026-05-07.md)
+- [ ] Clean up debug prints/logs before release
+- [ ] Update documentation if workflows or endpoints change
+
+## Notes
+- All feedback FAB code is verified and ready for commit.
+- No HTTP bypasses or security issues found in audit.
+- Watcher polling interval is safe (150s, under YARP rate limit).
+
+---
+Session state saved. Resume from here tomorrow.
