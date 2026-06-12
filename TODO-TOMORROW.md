@@ -1,70 +1,58 @@
 # TODO — Current State
 
-**Updated**: 2026-06-11
-**Active track**: 5-icon bottom navigation restructuring
+**Updated**: 2026-06-12
+**Active track**: 5-icon bottom navigation + Sparks Store
 
 ---
 
-## 🟢 What's New (2026-06-11)
+## 🟢 What's Done Today (2026-06-12)
 
-### ✅ 5-Icon Bottom Navigation — IMPLEMENTED
+### ✅ 5-Icon Bottom Navigation — SHIPPED
+- Top Picks tab with spark mechanic screen
+- Messages tab extracted from old matches screen
+- Simplified Matches screen (no inner tabs)
+- MainApp restructured from 3→5 tabs
 
-Restructured the Flutter app's bottom nav from 3 tabs to 5 tabs:
+### ✅ Sparks Store — SHIPPED (with fixes)
+- Screen renders catalog with hardcoded fallback data (never blank)
+- Premium Plans + Sparks Bundles visible
+- Purchase buttons functional (sandbox)
+- **Fix**: `ElevatedButton` → `OutlinedButton` (ElevatedButton caused black screen on emulator)
+- **Fix**: `Navigator.pop(context)` → root navigator (stale context fix)
+- **Fix**: `dev_auto_login` preserves existing session (was clearing and breaking auth)
 
-**New navigation layout:**
-| Index | Icon | Label | Screen |
-|-------|------|-------|--------|
-| 0 | `Icons.explore` 🔍 | Discover | `HomeScreen` (unchanged) |
-| 1 | `Icons.auto_awesome` ✨ | Top Picks | `TopPicksScreen` (NEW) |
-| 2 | `Icons.favorite` ❤️ | Matches | `EnhancedMatchesScreen` (simplified) |
-| 3 | `Icons.chat_bubble_outline` 💬 | Messages | `MessagesScreen` (NEW) |
-| 4 | Profile avatar 👤 | Profile | `ProfileHubScreen` (unchanged) |
-
-**What changed:**
-- **`TopPicksScreen`** (NEW) — Shows 5 daily curated profiles with spark credit cost (1 ⚡ to connect). Countdown timer. Falls back to shuffled discovery candidates when backend not ready.
-- **`MessagesScreen`** (NEW) — Extracted conversation list from old matches tab. Adds filter chips: All | Unread | Active Now. Own messaging service initialization. Pull-to-refresh + 30s auto-refresh.
-- **`EnhancedMatchesScreen`** (SIMPLIFIED) — Removed TabController, inner TabBar, messaging init, and messages tab. Now a clean matches-only screen.
-- **`MainApp`** (MODIFIED) — 3→5 tabs. Unread message badge moved from heart to chat icon. Match dialog "Send a Message" now navigates to Messages tab (index 3).
-- **Backend: MatchmakingController** — Added `GET api/matchmaking/top-picks` endpoint returning 5 high-compatibility profiles (score ≥ 70%), rotating daily, skipping already-swiped users. TopPicksResponse/Profile DTOs added.
-
-**Verification:**
-- ✅ `flutter analyze` — 0 errors from our changes (4 pre-existing in swipe_cache_service.dart)
-- ✅ `dotnet build` — Build succeeded, 0 errors
-- ✅ Backend tests — 224 passed, 1 pre-existing failure
-- ✅ APK built and installed on emulator for visual testing
+### ✅ Dashboard — SHIPPED
+- ⚡ Start/Stop Lightweight buttons in Stack tab
+- Starts: infra + YARP + UserService + Matchmaking + Messaging + Swipe
+- Saves ~40% RAM vs full stack
 
 ---
 
-## 📋 Next Steps
+## 📋 Sparks Store / Billing — Remaining Work
 
-### 🟡 Visual tweaks / polish on emulator
-- [ ] Labels on 5-tab nav with 5 items — verify no truncation on smaller screens
-- [ ] Heart icon — consider showing new match count badge instead of clean heart
-- [ ] Messages "Active Now" filter — needs backend presence tracking to work fully
-- [ ] Top Picks "Get Sparks" dialog button — wire to SparksStoreScreen or profile tab
+### 🔴 NEEDS FIX — Spark deduction from discover screen
+- [ ] **Top Picks "Connect with ⚡"** — button only shows snackbar, doesn't hit `BillingService.spendSpark()` or navigate to chat/profile. Wire to backend spark deduction endpoint.
+- [ ] **Discover screen spark button** — when user has 0 sparks, shows PaywallSheet → "Upgrade" → SparksStoreScreen (navigates but sparks/entitlement doesn't refresh after purchase). Need `setState` or callback to reload spark balance when returning from store.
+- [ ] **Get Sparks button in Top Picks** — `_showNoSparksDialog()` has "Get Sparks" button that just closes the dialog. Needs to navigate to SparksStoreScreen.
 
-### 🟡 Feature follow-ups (not blocking)
-- [ ] **Top Picks backend endpoint** — Flutter client currently falls back to shuffled discovery candidates. Wire `GET api/matchmaking/top-picks` to the Flutter `_fetchTopPicksFromBackend()` method once the endpoint is deployed.
-- [ ] **Spark deduction** — "Connect with ⚡" button only shows snackbar. Wire to backend spark deduction endpoint and actually navigate to profile/chat.
-- [ ] **Hinge-style "Likes You" flow** — separate from this nav work. Would add a "who liked you" feature distinct from the mutual match dialog.
-- [ ] **Messages tab unread badge** — verify badge count updates correctly when switching away from Messages tab and back.
+### 🟡 COSMETIC / POLISH
+- [ ] **Plans have prices** — premium plans show `priceSparks: 0` in catalog (sandbox). For production, add real prices to `PremiumPlanSku`.
+- [ ] **Bundle prices not visible in backend** — prices are in `priceUsdCents` but dashboard pricing table shows "—" for all plans (they have `price: "—"` hardcoded). Update dashboard to fetch from catalog API.
+- [ ] **Purchase spinner** — loading spinner shows during purchase but doesn't auto-refresh the screen or navigate back after purchase completes.
+- [ ] **Top Picks backend** — Flutter `_fetchTopPicksFromBackend()` throws `UnimplementedError`. Wire to `GET api/matchmaking/top-picks` once deployed.
 
-### 🟡 Pre-existing follow-ups (from earlier work)
-- [ ] Audio retention policy — nightly job in bot-service to delete `UserFeedback/*.m4a` older than 30 days
-- [ ] Crash/error capture — attach last 50 log lines + route name alongside voice memos
+### 🟢 WORKS OK
+- ✅ Sparks Store shows all 6 items (3 plans + 3 bundles) with buttons and prices
+- ✅ Purchase buttons call `BillingService.purchase(sku)` successfully (sandbox)
+- ✅ Spark balance displays in Top Picks AppBar (from `EntitlementStatus`)
+- ✅ Dashboard "Grant Free Sparks" works via Billing tab
+- ✅ Dashboard billing stats show from `GET api/billing/admin/stats`
+- ✅ Dashboard pricing catalog table shows hardcoded SKUs
+
+---
+
+## Pre-Existing Follow-ups (not blocking)
+- [ ] Audio retention policy — nightly job in bot-service
+- [ ] Crash/error capture — attach log lines to voice feedback
 - [ ] Persist Keycloak overrides in dev compose
-
----
-
-## Repos with uncommitted changes
-
-### mobile_dejtingapp (Flutter app) — our changes
-- Modified: `main_app.dart`, `enhanced_matches_screen.dart`, `home_screen.dart`, etc.
-- New files: `messages_screen.dart`, `top_picks_screen.dart`
-
-### MatchmakingService — our changes
-- Modified: `MatchmakingController.cs` (new top-picks endpoint)
-- Modified: `MatchmakingDTOs.cs` (TopPicksResponse DTOs)
-
-### Other repos with pre-existing uncommitted changes
-- photo-service, swipe-service, UserService, dejting-yarp, DatingAppController
+- [ ] Hinge-style "Likes You" flow (separate feature)
