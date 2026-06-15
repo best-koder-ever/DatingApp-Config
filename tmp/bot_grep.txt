@@ -1,0 +1,200 @@
+219:[14:03:14 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:03:14.6653688Z"}
+220:[14:03:14 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+235:[14:03:34 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:03:34.3042155Z"}
+236:[14:03:34 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+237:[14:03:36 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:03:36.3377506Z"}
+238:[14:03:36 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+239:[14:03:39 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:03:39.3834265Z"}
+240:[14:03:39 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+244:[14:03:42 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:03:42.4745375Z"}
+245:[14:03:42 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+256:[14:04:01 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:01.0399952Z"}
+257:[14:04:01 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+263:[14:04:06 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:06.9146738Z"}
+264:[14:04:06 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+265:[14:04:07 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:07.1466955Z"}
+266:[14:04:07 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+267:[14:04:07 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:07.4567686Z"}
+268:[14:04:07 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+269:[14:04:07 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:07.974887Z"}
+270:[14:04:07 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+271:[14:04:08 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:08.5368468Z"}
+272:[14:04:08 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+273:[14:04:09 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:09.0771302Z"}
+274:[14:04:09 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+275:[14:04:09 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:09.5955919Z"}
+276:[14:04:09 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+277:[14:04:10 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:10.1400356Z"}
+278:[14:04:10 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+280:[14:04:10 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:10.6606095Z"}
+281:[14:04:10 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+282:[14:04:11 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:11.1896989Z"}
+283:[14:04:11 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+286:[14:04:12 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:12.2217501Z"}
+287:[14:04:12 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+291:[14:04:18 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:18.9371355Z"}
+292:[14:04:18 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+295:[14:04:21 WRN] [BOT-REPORT] 56 findings (0 high, 56 medium, 0 low) in 6.0h. Top: ClientError(56). Services: SwipeService(56). Attention: no
+296:[14:04:21 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:21.9757665Z"}
+297:[14:04:21 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+298:[14:04:22 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:04:22.9951651Z"}
+299:[14:04:22 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+422:[14:05:11 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:11.0465562Z"}
+423:[14:05:11 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+425:[14:05:11 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:11.7499478Z"}
+426:[14:05:11 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+430:[14:05:12 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:12.2672055Z"}
+431:[14:05:12 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+432:[14:05:12 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:12.8086456Z"}
+433:[14:05:12 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+434:[14:05:13 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:13.3556412Z"}
+435:[14:05:13 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+436:[14:05:13 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:13.8870555Z"}
+437:[14:05:13 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+438:[14:05:14 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:14.0876458Z"}
+439:[14:05:14 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+440:[14:05:14 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:14.4301909Z"}
+441:[14:05:14 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+442:[14:05:14 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:14.9840618Z"}
+443:[14:05:14 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+445:[14:05:15 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:15.5102578Z"}
+446:[14:05:15 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+447:[14:05:16 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:16.0396092Z"}
+448:[14:05:16 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+452:[14:05:19 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:19.2075073Z"}
+453:[14:05:19 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+454:[14:05:21 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:21.2514774Z"}
+455:[14:05:21 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+459:[14:05:22 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:22.4729071Z"}
+460:[14:05:22 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+462:[14:05:24 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:24.5468025Z"}
+463:[14:05:24 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+468:[14:05:29 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:29.6610596Z"}
+469:[14:05:29 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+557:[14:05:56 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:56.8039189Z"}
+558:[14:05:56 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+559:[14:05:57 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:57.8435973Z"}
+560:[14:05:57 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+561:[14:05:58 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:05:58.8646319Z"}
+562:[14:05:58 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+563:[14:06:00 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:00.8775034Z"}
+564:[14:06:00 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+567:[14:06:02 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:02.91331Z"}
+568:[14:06:02 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+600:[14:06:16 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:16.5977496Z"}
+601:[14:06:16 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+603:[14:06:17 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:17.1278378Z"}
+604:[14:06:17 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+611:[14:06:17 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:17.6685394Z"}
+612:[14:06:17 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+613:[14:06:18 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:18.2529323Z"}
+614:[14:06:18 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+615:[14:06:18 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:18.7652465Z"}
+616:[14:06:18 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+617:[14:06:19 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:19.3063455Z"}
+618:[14:06:19 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+623:[14:06:19 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:19.8942115Z"}
+624:[14:06:19 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+628:[14:06:20 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:20.4358691Z"}
+629:[14:06:20 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+630:[14:06:20 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:20.9671089Z"}
+631:[14:06:20 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+702:[14:06:46 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:46.6593829Z"}
+703:[14:06:46 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+704:[14:06:49 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:06:49.6958144Z"}
+705:[14:06:49 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+749:[14:07:12 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:12.9359485Z"}
+750:[14:07:12 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+751:[14:07:15 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:15.975912Z"}
+752:[14:07:15 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+753:[14:07:17 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:17.0020609Z"}
+754:[14:07:17 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+755:[14:07:18 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:18.0432624Z"}
+756:[14:07:18 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+757:[14:07:21 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:21.081307Z"}
+758:[14:07:21 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+760:[14:07:21 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:21.5194315Z"}
+761:[14:07:21 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+764:[14:07:22 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:22.0591937Z"}
+765:[14:07:22 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+767:[14:07:22 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:22.6015121Z"}
+768:[14:07:22 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+775:[14:07:23 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:23.1888299Z"}
+776:[14:07:23 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+777:[14:07:23 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:23.7249434Z"}
+778:[14:07:23 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+779:[14:07:24 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:24.268008Z"}
+780:[14:07:24 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=elsa)
+781:[14:07:24 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:24.8145726Z"}
+782:[14:07:24 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+790:[14:07:25 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:25.3270299Z"}
+791:[14:07:25 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+792:[14:07:25 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:07:25.8410356Z"}
+793:[14:07:25 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=linnea)
+958:[14:08:26 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:08:26.4541883Z"}
+959:[14:08:26 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+967:[14:08:26 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:08:26.9977228Z"}
+968:[14:08:27 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+969:[14:08:27 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:08:27.5122231Z"}
+970:[14:08:27 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1138:[14:09:28 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:09:28.1060271Z"}
+1139:[14:09:28 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1140:[14:09:28 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:09:28.6427683Z"}
+1141:[14:09:28 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1142:[14:09:29 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:09:29.182895Z"}
+1143:[14:09:29 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1304:[14:10:27 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:27.8968713Z"}
+1305:[14:10:27 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1307:[14:10:29 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:29.7658848Z"}
+1308:[14:10:29 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1309:[14:10:30 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:30.2802234Z"}
+1310:[14:10:30 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1311:[14:10:30 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:30.7976673Z"}
+1312:[14:10:30 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1313:[14:10:30 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:30.9156732Z"}
+1314:[14:10:30 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1317:[14:10:31 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:31.9281787Z"}
+1318:[14:10:31 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1319:[14:10:32 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:32.9411483Z"}
+1320:[14:10:32 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1321:[14:10:35 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:10:35.9554486Z"}
+1322:[14:10:35 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1474:[14:11:31 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:11:31.3858735Z"}
+1475:[14:11:31 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1478:[14:11:31 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:11:31.9007712Z"}
+1479:[14:11:31 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1480:[14:11:32 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:11:32.4258178Z"}
+1481:[14:11:32 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1603:[14:12:16 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:16.6002754Z"}
+1604:[14:12:16 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1605:[14:12:18 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:18.6430597Z"}
+1606:[14:12:18 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1607:[14:12:21 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:21.6691446Z"}
+1608:[14:12:21 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1611:[14:12:22 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:22.7110311Z"}
+1612:[14:12:22 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1613:[14:12:23 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:23.7288604Z"}
+1614:[14:12:23 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1632:[14:12:33 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:33.0040528Z"}
+1633:[14:12:33 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1635:[14:12:33 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:33.5232615Z"}
+1636:[14:12:33 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1643:[14:12:34 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:34.0555458Z"}
+1644:[14:12:34 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1705:[14:12:57 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:57.4025269Z"}
+1706:[14:12:57 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1707:[14:12:58 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:58.4166229Z"}
+1708:[14:12:58 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1709:[14:12:59 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:12:59.4563337Z"}
+1710:[14:12:59 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1713:[14:13:02 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:13:02.4715417Z"}
+1714:[14:13:02 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1800:[14:13:34 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:13:34.6613282Z"}
+1801:[14:13:34 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1803:[14:13:35 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:13:35.194931Z"}
+1804:[14:13:35 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+1811:[14:13:35 WRN] POST http://localhost:8080/api/Swipes returned BadRequest: {"success":false,"data":null,"message":"Already swiped on this user","errors":["Already swiped on this user"],"errorCode":null,"timestamp":"2026-05-22T12:13:35.7170274Z"}
+1812:[14:13:35 WRN] [FINDING] Medium ClientError: Client error 400 from SwipeService (service=SwipeService, bot=maja)
+4800:   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+4829:   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+4848:   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)

@@ -5,7 +5,7 @@
   "age": 26,
   "gender": "female",
   "preferredGender": "male",
-  "bio": "Grafisk designer som m\u00e5lar akvarell p\u00e5 helgerna. Kaffen\u00f6rd och kattmamma \ud83c\udfa8\u2615",
+  "bio": "Grafisk designer som målar akvarell på helgerna. Kaffenörd och kattmamma 🎨☕",
   "city": "Uppsala",
   "latitude": 59.8586,
   "longitude": 17.6389,
@@ -31,5 +31,6 @@
     "activeEndHourUtc": 23,
     "maxDailySwipes": 35,
     "maxDailyMessages": 500
-  }
+  },
+  "maxDailyMessages": 20
 }

@@ -5,17 +5,17 @@
   "age": 27,
   "gender": "female",
   "preferredGender": "male",
-  "bio": "Veterin\u00e4r som jobbar med h\u00e4star. Bor utanf\u00f6r stan med tv\u00e5 golden retrievers \ud83d\udc34\ud83d\udc15",
-  "city": "V\u00e4ster\u00e5s",
+  "bio": "Veterinär som jobbar med hästar. Bor utanför stan med två golden retrievers 🐴🐕",
+  "city": "Västerås",
   "latitude": 59.6099,
   "longitude": 16.5448,
-  "occupation": "Veterin\u00e4r",
+  "occupation": "Veterinär",
   "interests": [
     "djur",
     "ridning",
     "natur",
     "bakning",
-    "tr\u00e4dg\u00e5rd"
+    "trädgård"
   ],
   "modes": [
     "synthetic",
@@ -31,5 +31,6 @@
     "activeEndHourUtc": 20,
     "maxDailySwipes": 30,
     "maxDailyMessages": 500
-  }
+  },
+  "maxDailyMessages": 20
 }

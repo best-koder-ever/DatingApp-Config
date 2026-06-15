@@ -92,9 +92,11 @@ Returns 200 on all-success, 207 multi-status if any backend fails. Requires a va
 Admin: admin/admin on master realm at localhost:8090
 | Username | Keycloak ID | Email |
 |----------|-------------|-------|
+| alice@test.se | `3f69f757-e81c-4516-bf36-1213f6edc1cf` | alice@test.se |
+| bob@test.se | `75ff2a6a-93ed-4346-8378-ac1a78ac74d2` | bob@test.se |
 | bot_astrid@bot.local | `9eadfb1d-0577-4921-bd59-2db99c2f2f25` | bot_astrid@bot.local |
 | bot_axel@bot.local | `17dd4605-6209-4d0f-83f5-030c7901dbaa` | bot_axel@bot.local |
-| bot_demo-user@bot.local | `d8a10cc2-f6fe-4c65-a027-1c3a7bafff3b` | bot_demo-user@bot.local |
+| bot_demo-user@bot.local | `167d5636-f945-4726-9fd8-fd1d8d9b96c9` | bot_demo-user@bot.local |
 | bot_elsa@bot.local | `01398d2b-ab55-4a82-a8b8-5ac1dbf23031` | bot_elsa@bot.local |
 | bot_erik-b@bot.local | `ed9ccce2-47b5-45a6-abbd-897117934a8c` | bot_erik-b@bot.local |
 | bot_gustav@bot.local | `700a952c-89fe-4dc9-aa8f-46ffe322de86` | bot_gustav@bot.local |
@@ -104,18 +106,22 @@ Admin: admin/admin on master realm at localhost:8090
 | bot_oscar@bot.local | `709113e8-72a2-4a58-8728-6240516aaf05` | bot_oscar@bot.local |
 | bot_saga@bot.local | `c9627cea-7fa9-4c79-af19-edd76eda044a` | bot_saga@bot.local |
 | bot_wilma@bot.local | `f99e9b3c-76c8-4c51-82d1-770847dd2e3e` | bot_wilma@bot.local |
-| demo-user | `7df82fb9-49af-4bff-a6d5-436b62bf8ea8` | demo@example.com |
+| charlie@test.se | `ac744ecd-bb7d-458d-90ee-543b78489958` | charlie@test.se |
+| diana@test.se | `ba3524a3-38c0-40bb-a473-3af2b2d2ded5` | diana@test.se |
+| e2e_onboard_1780234599@demo.local | `7a482dd1-2b39-465c-adea-d944a43d13ea` | e2e_onboard_1780234599@demo.local |
+| erik@test.se | `6f246c24-9968-4fd9-987f-ceecff6ddf86` | erik@test.se |
+| fresh@test.com | `ecd708c4-6962-41c3-ac14-9714861ac04b` | fresh@test.com |
 
 ### Bot State
-- **demo-user**: Status=Paused, KeycloakId=`d8a10cc2-f6fe-4c65-a027-1c3a7bafff3b`, ProfileId=1, MsgsSent=0
-- **maja**: Status=Active, KeycloakId=`157e2d60-1393-4bda-81b0-c53932d5d552`, ProfileId=2, MsgsSent=41
-- **elsa**: Status=Active, KeycloakId=`01398d2b-ab55-4a82-a8b8-5ac1dbf23031`, ProfileId=3, MsgsSent=41
-- **linnea**: Status=Active, KeycloakId=`f011f459-d226-4cdf-ba57-0d103695d1ef`, ProfileId=4, MsgsSent=43
+- **demo-user**: Status=Paused, KeycloakId=`167d5636-f945-4726-9fd8-fd1d8d9b96c9`, ProfileId=1, MsgsSent=0
+- **maja**: Status=Active, KeycloakId=`157e2d60-1393-4bda-81b0-c53932d5d552`, ProfileId=3, MsgsSent=47
+- **elsa**: Status=Active, KeycloakId=`01398d2b-ab55-4a82-a8b8-5ac1dbf23031`, ProfileId=5, MsgsSent=55
+- **linnea**: Status=Active, KeycloakId=`f011f459-d226-4cdf-ba57-0d103695d1ef`, ProfileId=10, MsgsSent=49
 
 ### Flutter Client
 Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
 
-**Screens:** 16 files
+**Screens:** 19 files
 ```
   account_consent_screen.dart
   auth_screens.dart
@@ -124,27 +130,35 @@ Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
   help_screen.dart
   home_screen.dart
   location_settings_screen.dart
+  match_insight_screen.dart
   photo_upload_screen.dart
   privacy_settings_screen.dart
   profile_detail_screen.dart
   profile_hub_screen.dart
   settings_screen.dart
+  sparks_store_screen.dart
   verification_selfie_screen.dart
+  voice_onboarding_screen.dart
   voice_prompt_screen.dart
   welcome_screen.dart
   wizard
 ```
-**Services:** 20 files
+**Services:** 27 files
 ```
   api_service.dart
   app_initialization_service.dart
   auth_service_pkce.dart
   auth_session_manager.dart
+  billing_service.dart
   cached_photo_service.dart
+  compatibility_service.dart
   dev_auto_login.dart
+  feedback_service.dart
   firebase_phone_auth_service.dart
+  http_client_factory.dart
   keycloak_token_exchange_service.dart
   location_service.dart
+  match_insight_service.dart
   matchmaking_realtime_service.dart
   messaging_service.dart
   messaging_service_simple.dart
@@ -152,15 +166,21 @@ Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
   onboarding_coordinator.dart
   photo_service.dart
   safety_service.dart
+  support_service.dart
   swipe_cache_service.dart
   swipe_service.dart
   verification_service.dart
+  voice_answer_service.dart
   voice_prompt_service.dart
 ```
 
 ### Backend Controllers & Hubs
 - **UserService**: AccountStatusController.cs
+Admin
+BillingController.cs
+BotProvisionController.cs
 DemoController.cs
+DeviceTokenController.cs
 OnboardingMetricsController.cs
 PreferencesController.cs
 ProfileController.cs
@@ -169,10 +189,10 @@ SupportController.cs
 UserProfilesController.cs
 VerificationController.cs
 WizardController.cs
-- **MatchmakingService**: CompatibilityController.cs
+- **MatchmakingService**: AdminController.cs
+CompatibilityController.cs
 HealthController.cs
 MatchmakingController.cs
-MatchmakingController.cs.bak
 MatchStatsController.cs
 ProfilesController.cs
 SyncController.cs
@@ -181,38 +201,41 @@ UserMatchDeletionController.cs | Hubs: MatchmakingHub.cs
 PhotoDeletionController.cs
 PhotosController.cs
 VerificationController.cs
+VoiceAnswersController.cs
 VoiceMessagesController.cs
 VoicePromptsController.cs
-- **messaging-service**: HealthController.cs
+- **messaging-service**: AdminController.cs
+HealthController.cs
 MessageDeletionController.cs
 MessagesController.cs
-MessagesController.cs.bak
 ModerationController.cs
 ReadReceiptsController.cs
 TypingController.cs | Hubs: MessagingHub.cs
 MessagingHub.Spec.cs
-- **swipe-service**: HealthController.cs
+- **swipe-service**: AdminController.cs
+HealthController.cs
 MatchCheckController.cs
 SwipeAnalyticsController.cs
 SwipeBehaviorController.cs
 SwipeDeletionController.cs
 SwipesController.cs
-SwipesController.cs.bak
 - **BotService**: BotController.cs
 ExperimentsController.cs
 FindingsController.cs
 SwarmController.cs
+UserFeedbackController.cs
 - **SafetyService**: BlockingController.cs
 ReportsController.cs
 SafetyDeletionController.cs
 
 ### Known Gotchas
 - **SignalR format**: Flutter sends positional args but MessagingHub.Spec expects object. REST fallback `/api/messages` works.
-- **Bot demo-user**: Bot-service has "demo-user" bot = same identity as Flutter user. If Active, creates rapid message loop. Keep paused.
+- **Dev login identity**: Flutter 'Dev Sign In' uses `bot_demo-user@bot.local` / `bot_pass_demo-user` → keycloakId `167d5636-f945-4726-9fd8-fd1d8d9b96c9` → 'Alex Devsson' → ProfileId 1 across all services. (The old `demo@example.com` user was removed — do not reintroduce it.)
+- **Bot demo-user**: Bot-service has a "demo-user" bot persona = same identity as the Flutter dev user. If Active, creates rapid message loop. Keep paused.
 - **LLM keys**: groq/gemini/ollama circuit-break without API keys. Bots use canned Swedish fallback.
 - **Photo auth**: Photos need `Authorization: Bearer <token>` header. Use `AuthenticatedAvatar` widget. URL: `http://10.0.2.2:8085/api/photos/{id}/image`
 - **ConversationId**: REST = alphabetically-sorted keycloak IDs joined by `_`. Spec hub = matchId as string.
 - **Emulator host**: Use `10.0.2.2` for localhost from Android emulator.
 
-_Context generated: 2026-03-25 14:20:10_
+_Context generated: 2026-06-09 13:56:50_
 <!-- LIVE-CONTEXT-END -->

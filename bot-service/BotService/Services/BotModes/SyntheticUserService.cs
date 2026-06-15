@@ -147,16 +147,23 @@ public class SyntheticUserService : BackgroundService
                 var keycloakId = await keycloak.EnsureBotUserAsync(persona, ct);
                 var (accessToken, refreshToken, expiresAt) = await keycloak.GetBotTokenAsync(persona, ct);
 
-                int? profileId = existingState?.ProfileId;
+                // Use the JWT-authenticated provision endpoint.
+                // Handles create and reconcile in one call — no more email conflicts or stale IDs.
+                var (profileId, created) = await apiClient.ProvisionBotAsync(accessToken, persona, ct);
+
                 if (profileId == null)
                 {
-                    profileId = await apiClient.CreateProfileAsync(persona, accessToken, ct);
-                    if (profileId == null)
-                    {
-                        var profile = await apiClient.GetMyProfileAsync(accessToken, ct);
-                        if (profile != null && profile.Value.TryGetProperty("id", out var idEl))
-                            profileId = idEl.GetInt32();
-                    }
+                    _logger.LogError("Failed to provision profile for persona {PersonaId}", persona.Id);
+                    continue;
+                }
+
+                if (created)
+                {
+                    _logger.LogInformation("Created new profile {ProfileId} for persona {PersonaId}", profileId, persona.Id);
+                }
+                else
+                {
+                    _logger.LogInformation("Reconciled profile {ProfileId} for persona {PersonaId}", profileId, persona.Id);
                 }
 
                 if (existingState != null)
@@ -506,6 +513,15 @@ public class SyntheticUserService : BackgroundService
 
         if (string.IsNullOrEmpty(otherUserId)) continue;
 
+        // ─── Bot guard: skip if recipient is another bot ──────
+        var allBotKeycloakIds = await GetAllBotKeycloakIdsAsync();
+        if (allBotKeycloakIds.Contains(otherUserId))
+        {
+            _logger.LogDebug("Bot {BotId}: skipping {Target} — recipient is another bot",
+                bot.PersonaId, otherUserId);
+            continue;
+        }
+
         // ─── Safety guard: skip if user blocked us ─────────────
         if (bot.IsBlockedBy(otherUserId))
         {
@@ -617,5 +633,20 @@ public class SyntheticUserService : BackgroundService
                 bot.GetMessageCountForUser(otherUserId));
         }
         } // end foreach match
+    }
+
+    /// <summary>
+    /// Returns a set of all bot Keycloak user IDs to prevent bots from messaging each other.
+    /// Cached per call; called once per ChatWithMatchesAsync cycle.
+    /// </summary>
+    private async Task<HashSet<string>> GetAllBotKeycloakIdsAsync()
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
+        var ids = await db.BotStates
+            .Where(bs => bs.KeycloakUserId != null)
+            .Select(bs => bs.KeycloakUserId!)
+            .ToListAsync();
+        return new HashSet<string>(ids);
     }
 }

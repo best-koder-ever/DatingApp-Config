@@ -283,26 +283,7 @@
     ]
   },
   "groups": [],
-  "users": [
-    {
-      "username": "demo-user",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Demo",
-      "lastName": "User",
-      "email": "demo@example.com",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Password123!",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "user"
-      ]
-    }
-  ],
+  "users": [],
   "defaultRoles": [
     "user"
   ],

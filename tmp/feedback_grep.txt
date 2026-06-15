@@ -1,0 +1,200 @@
+318744:05-27 12:13:06.418 V/AudioSink(25707): setPlayerIId(8595423)
+319084:05-27 12:13:06.856 V/NuPlayer(25707): performDecoderFlush audio=2, video=2
+319094:05-27 12:13:06.863 I/egip    ( 7111): (REDACTED) Ignoring irrelevant audio permission changes for package %s
+319143:05-27 12:13:06.909 V/AudioSink(25707): +++ close
+319144:05-27 12:13:06.909 V/AudioSink(25707): --- close
+319193:05-27 12:13:06.954 V/AudioSink(25707): AudioOutput(8596777)
+319195:05-27 12:13:06.954 V/NuPlayer(25707): kWhatSetAudioSink
+319202:05-27 12:13:06.963 V/MediaPlayerService(25707): [1183] setAudioStreamType(3)
+319222:05-27 12:13:06.988 I/AnotherPacketSource(25707): setFormat() : audio/mpeg
+319227:05-27 12:13:06.989 I/NuPlayer(25707): ORmode enabled : unsupportedAudio = 0, unsupportedVideo = 0, mHaveAudioTrack = 1, mHaveVideoTrack = 0
+319247:05-27 12:13:06.996 V/AudioSink(25707): setPlayerIId(8595423)
+319520:05-27 12:13:07.405 I/AudioFlinger(25705): removeDlbCodecCallback pid:5932 type:-1
+319856:05-27 12:13:13.760 I/egip    ( 7111): (REDACTED) Ignoring irrelevant audio permission changes for package %s
+325143:05-27 12:15:09.559 I/ServiceLiveData(29996): Not exempting com.samsung.android.audiomirroring - not an active NotificationListenerService for u0
+326001:05-27 12:15:12.143 D/nativeloader( 7310): Extending system_exposed_libraries: libface_landmark.arcsoft.so:liblow_light_hdr.arcsoft.so:libhigh_dynamic_range.arcsoft.so:libFacialAttributeDetection.arcsoft.so:libaudiomirroring_jni.audiomirroring.samsung.so:libBeauty_v4.camera.samsung.so:libexifa.camera.samsung.so:libjpega.camera.samsung.so:libOpenCv.camera.samsung.so:libC2paDps.camera.samsung.so:libImageScreener.camera.samsung.so:libFace_Landmark_API.camera.samsung.so:libHpr_RecGAE_cvFeature_v1.0.camera.samsung.so:libHprFace_GAE_api.camera.samsung.so:libHprFace_GAE_jni.camera.samsung.so:libDLInterface_aidl.camera.samsung.so:libImageTagger.camera.samsung.so:libSceneDetector_v1.camera.samsung.so:libQREngine.camera.samsung.so:libFood.camera.samsung.so:libFoodDetector.camera.samsung.so:libportrait_controller_engine.camera.samsung.so:libportrait_controller_interface_jni.camera.samsung.so:libsecbufferhandler.camera.samsung.so:libPortraitSolution.camera.samsung.so:libsrib_CNNInterface.camera.samsung.so:libsrib_humanaware_engine.camera.samsung.so:libInteractiv
+326187:05-27 12:15:12.402 I/AudioFlinger(25705): removeDlbCodecCallback pid:5928 type:-1
+326212:05-27 12:15:12.411 V/NuPlayer(25707): performDecoderFlush audio=2, video=2
+326216:05-27 12:15:12.415 D/SoundCraft.PlayingAudioConditionHandler(26408): onPlaybackConfigChanged : lastStartedPackageName=null, lastStartedUid=-1, newStartedUid=-1, newStartPackageName=null, thread=Thread[RoutineHandlerThread,5,main]
+326217:05-27 12:15:12.416 D/SoundCraft.PlayingAudioConditionHandler(26408): onPlaybackConfigChanged : lastStartedPackageName=null, lastStartedUid=-1, newStartedUid=-1, newStartPackageName=null, thread=Thread[RoutineHandlerThread,5,main]
+326226:05-27 12:15:12.416 V/AudioSink(25707): +++ close
+326227:05-27 12:15:12.416 V/AudioSink(25707): --- close
+335046:05-27 12:18:27.470 V/APM_AudioPolicyManager(25705): getInputForAttr() source 0, sampling rate 44100, format 0x1, channel mask 0xc, session 8596793, flags 0 attributes={ Content type: AUDIO_CONTENT_TYPE_UNKNOWN Usage: AUDIO_USAGE_UNKNOWN Source: AUDIO_SOURCE_DEFAULT Flags: 0x800 Tags:  } requested device ID 0
+335049:05-27 12:18:27.499 I/EDMNativeHelperService(25869): isAudioRecordAllowed
+335050:05-27 12:18:27.500 D/RestrictionPolicy(25869): userId: 0 isAudioRecordAllowed : true
+335051:05-27 12:18:27.511 V/APM_AudioPolicyManager(25705): getInputForAttr found device type is 0x80000084
+335054:05-27 12:18:27.537 D/audio_hw_primary(25712): device-adev_open_input_stream: enter: io_handle (926), sample_rate(44100) channel_mask(0xc) format(0x1) framecount(0) devices(0x80000084) flags(0) sources(1)
+335055:05-27 12:18:27.538 I/audio_hw_primary(25712): device-adev_open_input_stream: requested to open Primay capture stream
+335056:05-27 12:18:27.542 D/audio_hw_proxy2(25712): primary_in-update_capture_pcmconfig: needs re-sampling to 44100
+335064:05-27 12:18:27.549 I/audio_hw_HalOdmProxyAdapter(25712): primary_in-initResampler: realloc conversion_buffer with 3532 bytes
+335065:05-27 12:18:27.549 V/audio_hw_HalOdmProxyAdapter(25712): proxy-initResampler: resampler created in-samplerate 48000 out-samplereate 44100
+335066:05-27 12:18:27.550 I/audio_hw_proxy2(25712): proxy-proxy_create_capture_stream: opened Proxy Stream(primary_in)
+335067:05-27 12:18:27.550 I/audio_hw_primary(25712): primary_in-adev_open_input_stream: transited to Standby
+335068:05-27 12:18:27.552 D/audio_hw_HalOdmAdapter(25712): (initPreprocessingLatency[1217]) : preprocessing_latency = 0
+335069:05-27 12:18:27.552 I/audio_hw_primary(25712): device-adev_open_input_stream: opened primary_in stream: io_handle (926)
+335070:05-27 12:18:27.553 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: called
+335071:05-27 12:18:27.553 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: This stream has 1 tracks
+335072:05-27 12:18:27.553 D/audio_hw_capture(25712): in_update_sink_metadata: 1 Track has Source(1), Gain(1.000000)
+335073:05-27 12:18:27.553 D/audio_hw_capture(25712): in_update_sink_metadata: 1 Track usage : recording)
+335077:05-27 12:18:27.566 V/sec_audio_hw(25712): sec_dev_open_audio_stream: enter: handle 926, type 1, tag 
+335078:05-27 12:18:27.567 V/sec_audio_hw(25712): sec_dev_open_audio_stream: exit
+335079:05-27 12:18:27.584 I/AudioEffectStage(25705): StageAttribute name input_normal_input_voice_changer, io 2, mixerType 3, openDevice 0, threadFlags 0
+335080:05-27 12:18:27.584 I/AudioEffectStage(25705):     format 0, sample -1, streamMask 0,InChannelMask ffffffff, OutChannelMask ffffffff, usage 0, content 0
+335081:05-27 12:18:27.594 W/FactoryHal(25705): hasAidlHalService android.hardware.audio.effect.IFactory/default: false
+335082:05-27 12:18:27.606 I/hwservicemanager(  489): getTransport: Cannot find entry android.hardware.audio.effect@7.1::IEffectsFactory/default in either framework or device VINTF manifest.
+335083:05-27 12:18:27.611 W/FactoryHal(25705): hasAidlHalService android.hardware.audio.core.IModule/default: false
+335084:05-27 12:18:27.612 I/hwservicemanager(  489): getTransport: Cannot find entry android.hardware.audio@7.1::IDevicesFactory/default in either framework or device VINTF manifest.
+335086:05-27 12:18:27.656 W/FactoryHal(25705): hasAidlHalService android.hardware.audio.effect.IFactory/default: false
+335087:05-27 12:18:27.656 I/hwservicemanager(  489): getTransport: Cannot find entry android.hardware.audio.effect@7.1::IEffectsFactory/default in either framework or device VINTF manifest.
+335088:05-27 12:18:27.661 W/FactoryHal(25705): hasAidlHalService android.hardware.audio.core.IModule/default: false
+335089:05-27 12:18:27.662 I/hwservicemanager(  489): getTransport: Cannot find entry android.hardware.audio@7.1::IDevicesFactory/default in either framework or device VINTF manifest.
+335091:05-27 12:18:27.676 I/AudioFlinger(25705): AudioFlinger's thread 0xb40000718ac9b3c8 tid=7777 ready to run
+335092:05-27 12:18:27.680 V/APM_AudioPolicyManager(25705): getInputForAttr() returns input 926 selectedDeviceId 17 vdi 0 for port ID 1930
+335130:05-27 12:18:27.772 V/APM_AudioPolicyManager(25705): setAppState(portId:1930, state:2)
+335131:05-27 12:18:27.772 V/APM_AudioPolicyManager(25705): setAppState(portId:1930, state:2)
+335132:05-27 12:18:27.772 V/APM_AudioPolicyManager(25705): startInput portId 1930
+335133:05-27 12:18:27.772 V/APM_AudioPolicyManager(25705): startInput input:926, session:8596793)
+335137:05-27 12:18:27.788 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: called
+335138:05-27 12:18:27.788 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: This stream has 1 tracks
+335139:05-27 12:18:27.788 D/audio_hw_capture(25712): in_update_sink_metadata: 1 Track has Source(1), Gain(1.000000)
+335140:05-27 12:18:27.788 D/audio_hw_capture(25712): in_update_sink_metadata: 1 Track usage : recording)
+335141:05-27 12:18:27.790 D/audio_hw_capture(25712): primary_in-in_set_parameters: enter
+335142:05-27 12:18:27.791 D/audio_hw_capture(25712): primary_in-in_print_set_param_log: requested to change same source  to 0x1
+335143:05-27 12:18:27.791 D/audio_hw_capture(25712): in_set_parameters-primary_in: routing = 0x80000084
+335144:05-27 12:18:27.791 I/audio_hw_capture(25712): primary_in-in_set_parameters: requested to change route from mic to mic
+335145:05-27 12:18:27.794 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: called
+335146:05-27 12:18:27.794 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: This stream has 1 tracks
+335147:05-27 12:18:27.794 D/audio_hw_capture(25712): in_update_sink_metadata: 1 Track has Source(1), Gain(1.000000)
+335148:05-27 12:18:27.794 D/audio_hw_capture(25712): in_update_sink_metadata: 1 Track usage : recording)
+335149:05-27 12:18:27.796 V/APM_AudioPolicyManager(25705): setInputDevice() AF::createAudioPatch returned 0 patchHandle 8532 num_sources 1 num_sinks 1
+335150:05-27 12:18:27.799 D/AudioFlinger(25705): setParameters: filtered dev setParameters keyvalue l_=0
+335151:05-27 12:18:27.800 V/sec_audio_hw(25712): sec_dev_set_parameters : l_=0
+335152:05-27 12:18:27.800 D/audio_hw_primary(25712): device-adev_set_parameters: enter
+335153:05-27 12:18:27.801 D/audio_hw_primary(25712): device-adev_set_parameters: param (l_=0)
+335154:05-27 12:18:27.805 V/APM_AudioPolicyManager(25705): startInput input 926 source = 1 status = 0 exit
+335155:05-27 12:18:27.805 V/audio_hw_capture(25712): in_set_microphone_direction
+335157:05-27 12:18:27.806 V/audio_hw_capture(25712): in_set_microphone_field_dimension
+335163:05-27 12:18:27.815 I/audio_hw_capture(25712): primary_in-in_read: transited to Ready
+335164:05-27 12:18:27.815 I/audio_hw_capture(25712): primary_in-in_read: try to route for capture
+335165:05-27 12:18:27.815 I/audio_hw_utils(25712): primary_in-lock_active_capture_streams: before acquiring in lock
+335166:05-27 12:18:27.815 I/audio_hw_route(25712): primary_in-set_route_for_capture-3: routes to device(dualmic) for usage(recording)
+335167:05-27 12:18:27.815 I/audio_hw_proxy2(25712): proxy-proxy_set_route: set(1) active device(none/none) / requested device(dualmic)
+335168:05-27 12:18:27.815 D/audio_hw_proxy2(25712): proxy-proxy_set_route: Main Mic(0) Capture STARTED notification to STHAL
+335169:05-27 12:18:27.819 I/audio_route(25712): > audio_route_apply_path : "recording-dualmic"
+335170:05-27 12:18:27.819 D/audio_route(25712): Apply path: recording-dualmic
+335171:05-27 12:18:27.819 I/audio_hw_proxy_route(25712): proxy-set_route: routed recording-dualmic
+335172:05-27 12:18:27.819 I/audio_route(25712): > audio_route_apply_path : "gain-recording-dualmic"
+335173:05-27 12:18:27.820 D/audio_route(25712): Apply path: gain-recording-dualmic
+335174:05-27 12:18:27.820 I/audio_hw_proxy_route(25712): proxy-set_route: set gain as gain-recording-dualmic
+335175:05-27 12:18:27.820 I/audio_hw_proxy_route(25712): proxy-update_mixer_ctrls: enter
+335176:05-27 12:18:27.820 D/audio_route(25712): ctl : "DMIC1 Switch" value "1"
+335177:05-27 12:18:27.820 D/audio_route(25712): ctl : "DMIC2 Switch" value "1"
+335178:05-27 12:18:27.820 D/audio_route(25712): ctl : "VTS Channel Map0" value "2"
+335179:05-27 12:18:27.820 D/audio_route(25712): ctl : "VTS Channel Map1" value "0"
+335180:05-27 12:18:27.820 D/audio_route(25712): ctl : "VTS DMIC EN0" value "enable"
+335181:05-27 12:18:27.820 D/audio_route(25712): ctl : "VTS DMIC EN1" value "enable"
+335182:05-27 12:18:27.820 V/audio_route(25712): ctl : Skip to set : "ABOX WDMA1 Width" value "16"
+335183:05-27 12:18:27.820 D/audio_route(25712): ctl : "ABOX WDMA1 Channel" value "4"
+335184:05-27 12:18:27.820 V/audio_route(25712): ctl : Skip to set : "ABOX WDMA1 Rate" value "48000"
+335185:05-27 12:18:27.820 D/audio_route(25712): ctl : "ABOX WDMA1 Period" value "96"
+335186:05-27 12:18:27.820 V/audio_route(25712): ctl : Skip to set : "ABOX UAIF6 Width" value "16"
+335187:05-27 12:18:27.820 V/audio_route(25712): ctl : Skip to set : "ABOX UAIF6 Channel" value "4"
+335188:05-27 12:18:27.820 V/audio_route(25712): ctl : Skip to set : "ABOX UAIF6 Rate" value "48000"
+335189:05-27 12:18:27.820 D/audio_route(25712): ctl : "ABOX NSRC1" value "UAIF6"
+335190:05-27 12:18:27.820 V/audio_route(25712): ctl : Skip to set : "ABOX SIFM1" value "WDMA"
+335191:05-27 12:18:27.821 D/audio_route(25712): ctl : "ABOX VDSP4" value "wdma1-tdmdemux4-normal-capture"
+335192:05-27 12:18:27.821 D/audio_route(25712): ctl : "VTS DMIC GAIN MODE0" value "6168"
+335193:05-27 12:18:27.821 D/audio_route(25712): ctl : "VTS DMIC GAIN MODE1" value "6168"
+335194:05-27 12:18:27.821 D/audio_route(25712): ctl : "VTS CONTROL DMIC AUD GAIN0" value "0"
+335195:05-27 12:18:27.821 D/audio_route(25712): ctl : "VTS CONTROL DMIC AUD GAIN1" value "0"
+335196:05-27 12:18:27.821 I/audio_hw_proxy_route(25712): proxy-update_mixer_ctrls: modified mixer-controls updated
+335204:05-27 12:18:27.828 D/AudioInfo(25712): 1 OMC path check : /omr/res/etc/miccalib.txt
+335205:05-27 12:18:27.828 D/AudioInfo(25712): 2 OMC path check : /omr/res/res/etc/miccalib.txt
+335206:05-27 12:18:27.829 D/AudioInfo(25712): 3 OMC path check : /system/omc/EUX/res/etc/miccalib.txt
+335207:05-27 12:18:27.829 D/AudioInfo(25712): 4 OMC path check : /system/omc/single/EUX/res/etc/miccalib.txt
+335208:05-27 12:18:27.829 D/AudioInfo(25712): 5 OMC path check : /odm/etc/omc/EUX/res/etc/miccalib.txt
+335209:05-27 12:18:27.829 D/AudioInfo(25712): 6 OMC path check : /odm/etc/omc/single/EUX/res/etc/miccalib.txt
+335210:05-27 12:18:27.829 D/AudioInfo(25712): 7 OMC path check : /product/omc/EUX/res/etc/miccalib.txt
+335211:05-27 12:18:27.829 D/AudioInfo(25712): 8 OMC path check : /product/omc/single/EUX/res/etc/miccalib.txt
+335212:05-27 12:18:27.829 D/AudioInfo(25712): 9 OMC path check : /prism/media/carriers/EUX/res/etc/miccalib.txt
+335213:05-27 12:18:27.829 D/AudioInfo(25712): 10 OMC path check : /prism/media/carriers/single/EUX/res/etc/miccalib.txt
+335214:05-27 12:18:27.829 D/AudioInfo(25712): can not find AudioDataPath for fileName:/miccalib.txt
+335220:05-27 12:18:27.829 I/MediaFocusControl(25869): requestAudioFocus() from uid/pid 10428/3759 AA=USAGE_MEDIA/CONTENT_TYPE_SPEECH clientId=android.media.AudioManager@55681com.llfbandit.record.record.recorder.AudioRecorder$$ExternalSyntheticLambda0@329a4e0 callingPack=com.dejting.app req=1 flags=0x1 sdk=35
+335228:05-27 12:18:27.829 V/audio_hw_HalOdmProxyAdapter(25712): proxy-initResampler: resampler created in-samplerate 48000 out-samplereate 44100
+335229:05-27 12:18:27.829 D/AS.AudioService(25869): [Android Auto] isConnectedAndroidAuto = false
+335231:05-27 12:18:27.830 I/MediaFocusControl(25869): removeFocusStackEntry client:android.media.AudioManager@55681com.llfbandit.record.record.recorder.AudioRecorder$$ExternalSyntheticLambda0@329a4e0
+335240:05-27 12:18:27.845 I/audio_hw_proxy2(25712): primary_in-proxy_open_capture_stream: The opened PCM Device is /dev/snd/pcmC0D110c with Sampling_Rate(48000) PCM_Format(0) Channel(2)
+335241:05-27 12:18:27.845 I/audio_hw_capture(25712): primary_in-in_read: transited to Idle
+335242:05-27 12:18:27.846 I/audio_hw_proxy2(25712): primary_in-proxy_start_capture_stream: started PCM Device
+335243:05-27 12:18:27.846 I/audio_hw_capture(25712): primary_in-in_read: transited to Capturing
+335244:05-27 12:18:27.846 I/audio_hw_proxy2(25712): primary_in-get_next_buffer: alloc actual read buffer with 3840 bytes
+335254:05-27 12:18:27.881 D/CCodecConfig( 3759): read media type: audio/mp4a-latm
+335271:05-27 12:18:27.910 D/CCodecConfig( 3759):   string input.media-type.value = "audio/raw"
+335274:05-27 12:18:27.910 D/CCodecConfig( 3759):   string output.media-type.value = "audio/mp4a-latm"
+335298:05-27 12:18:27.921 D/CCodec  ( 3759):   string mime = "audio/raw"
+335310:05-27 12:18:27.921 D/CCodec  ( 3759):   string mime = "audio/mp4a-latm"
+335356:05-27 12:18:28.011 D/MediaCodecEncoder( 3759): Output format set: {max-bitrate=128000, sample-rate=44100, buffer-batch-max-output-size=0, buffer-batch-threshold-output-size=0, level=0, mime=audio/mp4a-latm, profile=2, channel-count=2, bitrate=128000, csd-0=java.nio.HeapByteBuffer[pos=0 lim=2 cap=2]}
+335357:05-27 12:18:28.060 I/MPEG4Writer( 3759): setStartTimestampUs: 0 from Audio track
+335519:05-27 12:18:29.620 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: called
+335520:05-27 12:18:29.621 I/audio_hw_proxy2(25712): primary_in-proxy_stop_capture_stream: stopped PCM Device
+335521:05-27 12:18:29.621 I/audio_hw_capture(25712): primary_in-in_standby: transited to Idle
+335525:05-27 12:18:29.634 I/audio_hw_proxy2(25712): primary_in-proxy_close_capture_stream: closed PCM Device /dev/snd/pcmC0D110c
+335526:05-27 12:18:29.634 I/audio_hw_proxy2(25712): primary_in-proxy_close_capture_stream: clear PCM configuration
+335527:05-27 12:18:29.634 I/audio_hw_capture(25712): primary_in-in_standby: transited to Standby
+335528:05-27 12:18:29.634 I/audio_hw_capture(25712): primary_in-in_standby: try to unroute for standby
+335529:05-27 12:18:29.634 I/audio_hw_proxy2(25712): proxy-proxy_set_route: set(0) active device(none/dualmic) / requested device(dualmic)
+335530:05-27 12:18:29.634 V/audio_route(25712): Reset path: recording-dualmic
+335531:05-27 12:18:29.634 I/audio_hw_proxy_route(25712): proxy-reset_route: unrouted recording-dualmic
+335532:05-27 12:18:29.634 V/audio_route(25712): Reset path: gain-recording-dualmic
+335533:05-27 12:18:29.634 I/audio_hw_proxy_route(25712): proxy-reset_route: reset gain gain-recording-dualmic
+335534:05-27 12:18:29.634 I/audio_hw_proxy_route(25712): proxy-update_mixer_ctrls: enter
+335535:05-27 12:18:29.634 D/audio_route(25712): ctl : "VTS CONTROL DMIC AUD GAIN1" value "35"
+335536:05-27 12:18:29.634 D/audio_route(25712): ctl : "VTS CONTROL DMIC AUD GAIN0" value "35"
+335537:05-27 12:18:29.635 D/audio_route(25712): ctl : "VTS DMIC GAIN MODE1" value "5911"
+335538:05-27 12:18:29.635 D/audio_route(25712): ctl : "VTS DMIC GAIN MODE0" value "5911"
+335539:05-27 12:18:29.639 D/audio_route(25712): ctl : "ABOX VDSP4" value "none"
+335540:05-27 12:18:29.639 V/audio_route(25712): ctl : Skip to set : "ABOX SIFM1" value "WDMA"
+335541:05-27 12:18:29.640 D/audio_route(25712): ctl : "ABOX NSRC1" value "RESERVED"
+335542:05-27 12:18:29.641 V/audio_route(25712): ctl : Skip to set : "ABOX UAIF6 Rate" value "48000"
+335543:05-27 12:18:29.641 V/audio_route(25712): ctl : Skip to set : "ABOX UAIF6 Channel" value "4"
+335544:05-27 12:18:29.641 V/audio_route(25712): ctl : Skip to set : "ABOX UAIF6 Width" value "16"
+335545:05-27 12:18:29.641 D/audio_route(25712): ctl : "ABOX WDMA1 Period" value "240"
+335546:05-27 12:18:29.641 V/audio_route(25712): ctl : Skip to set : "ABOX WDMA1 Rate" value "48000"
+335547:05-27 12:18:29.641 D/audio_route(25712): ctl : "ABOX WDMA1 Channel" value "2"
+335548:05-27 12:18:29.641 V/audio_route(25712): ctl : Skip to set : "ABOX WDMA1 Width" value "16"
+335549:05-27 12:18:29.641 D/audio_route(25712): ctl : "VTS DMIC EN1" value "disable"
+335550:05-27 12:18:29.641 D/audio_route(25712): ctl : "VTS DMIC EN0" value "disable"
+335551:05-27 12:18:29.641 D/audio_route(25712): ctl : "VTS Channel Map1" value "2"
+335552:05-27 12:18:29.641 D/audio_route(25712): ctl : "VTS Channel Map0" value "0"
+335553:05-27 12:18:29.642 D/audio_route(25712): ctl : "DMIC2 Switch" value "0"
+335554:05-27 12:18:29.643 D/audio_route(25712): ctl : "DMIC1 Switch" value "0"
+335555:05-27 12:18:29.643 I/audio_hw_proxy_route(25712): proxy-update_mixer_ctrls: modified mixer-controls updated
+335556:05-27 12:18:29.643 I/audio_hw_route(25712): primary_in-set_unroute_for_capture-3: unroutes to device(dualmic) for usage(recording)
+335557:05-27 12:18:29.646 V/APM_AudioPolicyManager(25705): stopInput portId 1930
+335561:05-27 12:18:29.650 D/audio_hw_capture(25712): primary_in-in_update_sink_metadata: called
+335562:05-27 12:18:29.651 D/audio_hw_capture(25712): primary_in-in_set_parameters: enter
+335563:05-27 12:18:29.651 D/audio_hw_capture(25712): in_set_parameters-primary_in: routing = 0x0
+335564:05-27 12:18:29.651 V/audio_hw_capture(25712): primary_in-in_set_parameters: requested to change route to AUDIO_DEVICE_NONE
+335565:05-27 12:18:29.652 V/APM_AudioPolicyManager(25705): resetInputDevice() releaseAudioPatch returned 0
+335567:05-27 12:18:29.661 V/APM_AudioPolicyManager(25705): releaseInput portId 1930
+335568:05-27 12:18:29.661 V/APM_AudioPolicyManager(25705): releaseInput 926
+335569:05-27 12:18:29.661 V/APM_AudioPolicyManager(25705): closeInput(926)
+335576:05-27 12:18:29.672 I/audio_hw_primary(25712): primary_in-adev_close_input_stream: try to close capture stream
+335578:05-27 12:18:29.673 I/audio_hw_primary(25712): primary_in-adev_close_input_stream: closed capture stream: io_handle (926)
+335579:05-27 12:18:29.675 V/sec_audio_hw(25712): sec_dev_close_audio_stream: enter
+335580:05-27 12:18:29.675 V/sec_audio_hw(25712): sec_dev_close_audio_stream: close sec audio stream for handle 926, type 1
+335581:05-27 12:18:29.675 V/sec_audio_hw(25712): sec_dev_close_audio_stream: exit
+335582:05-27 12:18:29.675 V/APM_AudioPolicyManager(25705): releaseInput exit
+335613:05-27 12:18:29.718 D/MPEG4Writer( 3759): Audio track stopping. Stop source
+335614:05-27 12:18:29.718 D/MPEG4Writer( 3759): Audio track source stopping
+335615:05-27 12:18:29.718 D/MPEG4Writer( 3759): Audio track source stopped
+335618:05-27 12:18:29.718 I/MPEG4Writer( 3759): Received total/0-length (75/0) buffers and encoded 75 frames. - Audio
+335619:05-27 12:18:29.718 I/MPEG4Writer( 3759): Audio track drift time: 0 us
+335624:05-27 12:18:29.720 D/MPEG4Writer( 3759): Audio track stopped. Status:0. Stop source
+335625:05-27 12:18:29.720 I/MPEG4Writer( 3759): Duration for 1:Audio track is 1741496 us
+335640:05-27 12:18:29.731 D/MPEG4Writer( 3759): Audio track stopping. Stop source
+335642:05-27 12:18:29.735 I/MediaFocusControl(25869): abandonAudioFocus() from uid/pid 10428/3759 clientId=android.media.AudioManager@55681com.llfbandit.record.record.recorder.AudioRecorder$$ExternalSyntheticLambda0@329a4e0 callingPack=com.dejting.app
+335643:05-27 12:18:29.735 D/AS.AudioService(25869): [Android Auto] isConnectedAndroidAuto = false
+335644:05-27 12:18:29.735 D/MediaFocusControl(25869): abandonAudioFocus, clientId = android.media.AudioManager@55681com.llfbandit.record.record.recorder.AudioRecorder$$ExternalSyntheticLambda0@329a4e0
+335646:05-27 12:18:29.735 I/MediaFocusControl(25869): removeFocusStackEntry client:android.media.AudioManager@55681com.llfbandit.record.record.recorder.AudioRecorder$$ExternalSyntheticLambda0@329a4e0
+336321:05-27 12:18:34.082 I/flutter ( 3759): FeedbackService: POST http://10.224.48.196:8080/api/userfeedback (audio=true, note=0 chars, screen=null)

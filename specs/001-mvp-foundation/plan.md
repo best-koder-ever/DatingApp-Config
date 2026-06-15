@@ -81,3 +81,43 @@ Specs: specs/001-mvp-foundation/
 |-----------|------------|-------------------------------------|
 | (none) | | |
 
+---
+
+## Lessons Learned: Dev Environment Setup (2026-06-02)
+
+### Server-as-backend approach (ABANDONED)
+- **Problem**: Running backend on a separate 8GB Pentium server (192.168.1.103) created multiple points of failure:
+  - Slow WiFi (1 Mbit) made image transfers and APK installs painful
+  - Docker Compose networking: services need explicit `Gateway__BaseUrl`, `MATCHMAKING_SERVICE_URL`, `UserService__BaseUrl` env vars pointing to container hostnames (NOT `localhost`)
+  - MySQL 8 `CREATE USER` / `GRANT` — container IPs change on restart, requiring `'user'@'%'` grants. `IDENTIFIED BY` is NOT valid in MySQL 8 `GRANT` syntax.
+  - Tailscale Funnel only exposes ONE port (free tier) — YARP at :8080, but Keycloak at :8090 needs a separate `/auth` proxy route through YARP
+  - Phone ↔ server connectivity: emulators can't reach separate machine LAN IPs; Funnel URL needed for mobile data
+  - Docker image names: local compose uses `datingapp-swipe-service:latest` (with prefix), not `swipe-service:latest`
+  - Keycloak authority: services inside Docker need `http://192.168.1.103:8090/realms/DatingApp` (host IP), not `localhost`
+
+### Resolved: Laptop-only development (ADOPTED)
+- **Decision**: Run all backend services + emulator on the same development laptop
+- **Benefits**: No network latency, no DNS issues, no container IP drift, fast builds
+- **Setup**: `./dev-start.sh` starts all services locally; emulator uses `10.0.2.2` for host loopback
+- **Flutter**: `DevServer.server` mode uses LAN IP; add `DevServer.laptop` option for emulator-local dev
+
+### Flutter Dev Server Switcher (IMPLEMENTED)
+- `environment.dart`: `DevServer` enum (server/funnel/custom), persisted via SharedPreferences
+- `environment_selector.dart`: Radio buttons + custom host input, live health indicator
+- `dev_auto_login.dart`: ROPC login → composite admin reset → seed mutual likes → ready to swipe
+- `scripts/reset-and-seed.py`: Server-side Python script that resets interactions and seeds demo-user ↔ bot mutual likes
+
+### MatchmakingService fixes applied
+- Added `Gateway__BaseUrl=http://yarp:8080` — enables UserService profile resolution from Docker
+- Added `Services__UserService__BaseUrl=http://user-service:8082` — fixes legacy fallback
+- Added Keycloak auth env vars for JWT validation inside Docker network
+- DB user grants fixed for `matchmakingservice_user`@`%` and `swipeservice_user`@`%`
+
+### Key files modified
+- `docker-compose.yml` — swipe-service + matchmaking env vars
+- `lib/config/environment.dart` — DevServer switching + SharedPreferences persistence
+- `lib/widgets/environment_selector.dart` — server picker UI
+- `lib/services/dev_auto_login.dart` — auto reset+seed on login
+- `lib/main.dart` — `loadDevServerChoice()` at startup
+- `scripts/reset-and-seed.py` — new server-side seeding script
+

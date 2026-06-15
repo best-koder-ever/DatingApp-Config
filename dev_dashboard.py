@@ -1183,7 +1183,36 @@ class DevDashboard:
     async def launch_android_app(self) -> None:
         await self.adb(["shell", "am", "start", "-n", f"{APP_PACKAGE}/{APP_ACTIVITY}"], label="launch app")
 
+
+    async def flutter_run(self) -> None:
+        """Launch `flutter run -d linux` — desktop app at phone-like dimensions.
+
+        No emulator needed. The Linux desktop target renders the exact same Flutter
+        UI as Android but runs natively with zero emulation overhead. Resize the
+        window to phone proportions (~412x915) for a device-accurate preview.
+        """
+        if not FLUTTER_ROOT.exists():
+            self.log(f"Flutter root missing: {FLUTTER_ROOT}")
+            if self.android_status is not None:
+                self.android_status.text = "❌ Flutter root missing"
+            ui.notify("Flutter root missing", type="negative")
+            return
+
+        # Clear previous log
+        if self.android_log is not None:
+            self.android_log.clear()
+            self.android_log.push(
+                "Launching Flutter desktop (linux) — no emulator needed. "
+                "Resize window to ~412x915 for phone-like dimensions."
+            )
+        await self.run_command_streaming(
+            ["flutter", "run", "-d", "linux", "--debug"],
+            cwd=FLUTTER_ROOT,
+            label="Flutter Run (desktop — phone-size window)",
+        )
+
     async def force_stop_app(self) -> None:
+        await self.adb(["shell", "am", "force-stop", APP_PACKAGE], label="force-stop app")
         await self.adb(["shell", "am", "force-stop", APP_PACKAGE], label="force-stop app")
 
     async def clear_app_data(self) -> None:
@@ -1923,6 +1952,7 @@ class DevDashboard:
                 self.add_button("Build APK", lambda: self.build_apk(str(build_mode.value)), icon="build", tooltip="Run 'flutter build apk' in background. Watch the build log below for live progress. Dashboard stays responsive.")
                 self.add_button("Install APK", lambda: self.install_apk(str(build_mode.value)), icon="download", tooltip="Install the last-built APK onto the selected device via 'adb install -r'. Output in build log below.")
                 self.add_button("Launch App", lambda: self.guarded("Launch app", self.launch_android_app), icon="rocket_launch", color="positive", tooltip="Launch com.dejting.app/.MainActivity on the selected device via 'adb shell am start'")
+                self.add_button("Flutter Desktop", lambda: self.guarded("Flutter desktop", self.flutter_run), icon="desktop_windows", color="accent", tooltip="Launch app as native Linux desktop window. Resize to ∼412x915 for phone-size preview. Zero emulator RAM overhead — hot reload in <1 second. No Android emulator or device needed.")
                 self.add_button("Force Stop", lambda: self.guarded("Force stop app", self.force_stop_app), icon="pause_circle", color="warning", tooltip="Force-stop the app on the device via 'adb shell am force-stop' (like swiping it away)")
                 self.add_button(
                     "Clear App Data",
