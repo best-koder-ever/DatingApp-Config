@@ -102,6 +102,14 @@ def shell_join(cmd: list[str]) -> str:
     return " ".join(shlex.quote(part) for part in cmd)
 
 
+_ANSI_RE = re.compile("" + r"\[[0-9;]*[a-zA-Z]")
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI color/formatting escape codes from terminal output."""
+    return _ANSI_RE.sub("", text)
+
+
 def port_open(port: int, host: str = "127.0.0.1", timeout: float = 0.3) -> bool:
     try:
         with socket.create_connection((host, port), timeout=timeout):
@@ -491,7 +499,7 @@ class DevDashboard:
                 msg = f"Command not found: {exc}"
                 self.log(f"[BG] {msg}")
                 if self.android_log is not None:
-                    self.android_log.push(f"[ERROR] {msg}")
+                    self.android_log.push(strip_ansi(f"[ERROR] {msg}"))
                 if self.android_status is not None:
                     self.android_status.text = f"❌ {title} failed: not found"
                     self.android_status.classes("text-red-600 font-semibold text-sm")
@@ -509,13 +517,13 @@ class DevDashboard:
                     # Batch updates every 5 lines to reduce UI churn
                     line_count += 1
                     if line_count % 5 == 1 or 'error' in line.lower() or 'fail' in line.lower():
-                        self.android_log.push(line)
+                        self.android_log.push(strip_ansi(line))
             return_code = await proc.wait()
             status_icon = "✅" if return_code == 0 else "❌"
             msg = f"{status_icon} {title} finished (exit {return_code})"
             self.log(f"[BG] {msg}")
             if self.android_log is not None:
-                self.android_log.push(msg)
+                self.android_log.push(strip_ansi(msg))
             if self.android_status is not None:
                 if return_code == 0:
                     self.android_status.text = f"✅ {title} done"
@@ -2163,10 +2171,10 @@ class DevDashboard:
                             last = " ".join(parts[idx:])
                             break
                     repos.append({
-                        "repo": repo,
-                        "branch": branch,
-                        "changed": flags,
-                        "last": last,
+                        "repo": strip_ansi(repo),
+                        "branch": strip_ansi(branch),
+                        "changed": strip_ansi(flags),
+                        "last": strip_ansi(last),
                     })
 
             if self.gita_repo_table is not None:
@@ -2174,7 +2182,7 @@ class DevDashboard:
                 self.gita_repo_table.update()
             if self.gita_log is not None:
                 self.gita_log.clear()
-                self.gita_log.push(out)
+                self.gita_log.push(strip_ansi(out))
             if self.gita_status_label is not None:
                 self.gita_status_label.text = "✅ %d repos tracked" % len(repos)
                 self.gita_status_label.classes("text-sm text-green-600")
@@ -2210,7 +2218,7 @@ class DevDashboard:
             )
             stdout, _ = await proc.communicate()
             if self.gita_log is not None:
-                self.gita_log.push(stdout.decode(errors="replace"))
+                self.gita_log.push(strip_ansi(stdout.decode(errors="replace")))
 
             if self.gita_status_label is not None:
                 self.gita_status_label.text = "⏳ Pushing..."
