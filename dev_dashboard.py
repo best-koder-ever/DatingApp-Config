@@ -286,6 +286,9 @@ class DevDashboard:
         self.android_table = None
         self.android_log = None
         self.android_status = None
+        self.gita_repo_table = None
+        self.gita_log = None
+        self.gita_status_label = None
         self.conn_table = None
         self.conn_action_plan = None
         self.smoke_log = None
@@ -1311,6 +1314,7 @@ class DevDashboard:
                 tab_logs = ui.tab("Logs", icon="article")
                 tab_billing = ui.tab("Billing", icon="paid")
                 tab_ai_cache = ui.tab("AI & Costs", icon="auto_awesome")
+                tab_gita = ui.tab("Gita", icon="source_commit")
 
         with ui.column().classes("w-full p-4 gap-4"):
             with ui.tab_panels(tabs, value=tab_stack).classes("w-full"):
@@ -1325,6 +1329,7 @@ class DevDashboard:
                 self._build_logs_panel(tab_logs)
                 self._build_billing_panel(tab_billing)
                 self._build_ai_cache_panel(tab_ai_cache)
+                self._build_gita_panel(tab_gita)
 
         ui.timer(5.0, self.refresh_all)
         ui.timer(3.0, self.tail_selected_log)
@@ -2076,6 +2081,159 @@ class DevDashboard:
             self.log_tail = ui.textarea("Tail").props("readonly outlined").classes("w-full h-80 font-mono text-xs")
             ui.label("Command event log").classes("section-title")
             self.event_log = ui.log(max_lines=400).classes("w-full h-80")
+
+    # ─── Gita Panel ─────────────────────────────────────────────────
+
+    def _build_gita_panel(self, tab: Any) -> None:
+        """Multi-repo Git control via gita workflow. Commit & push all repos from one button."""
+        with ui.tab_panel(tab):
+            ui.label("Git Multi-Repo Control").classes("section-title")
+            with ui.row().classes("toolbar"):
+                self.add_button(
+                    "Refresh Status",
+                    self._gita_refresh,
+                    icon="refresh",
+                    tooltip="Scan all repos for uncommitted changes via gita workflow"
+                )
+                self.add_button(
+                    "Commit & Push All",
+                    lambda: self.guarded("Commit & Push", self._gita_commit_push),
+                    icon="publish",
+                    color="positive",
+                    tooltip="Stage all changes, auto-commit, and push all repos under gita management"
+                )
+                self.add_button(
+                    "Status",
+                    lambda: self.guarded("Gita status", self._gita_status),
+                    icon="info",
+                    tooltip="Show git status for all tracked repos"
+                )
+
+            ui.label("Tracked Repos").classes("section-title")
+            self.gita_repo_table = ui.table(
+                columns=[
+                    {"name": "repo", "label": "Repo", "field": "repo"},
+                    {"name": "branch", "label": "Branch", "field": "branch"},
+                    {"name": "changed", "label": "Changed", "field": "changed"},
+                    {"name": "last", "label": "Last Commit", "field": "last"},
+                ],
+                rows=[],
+                row_key="repo",
+            ).classes("w-full")
+
+            ui.label("Output").classes("section-title mt-4")
+            self.gita_status_label = ui.label("Idle").classes("text-sm text-gray-500")
+            self.gita_log = ui.log(max_lines=300).classes("w-full h-48 font-mono text-xs")
+
+    async def _gita_refresh(self) -> None:
+        """Refresh the gita repo status table from gita-workflow.sh status."""
+        script = ROOT / "gita-workflow.sh"
+        if not script.exists():
+            ui.notify("gita-workflow.sh not found", type="negative")
+            return
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "bash", str(script), "status",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await proc.communicate()
+            out = stdout.decode(errors="replace").strip()
+
+            repos = []
+            for line in out.splitlines():
+                line = line.strip()
+                if not line or line.startswith("━"):
+                    continue
+                parts = line.split()
+                if len(parts) >= 2 and not any(line.startswith(p) for p in [
+                    "MatchmakingService:","UserService:","photo-service:","dejting-yarp:",
+                    "safety-service:","bot-service:","messaging-service:","swipe-service:",
+                    "DatingApp:","dejtingapp:","spec-kit:"
+                ]):
+                    repo = parts[0]
+                    branch = parts[1] if len(parts) > 1 else "?"
+                    flags = ""
+                    last = ""
+                    for p in parts:
+                        if p.startswith("[") and p.endswith("]"):
+                            flags = p
+                        elif ("ago" in p or "weeks" in p or "months" in p) and not last:
+                            idx = parts.index(p)
+                            last = " ".join(parts[idx:])
+                            break
+                    repos.append({
+                        "repo": repo,
+                        "branch": branch,
+                        "changed": flags,
+                        "last": last,
+                    })
+
+            if self.gita_repo_table is not None:
+                self.gita_repo_table.rows = repos
+                self.gita_repo_table.update()
+            if self.gita_log is not None:
+                self.gita_log.clear()
+                self.gita_log.push(out)
+            if self.gita_status_label is not None:
+                self.gita_status_label.text = "✅ %d repos tracked" % len(repos)
+                self.gita_status_label.classes("text-sm text-green-600")
+        except Exception as e:
+            self.log("Gita refresh error: %s" % e)
+            if self.gita_status_label is not None:
+                self.gita_status_label.text = "❌ %s" % e
+                self.gita_status_label.classes("text-sm text-red-600")
+
+    async def _gita_status(self) -> None:
+        """Show gita status in the log panel."""
+        await self._gita_refresh()
+
+    async def _gita_commit_push(self) -> None:
+        """Auto-commit all repos, then push them."""
+        script = ROOT / "gita-workflow.sh"
+        if not script.exists():
+            ui.notify("gita-workflow.sh not found", type="negative")
+            return
+        if self.gita_log is not None:
+            self.gita_log.clear()
+            self.gita_log.push("Starting commit-auto + push for all repos...")
+        if self.gita_status_label is not None:
+            self.gita_status_label.text = "⏳ Committing..."
+            self.gita_status_label.classes("text-sm text-orange-600")
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "bash", str(script), "commit-auto",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                cwd=str(ROOT),
+            )
+            stdout, _ = await proc.communicate()
+            if self.gita_log is not None:
+                self.gita_log.push(stdout.decode(errors="replace"))
+
+            if self.gita_status_label is not None:
+                self.gita_status_label.text = "⏳ Pushing..."
+            proc2 = await asyncio.create_subprocess_exec(
+                "bash", str(script), "push",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                cwd=str(ROOT),
+            )
+            stdout2, _ = await proc2.communicate()
+            if self.gita_log is not None:
+                self.gita_log.push(stdout2.decode(errors="replace"))
+
+            if self.gita_status_label is not None:
+                self.gita_status_label.text = "✅ Commit & Push complete"
+                self.gita_status_label.classes("text-sm text-green-600")
+            ui.notify("All repos committed and pushed", type="positive")
+        except Exception as e:
+            self.log("Gita commit/push error: %s" % e)
+            if self.gita_status_label is not None:
+                self.gita_status_label.text = "❌ %s" % e
+                self.gita_status_label.classes("text-sm text-red-600")
+
 
     # ─── AI & Caching Panel ────────────────────────────────────────────
 
