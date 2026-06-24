@@ -2230,7 +2230,7 @@ class DevDashboard:
             )
             stdout2, _ = await proc2.communicate()
             if self.gita_log is not None:
-                self.gita_log.push(stdout2.decode(errors="replace"))
+                self.gita_log.push(strip_ansi(stdout2.decode(errors="replace")))
 
             if self.gita_status_label is not None:
                 self.gita_status_label.text = "✅ Commit & Push complete"

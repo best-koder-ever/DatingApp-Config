@@ -111,7 +111,7 @@
 - **Depends on**: T310
 - **Evidence**: Unit test: 5 sample convo transcripts → correct stage classification
 
-- [ ] T316 [P1] [AI] Persona voice calibration — test matrix: generate 10 messages per persona across all 12 personas, evaluate Swedish naturalness 1-5 via LLM-judge (`gemini-2.5-flash`), tune system prompt based on results
+- [x] T316 [P1] [AI] Persona voice calibration — test matrix: generate 10 messages per persona across all 12 personas, evaluate Swedish naturalness 1-5 via LLM-judge (`gemini-2.5-flash`), tune system prompt based on results
 - **Estimate**: 3h
 - **File**: `Tests/Integration/PersonaVoiceTests.cs`
 - **Depends on**: T312
@@ -189,7 +189,7 @@
 - **File**: `Controllers/BotController.cs`
 - **Depends on**: T326
 
-- [ ] T330 [P2] [Script] `scripts/bot-daily-digest.py` — Python script that queries `/api/bot/findings/summary`, formats Markdown report, optionally sends to email/Slack. Cron-schedulable.
+- [x] T330 [P2] [Script] `scripts/bot-daily-digest.py` — Python script that queries `/api/bot/findings/summary`, formats Markdown report, optionally sends to email/Slack. Cron-schedulable.
 - **Estimate**: 2h
 - **File**: `scripts/bot-daily-digest.py`
 - **Depends on**: T327
@@ -268,38 +268,38 @@
 **Goal**: Bots get profile photos. Personas become richer and more diverse. Quality polish.
 
 ### Photo Pipeline
-- [ ] T360 [P1] [Core] AI photo generation integration — use Stitch MCP or Stability AI API to generate diverse, realistic profile photos. One portrait + 2-3 lifestyle photos per persona. Match persona demographics (age, gender, ethnicity).
+- [x] T360 [P1] [Core] AI photo generation integration — use Stitch MCP or Stability AI API to generate diverse, realistic profile photos. One portrait + 2-3 lifestyle photos per persona. Match persona demographics (age, gender, ethnicity).
 - **Estimate**: 6h
 - **File**: `Services/Photo/BotPhotoGenerator.cs`
 - **Evidence**: 12 personas each have 3-4 generated photos
 
-- [ ] T361 [P1] [Core] Upload generated photos via photo-service API — `POST /api/photos/upload` with multipart form, set as profile photos, handle moderation pipeline
+- [x] T361 [P1] [Core] Upload generated photos via photo-service API — `POST /api/photos/upload` with multipart form, set as profile photos, handle moderation pipeline
 - **Estimate**: 3h
 - **File**: `Services/Photo/PhotoUploader.cs`
 - **Depends on**: T360
 
-- [ ] T362 [P2] [Core] Photo variety testing — A/B test different photo styles per persona (casual vs professional vs activity-based), track which generate more right-swipes via BotObserver
+- [x] T362 [P2] [Core] Photo variety testing — A/B test different photo styles per persona (casual vs professional vs activity-based), track which generate more right-swipes via BotObserver
 - **Estimate**: 3h
 - **Depends on**: T347, T361
 
 ### Persona Expansion
-- [ ] T363 [P1] [Content] Expand from 12 to 50 personas — cover wider age range (20-55), diverse occupations, suburban/rural personas (not just Stockholm), different chattiness levels, varied relationship goals. Use LLM to generate persona bios.
+- [x] T363 [P1] [Content] Expand from 12 to 50 personas — cover wider age range (20-55), diverse occupations, suburban/rural personas (not just Stockholm), different chattiness levels, varied relationship goals. Use LLM to generate persona bios.
 - **Estimate**: 4h
 - **File**: `Content/Personas/*.json` (38 new files)
 - **Evidence**: `dotnet test` validates all 50 personas load correctly
 
-- [ ] T364 [P2] [AI] Dynamic persona generation — API endpoint `POST /api/bot/personas/generate` that generates a persona on-the-fly via LLM, given constraints: `{ ageRange, gender, city, interests[] }`. Stores in SQLite for reuse.
+- [x] T364 [P2] [AI] Dynamic persona generation — API endpoint `POST /api/bot/personas/generate` that generates a persona on-the-fly via LLM, given constraints: `{ ageRange, gender, city, interests[] }`. Stores in SQLite for reuse.
 - **Estimate**: 4h
 - **File**: `Services/PersonaGenerator.cs`, `Controllers/BotController.cs`
 - **Depends on**: T304
 
-- [ ] T365 [P2] [AI] Persona behavior learning — after 100+ interactions, adjust persona behavior based on success rates: if "Sofia" gets more matches with casual openers, increase her casual response probability. Self-tuning bots.
+- [x] T365 [P2] [AI] Persona behavior learning — after 100+ interactions, adjust persona behavior based on success rates: if "Sofia" gets more matches with casual openers, increase her casual response probability. Self-tuning bots.
 - **Estimate**: 5h
 - **File**: `Services/Intelligence/PersonaTuner.cs`
 - **Depends on**: T325, T348
 
 ### Quality & Polish
-- [ ] T366 [P1] [Test] Swedish naturalness benchmark — create evaluation suite: 100 generated messages scored 1-5 by LLM-judge for naturalness, grammar, persona consistency. Run as part of CI. Fail if avg <3.5.
+- [x] T366 [P1] [Test] Swedish naturalness benchmark — create evaluation suite: 100 generated messages scored 1-5 by LLM-judge for naturalness, grammar, persona consistency. Run as part of CI. Fail if avg <3.5.
 - **Estimate**: 3h
 - **File**: `Tests/Integration/SwedishNaturalnessTests.cs`
 - **Depends on**: T312
@@ -308,7 +308,7 @@
 - **Estimate**: 2h
 - **File**: `scripts/bot-dashboard.sh`
 
-- [ ] T368 [P1] [Docs] Bot swarm operations runbook — document all API endpoints, swarm modes, LLM providers, configuration, troubleshooting. Add to RUNBOOK.md.
+- [x] T368 [P1] [Docs] Bot swarm operations runbook — document all API endpoints, swarm modes, LLM providers, configuration, troubleshooting. Add to RUNBOOK.md.
 - **Estimate**: 2h
 - **File**: `RUNBOOK.md` additions, `README.md` update
 
@@ -320,10 +320,10 @@
 
 **Goal**: Monitor, tune, expand capabilities over time.
 
-- [ ] T380 [P2] [Ops] Prometheus metrics exporter — expose bot metrics in Prometheus format: `bot_swipes_total`, `bot_messages_total`, `bot_findings_total`, `llm_tokens_used_total`, `llm_latency_seconds`
+- [x] T380 [P2] [Ops] Prometheus metrics exporter — expose bot metrics in Prometheus format: `bot_swipes_total`, `bot_messages_total`, `bot_findings_total`, `llm_tokens_used_total`, `llm_latency_seconds`
 - **Estimate**: 3h
 
-- [ ] T381 [P2] [Core] Webhook notifications — push critical findings to Slack/Discord webhook. Configurable severity threshold.
+- [x] T381 [P2] [Core] Webhook notifications — push critical findings to Slack/Discord webhook. Configurable severity threshold.
 - **Estimate**: 2h
 
 - [ ] T382 [P3] [AI] Multi-language bot support — add English personas for international testing. Finnish and Norwegian personas for Nordics expansion.

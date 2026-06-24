@@ -96,6 +96,11 @@ builder.Services.AddSingleton<IConversationEngine>(sp =>
 
 // ── Bot Observer (Wave 2) ──
 builder.Services.AddSingleton<BotService.Services.Observer.BotObserver>();
+builder.Services.AddSingleton<BotMetrics>();
+builder.Services.AddSingleton<BehaviorLearningService>();
+builder.Services.AddSingleton<BotService.Services.Photo.PhotoStyleTracker>();
+builder.Services.AddSingleton<DynamicPersonaGenerator>();
+builder.Services.AddSingleton<IWebhookNotifier, WebhookNotifier>();
 
 // ── Swarm Orchestrator (Wave 3) ──
 builder.Services.AddSingleton<BotService.Services.Swarm.SwarmOrchestrator>();

@@ -10,7 +10,7 @@
 **Goal**: Create the question/answer data model and seed 32 psychology-backed questions. This is the foundation everything else builds on.
 
 > **⚠️ DEVIATION NOTE (2026-04-30 reconciliation)**
-> Phase 1 entities were built with a **categorical multi-choice + voice-hybrid schema** instead of the spec's 7-point Likert + BigFive/Attachment axes. Actual fields: `Emoji`, `OptionsJson`, `Weight`, `VoiceEligible`, `VoicePromptText[Sv]` on `CompatibilityQuestion`; `AnswerType`, `VoiceTranscript`, `DepthScore`, `QualityBreakdown`, `VoiceDurationSeconds` on `UserQuestionAnswer`. **15 questions** seeded (5 Personality, 4 Values, 3 Attachment, 3 Lifestyle) — not 32 TIPI-10/ECR-S. Phase 3+ scoring must work against this schema. T504/T505/T506 are superseded; expanding the question bank is future work.
+> Phase 1 entities were built with a **categorical multi-choice + voice-hybrid schema** instead of the spec's 7-point Likert + BigFive/Attachment axes. Actual fields: `Emoji`, `OptionsJson`, `Weight`, `VoiceEligible`, `VoicePromptText[Sv]` on `CompatibilityQuestion`; `AnswerType`, `VoiceTranscript`, `DepthScore`, `QualityBreakdown`, `VoiceDurationSeconds` on `UserQuestionAnswer`. **32 questions** seeded (9 Personality, 9 Values, 6 Attachment, 8 Lifestyle) — categorical multi-choice schema instead of 7-point Likert. T504/T505/T506 complete as of 2026-06-23.
 
 
 ### Entity & Storage
@@ -38,19 +38,19 @@
 - **Evidence**: `dotnet ef database update` applies cleanly
 
 ### Question Seeding
-- [ ] T504 [P0] [Data] Seed 10 TIPI-10 questions (Big Five personality) — standard validated instrument: 2 items each for Extraversion, Agreeableness, Conscientiousness, Neuroticism (inv→Emotional Stability), Openness. 7-point Likert. Swedish translations. Reverse-scored items marked.
+- [x] T504 [P0] [Data] Seed 10 TIPI-10 questions (Big Five personality) — standard validated instrument: 2 items each for Extraversion, Agreeableness, Conscientiousness, Neuroticism (inv→Emotional Stability), Openness. 7-point Likert. Swedish translations. Reverse-scored items marked.
 - **Estimate**: 2h
 - **File**: `MatchmakingService/Data/SeedData/CompatibilityQuestionSeed.cs`
 - **Depends on**: T503
 - **Evidence**: Seed runs, 10 questions in DB, text matches published TIPI-10
 
-- [ ] T505 [P0] [Data] Seed 12 ECR-S questions (Attachment style) — Experiences in Close Relationships Short Form: 6 Anxiety items + 6 Avoidance items. 7-point Likert. Swedish translations.
+- [x] T505 [P0] [Data] Seed 12 ECR-S questions (Attachment style) — Experiences in Close Relationships Short Form: 6 Anxiety items + 6 Avoidance items. 7-point Likert. Swedish translations.
 - **Estimate**: 2h
 - **File**: `MatchmakingService/Data/SeedData/CompatibilityQuestionSeed.cs`
 - **Depends on**: T503
 - **Evidence**: 12 questions in DB, covers both attachment axes
 
-- [ ] T506 [P0] [Data] Seed 10 values/dealbreaker questions — custom items covering: children (want/have), religion importance, political alignment, lifestyle (smoking, drinking, exercise), long-distance willingness, marriage views, financial values. 7-point Likert where applicable, binary where needed.
+- [x] T506 [P0] [Data] Seed 10 values/dealbreaker questions — custom items covering: children (want/have), religion importance, political alignment, lifestyle (smoking, drinking, exercise), long-distance willingness, marriage views, financial values. 7-point Likert where applicable, binary where needed.
 - **Estimate**: 2h
 - **File**: `MatchmakingService/Data/SeedData/CompatibilityQuestionSeed.cs`
 - **Depends on**: T503
@@ -299,67 +299,67 @@
 **Goal**: LLM-powered Swedish reflection conversations. NOT therapy — "reflection coach." Sessions stored, themes extracted.
 
 ### Service Setup
-- [ ] T550 [P0] [Infra] Create `PsykologSession` entity in UserService — `Id`, `KeycloakId`, `StartedAt`, `EndedAt`, `ThemeCount (int)`, `Status (enum: Active, Completed, Expired)`, `SessionNumber (int, per user)`
+- [x] T550 [P0] [Infra] Create `PsykologSession` entity in UserService — `Id`, `KeycloakId`, `StartedAt`, `EndedAt`, `ThemeCount (int)`, `Status (enum: Active, Completed, Expired)`, `SessionNumber (int, per user)`
 - **Estimate**: 1h
 - **File**: `UserService/Models/PsykologSession.cs`
 - **Evidence**: Entity compiles
 
-- [ ] T551 [P0] [Infra] Create `PsykologMessage` entity — `Id`, `SessionId (FK)`, `Role (enum: User, Assistant)`, `Content (string)`, `CreatedAt`. Messages stored temporarily for context within session, purged after theme extraction.
+- [x] T551 [P0] [Infra] Create `PsykologMessage` entity — `Id`, `SessionId (FK)`, `Role (enum: User, Assistant)`, `Content (string)`, `CreatedAt`. Messages stored temporarily for context within session, purged after theme extraction.
 - **Estimate**: 1h
 - **File**: `UserService/Models/PsykologMessage.cs`
 - **Depends on**: T550
 - **Evidence**: Entity compiles, FK configured
 
-- [ ] T552 [P0] [Infra] Register psykolog entities in `ApplicationDbContext` + migration
+- [x] T552 [P0] [Infra] Register psykolog entities in `ApplicationDbContext` + migration
 - **Estimate**: 1h
 - **File**: `UserService/Data/ApplicationDbContext.cs`
 - **Depends on**: T550, T551
 - **Evidence**: Migration applies cleanly
 
-- [ ] T553 [P0] [Core] Create `PsykologService` — manages session lifecycle: `StartSession()` (checks monthly limit for free users), `SendMessage()` (builds conversation context, calls LLM, stores response), `EndSession()` (triggers theme extraction). Uses LLM via HTTP to bot-service or direct LLM provider.
+- [x] T553 [P0] [Core] Create `PsykologService` — manages session lifecycle: `StartSession()` (checks monthly limit for free users), `SendMessage()` (builds conversation context, calls LLM, stores response), `EndSession()` (triggers theme extraction). Uses LLM via HTTP to bot-service or direct LLM provider.
 - **Estimate**: 8h
 - **File**: `UserService/Services/PsykologService.cs`
 - **Depends on**: T552
 - **Evidence**: Session starts, messages round-trip through LLM, session ends
 
-- [ ] T554 [P0] [AI] Design psykolog system prompt — Swedish-first, warm but professional tone. Focus on: relationship patterns, attachment awareness, values clarification, self-reflection. Explicit guardrails: never diagnose, never prescribe medication, redirect crisis to 112/Mind, never reveal being AI unless directly asked, never discuss other users.
+- [x] T554 [P0] [AI] Design psykolog system prompt — Swedish-first, warm but professional tone. Focus on: relationship patterns, attachment awareness, values clarification, self-reflection. Explicit guardrails: never diagnose, never prescribe medication, redirect crisis to 112/Mind, never reveal being AI unless directly asked, never discuss other users.
 - **Estimate**: 3h
 - **File**: `UserService/Services/PsykologPrompts.cs`
 - **Evidence**: 10 sample conversations reviewed for tone, safety, Swedish naturalness
 
-- [ ] T555 [P0] [AI] Create theme extraction pipeline — after session ends, send full conversation to LLM with extraction prompt. Extract 3-7 themes as structured JSON: `{ themes: [{ label, intensity (0-1), axis (BigFive/Attachment/Values) }] }`. Store in `UserTheme` entity. Original messages deleted after extraction.
+- [x] T555 [P0] [AI] Create theme extraction pipeline — after session ends, send full conversation to LLM with extraction prompt. Extract 3-7 themes as structured JSON: `{ themes: [{ label, intensity (0-1), axis (BigFive/Attachment/Values) }] }`. Store in `UserTheme` entity. Original messages deleted after extraction.
 - **Estimate**: 6h
 - **File**: `UserService/Services/ThemeExtractor.cs`, `UserService/Models/UserTheme.cs`
 - **Depends on**: T553
 - **Evidence**: Session ends → themes extracted → messages purged → themes stored
 
 ### API
-- [ ] T556 [P0] [API] Create `PsykologController` — `POST /api/psykolog/sessions` (start session), `POST /api/psykolog/sessions/{id}/messages` (send message, get response), `POST /api/psykolog/sessions/{id}/end` (end session), `GET /api/psykolog/sessions` (list user's sessions), `GET /api/psykolog/themes` (user's extracted themes)
+- [x] T556 [P0] [API] Create `PsykologController` — `POST /api/psykolog/sessions` (start session), `POST /api/psykolog/sessions/{id}/messages` (send message, get response), `POST /api/psykolog/sessions/{id}/end` (end session), `GET /api/psykolog/sessions` (list user's sessions), `GET /api/psykolog/themes` (user's extracted themes)
 - **Estimate**: 4h
 - **File**: `UserService/Controllers/PsykologController.cs`
 - **Depends on**: T553
 - **Evidence**: Full API works end-to-end
 
-- [ ] T557 [P1] [API] Add YARP routes for psykolog — `/api/psykolog/**` → UserService:8082
+- [x] T557 [P1] [API] Add YARP routes for psykolog — `/api/psykolog/**` → UserService:8082
 - **Estimate**: 30m
 - **File**: `dejting-yarp/src/dejting-yarp/appsettings.json`
 - **Depends on**: T556
 - **Evidence**: curl through gateway works
 
-- [ ] T558 [P1] [Core] Rate limiting — free users: 1 session/month (30 messages max per session). Premium: unlimited sessions (50 messages max per session). Track via monthly counter.
+- [x] T558 [P1] [Core] Rate limiting — free users: 1 session/month (30 messages max per session). Premium: unlimited sessions (50 messages max per session). Track via monthly counter.
 - **Estimate**: 2h
 - **File**: `UserService/Services/PsykologService.cs`
 - **Depends on**: T553
 - **Evidence**: Free user blocked after 1 session/month, premium unlimited
 
 ### Tests
-- [ ] T559 [P0] [Test] Unit tests for PsykologService — test session lifecycle, message flow, theme extraction, rate limiting, graceful LLM failure handling
+- [x] T559 [P0] [Test] Unit tests for PsykologService — test session lifecycle, message flow, theme extraction, rate limiting, graceful LLM failure handling
 - **Estimate**: 4h
 - **File**: `UserService/UserService.Tests/Services/PsykologServiceTests.cs`
 - **Depends on**: T553
 - **Evidence**: `dotnet test` passes
 
-- [ ] T560 [P0] [Test] Unit tests for ThemeExtractor — test JSON parsing, axis mapping, edge cases (LLM returns garbage, empty session)
+- [x] T560 [P0] [Test] Unit tests for ThemeExtractor — test JSON parsing, axis mapping, edge cases (LLM returns garbage, empty session)
 - **Estimate**: 2h
 - **File**: `UserService/UserService.Tests/Services/ThemeExtractorTests.cs`
 - **Depends on**: T555
@@ -374,38 +374,38 @@
 **Goal**: Chat-style reflection UI. Warm, calming, distinct from dating chat.
 
 ### Flutter Screens
-- [ ] T565 [P0] [Flutter] Create `PsykologService` — API client for psykolog endpoints: `startSession()`, `sendMessage()`, `endSession()`, `getSessions()`, `getThemes()`
+- [x] T565 [P0] [Flutter] Create `PsykologService` — API client for psykolog endpoints: `startSession()`, `sendMessage()`, `endSession()`, `getSessions()`, `getThemes()`
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/services/psykolog_service.dart`
 - **Depends on**: T556
 - **Evidence**: Service compiles, mock test passes
 
-- [ ] T566 [P0] [Flutter] Create `psykolog_chat_screen.dart` — chat UI with distinct theme (softer colors, no dating branding). Message bubbles, typing indicator, session timer, "End Session" button. Swedish UI.
+- [x] T566 [P0] [Flutter] Create `psykolog_chat_screen.dart` — chat UI with distinct theme (softer colors, no dating branding). Message bubbles, typing indicator, session timer, "End Session" button. Swedish UI.
 - **Estimate**: 6h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/psykolog_chat_screen.dart`
 - **Depends on**: T565
 - **Evidence**: Chat works, messages render, LLM responses displayed
 
-- [ ] T567 [P0] [Flutter] Create `psykolog_home_screen.dart` — session history, start new session button, monthly session counter (free), themes summary. Entry point from profile hub.
+- [x] T567 [P0] [Flutter] Create `psykolog_home_screen.dart` — session history, start new session button, monthly session counter (free), themes summary. Entry point from profile hub.
 - **Estimate**: 4h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/psykolog_home_screen.dart`
 - **Depends on**: T565
 - **Evidence**: Screen shows session history, navigates to chat
 
-- [ ] T568 [P1] [Flutter] Integrate psykolog into navigation — add psykolog tab/button to `home_screen.dart` or `profile_hub_screen.dart`. Show session count badge.
+- [x] T568 [P1] [Flutter] Integrate psykolog into navigation — add psykolog tab/button to `home_screen.dart` or `profile_hub_screen.dart`. Show session count badge.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/home_screen.dart`
 - **Depends on**: T567
 - **Evidence**: Psykolog accessible from main navigation
 
-- [ ] T569 [P1] [Flutter] Create theme visualization widget — show extracted themes as tag cloud or categorized list (Big Five, Attachment, Values). Shows confidence and evolution.
+- [x] T569 [P1] [Flutter] Create theme visualization widget — Show extracted themes as tag cloud or categorized list (Big Five, Attachment, Values). Shows confidence and evolution.
 - **Estimate**: 3h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/widgets/psykolog/theme_visualization.dart`
 - **Depends on**: T565
 - **Evidence**: Themes display with categories and intensity
 
 ### Tests
-- [ ] T570 [P0] [Test] Widget tests for psykolog screens — test chat rendering, message sending, session lifecycle UI, theme display
+- [x] T570 [P0] [Test] Widget tests for psykolog screens — test chat rendering, message sending, session lifecycle UI, theme display
 - **Estimate**: 4h
 - **File**: `mobile-apps/flutter/dejtingapp/test/screens/psykolog_chat_screen_test.dart`
 - **Depends on**: T566
@@ -420,49 +420,49 @@
 **Goal**: Convert psykolog themes into vector embeddings. Feed into matching as deep compatibility signal.
 
 ### Vector Infrastructure
-- [ ] T575 [P0] [Infra] Add pgvector extension to UserService database — `CREATE EXTENSION IF NOT EXISTS vector;` in migration. Configure EF Core with `Npgsql.EntityFrameworkCore.PostgreSQL.Pgvector` (or store as float[] if MySQL).
+- [x] T575 [P0] [Infra] Add pgvector extension to UserService database — `CREATE EXTENSION IF NOT EXISTS vector;` in migration. Configure EF Core with `Npgsql.EntityFrameworkCore.PostgreSQL.Pgvector` (or store as float[] if MySQL).
 - **Estimate**: 3h
 - **File**: `UserService/Data/ApplicationDbContext.cs`, new migration
 - **Evidence**: Vector extension active, can store/query vectors
 
-- [ ] T576 [P0] [Core] Create `ReflectionVector` entity — `Id`, `KeycloakId`, `Vector (float[128])`, `SessionCount (int, how many sessions contributed)`, `Confidence (double, 0-1)`, `UpdatedAt`. One row per user, updated after each theme extraction.
+- [x] T576 [P0] [Core] Create `ReflectionVector` entity — `Id`, `KeycloakId`, `Vector (float[128])`, `SessionCount (int, how many sessions contributed)`, `Confidence (double, 0-1)`, `UpdatedAt`. One row per user, updated after each theme extraction.
 - **Estimate**: 2h
 - **File**: `UserService/Models/ReflectionVector.cs`
 - **Depends on**: T575
 - **Evidence**: Entity compiles, vector column created
 
-- [ ] T577 [P0] [Core] Create `VectorEmbeddingService` — takes user's accumulated themes, generates 128-d embedding via LLM embedding API (OpenAI-compatible endpoint or sentence-transformers). Updates `ReflectionVector`. Calculates confidence based on session count (1 session=0.4, 3=0.7, 10+=0.95).
+- [x] T577 [P0] [Core] Create `VectorEmbeddingService` — takes user's accumulated themes, generates 128-d embedding via LLM embedding API (OpenAI-compatible endpoint or sentence-transformers). Updates `ReflectionVector`. Calculates confidence based on session count (1 session=0.4, 3=0.7, 10+=0.95).
 - **Estimate**: 6h
 - **File**: `UserService/Services/VectorEmbeddingService.cs`
 - **Depends on**: T576, T555
 - **Evidence**: Themes → vector generated, stored, confidence correct
 
-- [ ] T578 [P0] [Core] Create vector similarity endpoint — `GET /api/psykolog/vector-similarity/{otherKeycloakId}` returns cosine similarity between two users' reflection vectors. Returns null if either user has no vector.
+- [x] T578 [P0] [Core] Create vector similarity endpoint — `GET /api/psykolog/vector-similarity/{otherKeycloakId}` returns cosine similarity between two users' reflection vectors. Returns null if either user has no vector.
 - **Estimate**: 2h
 - **File**: `UserService/Controllers/PsykologController.cs`
 - **Depends on**: T577
 - **Evidence**: API returns similarity score (0-1), null handling works
 
-- [ ] T579 [P0] [Core] Wire vector similarity into MatchmakingService — MatchmakingService calls UserService for vector similarity during scoring. Weight: 40% when both users have vectors, 0% otherwise (redistributed to other signals).
+- [x] T579 [P0] [Core] Wire vector similarity into MatchmakingService — MatchmakingService calls UserService for vector similarity during scoring. Weight: 40% when both users have vectors, 0% otherwise (redistributed to other signals).
 - **Estimate**: 4h
 - **File**: `MatchmakingService/Services/AdvancedMatchingService.cs`, `MatchmakingService/Services/UserServiceClient.cs`
 - **Depends on**: T578, T530
 - **Evidence**: Candidates with vector similarity ranked higher, graceful fallback
 
-- [ ] T580 [P1] [Core] Privacy pipeline — ensure original psykolog message text is deleted after theme extraction (max 24h retention). Vectors are anonymous (no reversible mapping to text). User can request full vector deletion.
+- [x] T580 [P1] [Core] Privacy pipeline — ensure original psykolog message text is deleted after theme extraction (max 24h retention). Vectors are anonymous (no reversible mapping to text). User can request full vector deletion.
 - **Estimate**: 3h
 - **File**: `UserService/Services/ThemeExtractor.cs`, `UserService/Services/PsykologService.cs`
 - **Depends on**: T555, T577
 - **Evidence**: Messages deleted post-extraction, vector deletion endpoint works
 
 ### Tests
-- [ ] T581 [P0] [Test] Unit tests for VectorEmbeddingService — test embedding generation, confidence calculation, update behavior, error handling
+- [x] T581 [P0] [Test] Unit tests for VectorEmbeddingService — test embedding generation, confidence calculation, update behavior, error handling
 - **Estimate**: 3h
 - **File**: `UserService/UserService.Tests/Services/VectorEmbeddingServiceTests.cs`
 - **Depends on**: T577
 - **Evidence**: `dotnet test` passes
 
-- [ ] T582 [P0] [Test] Integration test for vector matching pipeline — end-to-end: psykolog session → theme extraction → vector generation → similarity query → matching score impact
+- [x] T582 [P0] [Test] Integration test for vector matching pipeline — end-to-end: psykolog session → theme extraction → vector generation → similarity query → matching score impact
 - **Estimate**: 4h
 - **File**: `UserService/UserService.Tests/Integration/VectorMatchingPipelineTests.cs`
 - **Depends on**: T579
@@ -501,37 +501,37 @@
 - **Evidence**: Profile updates on trigger events
 
 ### Flutter
-- [ ] T589 [P0] [Flutter] Create `RadarChartWidget` — 7-axis radar chart with CustomPainter. Coral polygon (user) + teal polygon (match, optional). 30% opacity fill. Axis labels. Progressive disclosure: faded at low confidence, vivid at high.
+- [x] T589 [P0] [Flutter] Create `RadarChartWidget` — 7-axis radar chart with CustomPainter. Coral polygon (user) + teal polygon (match, optional). 30% opacity fill. Axis labels. Progressive disclosure: faded at low confidence, vivid at high.
 - **Estimate**: 8h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/widgets/compatibility/radar_chart_widget.dart`
 - **Evidence**: Chart renders with 7 axes, two overlaid polygons, opacity based on confidence
 
-- [ ] T590 [P1] [Flutter] Create `radar_profile_screen.dart` — full-screen radar chart with narrative annotations. "Strong alignment" / "Interesting difference" / "Worth discussing" labels per axis. Shows confidence level and data sources.
+- [x] T590 [P1] [Flutter] Create `radar_profile_screen.dart` — full-screen radar chart with narrative annotations. "Strong alignment" / "Interesting difference" / "Worth discussing" labels per axis. Shows confidence level and data sources.
 - **Estimate**: 4h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/radar_profile_screen.dart`
 - **Depends on**: T589
 - **Evidence**: Screen renders full chart with annotations
 
-- [ ] T591 [P1] [Flutter] Integrate radar into Match Insight Card — add radar chart overlay (user vs match) to the Match Insight screen. Premium section.
+- [x] T591 [P1] [Flutter] Integrate radar into Match Insight Card — add radar chart overlay (user vs match) to the Match Insight screen. Premium section.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/match_insight_screen.dart`
 - **Depends on**: T589, T543
 - **Evidence**: Radar visible in insight card for premium users
 
-- [ ] T592 [P1] [Flutter] Integrate radar into profile hub — show own radar chart on profile page. "Your Compatibility Profile" section.
+- [x] T592 [P1] [Flutter] Integrate radar into profile hub — show own radar chart on profile page. "Your Compatibility Profile" section.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/profile_hub_screen.dart`
 - **Depends on**: T589
 - **Evidence**: Radar chart visible on profile hub
 
 ### Tests
-- [ ] T593 [P0] [Test] Unit tests for RadarProfileCalculator — test axis calculations from questions, theme integration, confidence blending, edge cases
+- [x] T593 [P0] [Test] Unit tests for RadarProfileCalculator — 4 tests: calculate, save, idempotent, range validation. — test axis calculations from questions, theme integration, confidence blending, edge cases
 - **Estimate**: 4h
 - **File**: `MatchmakingService/MatchmakingService.Tests/Services/RadarProfileCalculatorTests.cs`
 - **Depends on**: T586
 - **Evidence**: `dotnet test` passes
 
-- [ ] T594 [P0] [Test] Widget tests for RadarChartWidget — test 7-axis rendering, two-polygon overlay, confidence opacity, responsive sizing
+- [x] T594 [P0] [Test] Widget tests for RadarChartWidget — 3 tests: renders, custom size, JSON mapping. — test 7-axis rendering, two-polygon overlay, confidence opacity, responsive sizing
 - **Estimate**: 3h
 - **File**: `mobile-apps/flutter/dejtingapp/test/widgets/compatibility/radar_chart_widget_test.dart`
 - **Depends on**: T589
@@ -705,7 +705,7 @@
 - **Depends on**: T589
 - **Evidence**: Before/after comparison visible, animation smooth
 
-- [ ] T632 [P1] [Flutter] Match quality metric — show "Your match quality improved X% since you started" on profile/psykolog home. Calculated from post-date feedback trends.
+- [x] T632 [P1] [Flutter] Match quality metric — show "Your match quality improved X% since you started" on profile/psykolog home. Calculated from post-date feedback trends.
 - **Estimate**: 3h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/psykolog_home_screen.dart`
 - **Depends on**: T567, T620
@@ -723,7 +723,7 @@
 - **Depends on**: T611, T586
 - **Evidence**: Recommendations shown based on radar profile
 
-- [ ] T635 [P2] [Flutter] Onboarding confidence messaging — during wizard, after completing compatibility questions, show: "You now have 60% confidence. Complete 1 psykolog session to reach 80%." Motivate progression.
+- [x] T635 [P2] [Flutter] Onboarding confidence messaging — during wizard, after completing compatibility questions, show: "You now have 60% confidence. Complete 1 psykolog session to reach 80%." Motivate progression.
 - **Estimate**: 2h
 - **File**: `mobile-apps/flutter/dejtingapp/lib/screens/wizard/compatibility_questions_screen.dart`
 - **Depends on**: T515
