@@ -96,7 +96,7 @@ jobs:
         esac
     
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         files: ./${{ matrix.service }}/**/coverage.cobertura.xml
         flags: ${{ matrix.service }}
