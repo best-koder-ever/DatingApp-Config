@@ -1,11 +1,24 @@
+# ============================================================
+# DatingApp — full local Docker stack (laptop + little-server parity)
+# ------------------------------------------------------------
+#  - Infra only (dashboard dotnet-run mode): ./infrastructure/start.sh
+#      starts keycloak + DBs on host ports so `dotnet run` services connect.
+#  - Full Docker stack (same images as the little server):
+#      docker compose up -d --build
+# All `${VAR:-default}` references are optional — a `.env` (copy .env.example)
+# can override secrets, but the stack runs with defaults out of the box.
+# Image naming matches the server (datingapp-<svc>:latest).
+# ============================================================
+
 services:
+  # ---------------- Keycloak ----------------
   keycloak-db:
     image: postgres:16
     container_name: keycloak-db
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD:-keycloak_password}
     volumes:
       - keycloak-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -13,335 +26,490 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - app-network
+    networks: [app-network]
 
   keycloak:
     image: quay.io/keycloak/keycloak:25.0.0
-    command: start-dev --features=token-exchange
+    container_name: keycloak
+    command: start-dev
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
-      KC_DB_USERNAME: ${KC_DB_USERNAME}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-keycloak_password}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     ports:
       - "8090:8080"
     depends_on:
       keycloak-db:
         condition: service_healthy
-    networks:
-      - app-network
+    networks: [app-network]
 
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: mailhog
-    ports:
-      - "1025:1025"  # SMTP server
-      - "8025:8025"  # Web UI
-    networks:
-      - app-network
-
-  yarp:
-    image: yarp:latest
-    build:
-      context: ./dejting-yarp
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    depends_on:
-      - user-service
-      - matchmaking-service
-      - swipe-service
-      - photo-service
-      - messaging-service
+  # ---------------- Databases ----------------
+  user-service-db:
+    image: mysql:8.0
+    container_name: UserService-db
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8080
-      - ASPNETCORE_HTTPS_PORTS=8080
-      - ASPNETCORE_URLS=http://*:8080     
-    networks:
-      - app-network
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: UserServiceDb
+      MYSQL_USER: ${USERSERVICE_DB_USER:-userservice_user}
+      MYSQL_PASSWORD: ${USERSERVICE_DB_PASSWORD:-userservice_user_password}
+    ports:
+      - "3308:3306"
+    volumes:
+      - UserService-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
 
+  matchmaking-service-db:
+    image: mysql:8.0
+    container_name: MatchmakingService-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: MatchmakingServiceDb
+      MYSQL_USER: ${MATCHMAKING_DB_USER:-matchmakingservice_user}
+      MYSQL_PASSWORD: ${MATCHMAKING_DB_PASSWORD:-matchmakingservice_user_password}
+    ports:
+      - "3309:3306"
+    volumes:
+      - MatchmakingService-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
+
+  swipe-service-db:
+    image: mysql:8.0
+    container_name: swipe-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: SwipeServiceDb
+      MYSQL_USER: ${SWIPE_DB_USER:-swipeservice_user}
+      MYSQL_PASSWORD: ${SWIPE_DB_PASSWORD:-swipeservice_user_password}
+    ports:
+      - "3310:3306"
+    volumes:
+      - swipe-service-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
+
+  photo-service-db:
+    image: mysql:8.0
+    container_name: photo-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: PhotoServiceDb
+      MYSQL_USER: ${PHOTO_DB_USER:-photoservice_user}
+      MYSQL_PASSWORD: ${PHOTO_DB_PASSWORD:-photoservice_user_password}
+    ports:
+      - "3311:3306"
+    volumes:
+      - photo-service-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
+
+  messaging-service-db:
+    image: mysql:8.0
+    container_name: messaging-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: MessagingServiceDb
+      MYSQL_USER: ${MESSAGING_DB_USER:-messagingservice_user}
+      MYSQL_PASSWORD: ${MESSAGING_DB_PASSWORD:-messagingservice_user_password}
+    ports:
+      - "3312:3306"
+    volumes:
+      - messaging-service-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
+
+  # ---------------- App services ----------------
   user-service:
-    image: user-service:latest
+    image: datingapp-user:latest
     build:
       context: ./UserService
       dockerfile: Dockerfile
     ports:
       - "8082:8082"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8082
-      - ASPNETCORE_HTTPS_PORTS=8082
-      - ASPNETCORE_URLS=http://*:8082
-      - ConnectionStrings__DefaultConnection=Server=UserService-db;Port=3306;Database=UserServiceDb;User=userservice_user;Password=userservice_user_password;  
-      - DEMO_MODE=${DEMO_MODE:-false}  
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8082
+      ConnectionStrings__DefaultConnection: Server=user-service-db;Port=3306;Database=UserServiceDb;User=${USERSERVICE_DB_USER:-userservice_user};Password=${USERSERVICE_DB_PASSWORD:-userservice_user_password};
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
     depends_on:
-      - UserService-db
-    networks:
-      - app-network
-
-  UserService-db:
-    image: mysql:8.0
-    container_name: UserService-db
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: UserServiceDb
-      MYSQL_USER: userservice_user
-      MYSQL_PASSWORD: userservice_user_password
-    ports:
-      - "3308:3306"
-    volumes:
-      - UserService-data:/var/lib/mysql
-    networks:
-      - app-network  
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "UserService-db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5      
+      user-service-db:
+        condition: service_healthy
+    networks: [app-network]
 
   matchmaking-service:
-    image: matchmaking-service:latest
+    image: datingapp-matchmaking:latest
     build:
       context: .
       dockerfile: ./MatchmakingService/Dockerfile
     ports:
       - "8083:8083"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8083
-      - ASPNETCORE_HTTPS_PORTS=8083
-      - ASPNETCORE_URLS=http://*:8083
-      - ConnectionStrings__DefaultConnection=Server=MatchmakingService-db;Port=3306;Database=MatchmakingServiceDb;User=matchmakingservice_user;Password=matchmakingservice_user_password;  
-      - DEMO_MODE=${DEMO_MODE:-false}  
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8083
+      ConnectionStrings__DefaultConnection: Server=matchmaking-service-db;Port=3306;Database=MatchmakingServiceDb;User=${MATCHMAKING_DB_USER:-matchmakingservice_user};Password=${MATCHMAKING_DB_PASSWORD:-matchmakingservice_user_password};
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
+      Gateway__BaseUrl: http://yarp:8080
+      Services__MessagingService: http://messaging-service:8086
     depends_on:
-      - MatchmakingService-db
-    networks:
-      - app-network
+      matchmaking-service-db:
+        condition: service_healthy
+    networks: [app-network]
 
-  MatchmakingService-db:
-    image: mysql:8.0
-    container_name: MatchmakingService-db
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: MatchmakingServiceDb
-      MYSQL_USER: matchmakingservice_user
-      MYSQL_PASSWORD: matchmakingservice_user_password
+  photo-service:
+    image: datingapp-photo:latest
+    build:
+      context: ./photo-service
+      dockerfile: Dockerfile
     ports:
-      - "3309:3306"
+      - "8085:8085"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8085
+      ConnectionStrings__DefaultConnection: Server=photo-service-db;Port=3306;Database=PhotoServiceDb;User=${PHOTO_DB_USER:-photoservice_user};Password=${PHOTO_DB_PASSWORD:-photoservice_user_password};
+      Storage__PhotosPath: /app/wwwroot/uploads/photos
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:-your-super-secret-key-that-is-at-least-32-characters-long-for-security}
+      JwtSettings__Issuer: DatingApp
+      JwtSettings__Audience: DatingApp-Users
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
     volumes:
-      - MatchmakingService-data:/var/lib/mysql
-    networks:
-      - app-network  
+      - photo-storage:/app/wwwroot/uploads/photos
+    depends_on:
+      photo-service-db:
+        condition: service_healthy
+    # Override the (broken, curl-based :8084) HEALTHCHECK baked into the Dockerfile
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "MatchmakingService-db"]
-      interval: 10s
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8085' || exit 1"]
+      interval: 30s
       timeout: 5s
-      retries: 5     
+      start_period: 30s
+      retries: 3
+    networks: [app-network]
+
+  messaging-service:
+    image: datingapp-messaging:latest
+    build:
+      context: ./messaging-service
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8086
+      ConnectionStrings__DefaultConnection: Server=messaging-service-db;Port=3306;Database=MessagingServiceDb;User=${MESSAGING_DB_USER:-messagingservice_user};Password=${MESSAGING_DB_PASSWORD:-messagingservice_user_password};
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
+    depends_on:
+      messaging-service-db:
+        condition: service_healthy
+    networks: [app-network]
 
   swipe-service:
-    image: swipe-service:latest
+    image: datingapp-swipe:latest
     build:
       context: ./swipe-service
       dockerfile: Dockerfile
     ports:
       - "8087:8087"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8087
-      - ASPNETCORE_HTTPS_PORTS=8087
-      - ASPNETCORE_URLS=http://*:8087
-      - ConnectionStrings__DefaultConnection=Server=swipe-service-db;Port=3306;Database=SwipeServiceDb;User=swipeservice_user;Password=swipeservice_user_password;
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8087
+      ConnectionStrings__DefaultConnection: Server=swipe-service-db;Port=3306;Database=SwipeServiceDb;User=${SWIPE_DB_USER:-swipeservice_user};Password=${SWIPE_DB_PASSWORD:-swipeservice_user_password};
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
     depends_on:
-      - swipe-service-db
-    networks:
-      - app-network
+      swipe-service-db:
+        condition: service_healthy
+    networks: [app-network]
 
-  swipe-service-db:
-    image: mysql:8.0
-    container_name: swipe-service-db
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: SwipeServiceDb
-      MYSQL_USER: swipeservice_user
-      MYSQL_PASSWORD: swipeservice_user_password
-    ports:
-      - "3310:3306"
-    volumes:
-      - swipe-service-data:/var/lib/mysql
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "swipe-service-db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  photo-service:
-    image: photo-service:latest
+  safety-service:
+    image: datingapp-safety:latest
     build:
-      context: ./photo-service
+      context: ./safety-service/SafetyService
       dockerfile: Dockerfile
     ports:
-      - "8085:8085"  # FIXED: Match dev-start port
+      - "8088:8088"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://*:8085  # FIXED: Match dev-start port
-      - ConnectionStrings__DefaultConnection=Server=photo-service-db;Port=3306;Database=PhotoServiceDb;User=photoservice_user;Password=photoservice_user_password;
-      - JwtSettings__SecretKey=your-super-secret-key-that-is-at-least-32-characters-long-for-security
-      - JwtSettings__Issuer=DatingApp
-      - JwtSettings__Audience=DatingApp-Users
-      - Storage__PhotosPath=/app/wwwroot/uploads/photos
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8088
+      ConnectionStrings__DefaultConnection: Data Source=/app/data/safety.db
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
+    volumes:
+      - safety-data:/app/data
+    networks: [app-network]
+
+  bot-service:
+    image: datingapp-bot:latest
+    build:
+      context: ./bot-service/BotService
+      dockerfile: Dockerfile
+    ports:
+      - "8089:8089"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8089
+      ConnectionStrings__BotDb: Data Source=/app/data/bot-service.db
+      BotService__Keycloak__BaseUrl: http://keycloak:8080
+      BotService__Keycloak__Realm: DatingApp
+      BotService__Keycloak__AdminUsername: ${KEYCLOAK_ADMIN_USER:-admin}
+      BotService__Keycloak__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      BotService__Endpoints__UserService: http://user-service:8082
+      BotService__Endpoints__MatchmakingService: http://matchmaking-service:8083
+      BotService__Endpoints__PhotoService: http://photo-service:8085
+      BotService__Endpoints__MessagingService: http://messaging-service:8086
+      BotService__Endpoints__SwipeService: http://swipe-service:8087
+      BotService__Endpoints__SafetyService: http://safety-service:8088
+      BotService__Endpoints__MessagingHub: http://messaging-service:8086/hubs/messaging
+    volumes:
+      - bot-data:/app/data
     depends_on:
-      photo-service-db:
-        condition: service_healthy
-      deepface:
-        condition: service_healthy
-    volumes:
-      - photo-storage:/app/wwwroot/uploads/photos
-    networks:
-      - app-network
+      - user-service
+      - matchmaking-service
+      - keycloak
+    networks: [app-network]
 
-  photo-service-db:
-    image: mysql:8.0
-    container_name: photo-service-db
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: PhotoServiceDb
-      MYSQL_USER: photoservice_user
-      MYSQL_PASSWORD: photoservice_user_password
-    command: --sql-mode="ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION" --explicit_defaults_for_timestamp=1
+  yarp:
+    image: datingapp-yarp:latest
+    build:
+      context: ./dejting-yarp
+      dockerfile: Dockerfile
     ports:
-      - "3311:3306"
-    volumes:
-      - photo-service-data:/var/lib/mysql
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "photo-service-db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  deepface:
-    image: serengil/deepface
-    container_name: deepface
-    ports:
-      - "5005:5000"
+      - "8080:8080"
     environment:
-      - DEEPFACE_HOME=/root/.deepface
-    networks:
-      - app-network
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__Clusters__authCluster__Destinations__authService__Address: http://auth-service:8081/
+      ReverseProxy__Clusters__userCluster__Destinations__userService__Address: http://user-service:8082/
+      ReverseProxy__Clusters__matchmakingCluster__Destinations__matchmakingService__Address: http://matchmaking-service:8083/
+      ReverseProxy__Clusters__photoCluster__Destinations__photoService__Address: http://photo-service:8085/
+      ReverseProxy__Clusters__messagingCluster__Destinations__messagingService__Address: http://messaging-service:8086/
+      ReverseProxy__Clusters__swipeCluster__Destinations__swipeService__Address: http://swipe-service:8087/
+      ReverseProxy__Clusters__botCluster__Destinations__botService__Address: http://bot-service:8089/
+      ReverseProxy__Clusters__keycloakCluster__Destinations__keycloak__Address: http://keycloak:8080/
+      ReverseProxy__Clusters__healthCluster__Destinations__userService__Address: http://user-service:8082/
+      ReverseProxy__Clusters__healthCluster__Destinations__matchmakingService__Address: http://matchmaking-service:8083/
+      ReverseProxy__Clusters__healthCluster__Destinations__photoService__Address: http://photo-service:8085/
+      ReverseProxy__Clusters__healthCluster__Destinations__messagingService__Address: http://messaging-service:8086/
+      ReverseProxy__Clusters__healthCluster__Destinations__swipeService__Address: http://swipe-service:8087/
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
+    depends_on:
+      - user-service
+      - matchmaking-service
+      - photo-service
+      - messaging-service
+      - swipe-service
+      - safety-service
+      - keycloak
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080' || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
+      start_period: 30s
       retries: 3
-      start_period: 60s
+    networks: [app-network]
 
-  messaging-service:
-    image: messaging-service:latest
-    build:
-      context: ./messaging-service
-      dockerfile: Dockerfile
-    ports:
-      - "8086:8086"  # FIXED: Match dev-start port and avoid conflict
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://*:8086  # FIXED: Match dev-start port
-      - ConnectionStrings__DefaultConnection=Server=messaging-service-db;Port=3306;Database=MessagingServiceDb;User=messagingservice_user;Password=messagingservice_user_password;
-      - Jwt__Key=your-super-secret-key-that-is-at-least-32-characters-long-for-security
-    depends_on:
-      messaging-service-db:
-        condition: service_healthy
-    networks:
-      - app-network
-
-  messaging-service-db:
+  # ============================================================
+  # EXTRAS (opt-in: docker compose --profile extras up -d)
+  # WIP services + their DBs. Not started by default so the core
+  # stack stays reliable. Appsettings connect as MySQL root.
+  # ============================================================
+  reputation-db:
     image: mysql:8.0
-    container_name: messaging-service-db
+    container_name: reputation-db
+    profiles: ["extras"]
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: MessagingServiceDb
-      MYSQL_USER: messagingservice_user
-      MYSQL_PASSWORD: messagingservice_user_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ReputationDb
     ports:
-      - "3312:3306"
+      - "3314:3306"
     volumes:
-      - messaging-service-data:/var/lib/mysql
-    networks:
-      - app-network
+      - Reputation-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "messaging-service-db"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks: [app-network]
 
-  seq:
-    image: datalust/seq:latest
-    ports:
-      - "5341:80"
+  forum-db:
+    image: mysql:8.0
+    container_name: forum-db
+    profiles: ["extras"]
     environment:
-      ACCEPT_EULA: Y
-    volumes:
-      - seq-data:/data
-    networks:
-      - app-network
-
-  loki:
-    image: grafana/loki:2.9.4
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ForumDb
     ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
+      - "3313:3306"
     volumes:
-      - ./config/loki-config.yaml:/etc/loki/local-config.yaml
-      - loki-data:/tmp/loki
-    networks:
-      - app-network
-    user: "root"
+      - Forum-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
 
-  promtail:
-    image: grafana/promtail:2.4.1
-    volumes:
-      - /var/log:/var/log
-      - ./config/promtail-config.yaml:/etc/promtail/config.yaml
-    command: -config.file=/etc/promtail/config.yaml
-    networks:
-      - app-network
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
+  video-service-db:
+    image: mysql:8.0
+    container_name: video-service-db
+    profiles: ["extras"]
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: VideoServiceDb
+    ports:
+      - "3316:3306"
     volumes:
-      - grafana-storage:/var/lib/grafana
-    networks:
-      - app-network
+      - VideoService-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
 
-  debug:
-    image: ubuntu:22.04
-    command: ["sleep", "infinity"]
-    networks:
-      - app-network
-    tty: true
-    stdin_open: true
+  reputation-service:
+    image: datingapp-reputation:latest
+    build:
+      context: ./reputation-service
+      dockerfile: Dockerfile
+    profiles: ["extras"]
+    ports:
+      - "8091:8091"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8091
+      ConnectionStrings__ReputationDb: Server=reputation-db;Port=3306;Database=ReputationDb;User=root;Password=${MYSQL_ROOT_PASSWORD:-root_password};
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
+    depends_on:
+      reputation-db:
+        condition: service_healthy
+    networks: [app-network]
+
+  forum-service:
+    image: datingapp-forum:latest
+    build:
+      context: ./forum-service
+      dockerfile: Dockerfile
+    profiles: ["extras"]
+    ports:
+      - "8092:8092"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8092
+      ConnectionStrings__ForumDb: Server=forum-db;Port=3306;Database=ForumDb;User=root;Password=${MYSQL_ROOT_PASSWORD:-root_password};
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
+    depends_on:
+      forum-db:
+        condition: service_healthy
+    networks: [app-network]
+
+  ai-tester-service:
+    image: datingapp-ai-tester:latest
+    build:
+      context: ./ai-tester-service
+      dockerfile: Dockerfile
+    profiles: ["extras"]
+    ports:
+      - "8093:8093"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8093
+      ConnectionStrings__TesterDb: Data Source=/app/data/tester.db
+      Gateway__BaseUrl: http://yarp:8080
+      Keycloak__BaseUrl: http://keycloak:8080
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+    volumes:
+      - tester-data:/app/data
+    depends_on:
+      - yarp
+      - keycloak
+    networks: [app-network]
+
+  video-service:
+    image: datingapp-video:latest
+    build:
+      context: ./video-service
+      dockerfile: Dockerfile
+    profiles: ["extras"]
+    ports:
+      - "8094:8094"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8094
+      ConnectionStrings__DefaultConnection: Server=video-service-db;Port=3306;Database=VideoServiceDb;User=root;Password=${MYSQL_ROOT_PASSWORD:-root_password};
+      Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__RequireHttpsMetadata: "false"
+      Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
+      Authentication__Keycloak__ValidIssuers__1: http://localhost:8090/realms/DatingApp
+    volumes:
+      - video-data:/app/uploads
+    depends_on:
+      video-service-db:
+        condition: service_healthy
+    networks: [app-network]
 
 volumes:
   keycloak-db-data:
-  loki-data:
   UserService-data:
   MatchmakingService-data:
   swipe-service-data:
   photo-service-data:
   photo-storage:
   messaging-service-data:
-  seq-data:
-  grafana-storage:
+  safety-data:
+  bot-data:
+  Reputation-data:
+  Forum-data:
+  VideoService-data:
+  tester-data:
+  video-data:
 
 networks:
   app-network:

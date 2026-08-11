@@ -2,6 +2,7 @@
 
 # Local Development Startup Script
 # Starts all services for local development
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "🚀 Starting Local Development Environment..."
 
@@ -71,54 +72,54 @@ done
 
 # Start UserService
 echo "👤 Starting UserService on port 8082..."
-cd /home/m/development/DatingApp/UserService
+cd ${SCRIPT_DIR}/UserService
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8082 dotnet run > ../logs/user-service.log 2>&1 &
 USER_PID=$!
 sleep 2
 
 # Start MatchmakingService
 echo "� Starting MatchmakingService on port 8083..."
-cd /home/m/development/DatingApp/MatchmakingService
+cd ${SCRIPT_DIR}/MatchmakingService
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8083 dotnet run > ../logs/matchmaking-service.log 2>&1 &
 MATCHMAKING_PID=$!
 sleep 2
 
 # Start PhotoService  
 echo "📸 Starting PhotoService on port 8085..."
-cd /home/m/development/DatingApp/photo-service
+cd ${SCRIPT_DIR}/photo-service
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8085 dotnet run > ../logs/photo-service.log 2>&1 &
 PHOTO_PID=$!
 sleep 2
 
 # Start MessagingService
 echo "💬 Starting MessagingService on port 8086..."
-cd /home/m/development/DatingApp/messaging-service
+cd ${SCRIPT_DIR}/messaging-service
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8086 dotnet run > ../logs/messaging-service.log 2>&1 &
 MESSAGING_PID=$!
 sleep 2
 
 # Start SwipeService
 echo "👆 Starting SwipeService on port 8087..."
-cd /home/m/development/DatingApp/swipe-service
+cd ${SCRIPT_DIR}/swipe-service
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8087 dotnet run --project SwipeService.csproj > ../logs/swipe-service.log 2>&1 &
 SWIPE_PID=$!
 sleep 2
 
 # Start SafetyService
 echo "🛡️ Starting SafetyService on port 8088..."
-cd /home/m/development/DatingApp/safety-service/SafetyService
+cd ${SCRIPT_DIR}/safety-service/SafetyService
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8088 dotnet run > ../../logs/safety-service.log 2>&1 &
 SAFETY_PID=$!
 sleep 2
 
 # Start YARP Gateway
 echo "🌐 Starting YARP Gateway on port 8080..."
-cd /home/m/development/DatingApp/dejting-yarp/src/dejting-yarp
+cd ${SCRIPT_DIR}/dejting-yarp/src/dejting-yarp
 ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8080 dotnet run > ../../../logs/yarp-gateway.log 2>&1 &
 YARP_PID=$!
 
 # Create logs directory if it doesn't exist
-mkdir -p /home/m/development/DatingApp/logs
+mkdir -p ${SCRIPT_DIR}/logs
 
 
 # Wait for services to start
@@ -216,9 +217,9 @@ echo "💡 All services: 8080(Gateway), 8082(User), 8083(Matchmaking), 8085(Phot
 # Start BotService (on by default, disable with BOT_MODE=false)
 if [ "${BOT_MODE:-true}" = "true" ]; then
     echo "🤖 Starting BotService on port 8089..."
-    cd /home/m/development/DatingApp/bot-service/BotService
+    cd ${SCRIPT_DIR}/bot-service/BotService
     # Source .env for API keys (GEMINI_API_KEY etc)
-    set -a; source /home/m/development/DatingApp/.env 2>/dev/null; set +a
+    set -a; source ${SCRIPT_DIR}/.env 2>/dev/null; set +a
     ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8089 dotnet run > ../../logs/bot-service.log 2>&1 &
     BOT_PID=$!
     sleep 3

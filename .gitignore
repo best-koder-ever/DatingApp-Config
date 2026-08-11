@@ -79,3 +79,8 @@ TestResults/
 .ai-context-snapshot.md
 .ai-system-prompt.md
 .ai-last-batch-id
+ai-tester-service/
+forum-service/
+reputation-service/
+video-service/
+__pycache__/

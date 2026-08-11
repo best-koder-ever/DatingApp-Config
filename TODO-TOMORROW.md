@@ -1,64 +1,109 @@
 # TODO — Current State
 
-**Updated**: 2026-06-15
-**Active track**: Profile Settings Overhaul — COMPLETE ✅
+**Updated**: 2026-06-29
+**Active track**: Premium Settings Section + Read Receipts
 
 ---
 
-## ✅ COMPLETED (2026-06-15 session)
+## ✅ COMPLETED (2026-06-25 session)
 
-### Phase 1: Fix Broken Settings Persistence
-- [x] Discovery prefs (age range, distance) now save to `PUT /api/userprofiles/{userId}/preferences`
-- [x] "Show in discovery" toggle persists via `showMeInDiscovery`
-- [x] Privacy display toggles (show age, show distance) persist via `PUT /api/userprofiles/{profileId}/privacy`
-- [x] Notification preferences: new backend model + `GET/PUT /api/profiles/me/notifications` endpoints + Flutter wiring
-- [x] Loading/error/optimistic states on settings screen
+### Reputation Service (new microservice :8091)
+- [x] Service scaffolded: .NET 8 + EF Core + MySQL + MediatR
+- [x] ChatFeedback entity, ReputationScore entity, ReputationCalculator
+- [x] Penalty caps, signal weighting, new account cooling, bot exclusion
+- [x] JWT validation + rate limiting + internal API endpoints
+- [x] Full admin control + ReputationAuditLog
+- [x] 4 unit tests
 
-### Phase 2: Competitive Parity
-- [x] Political views field (backend + Flutter dropdown in edit profile)
-- [x] Pets field (backend + Flutter dropdown in edit profile)
-- [x] Zodiac sign (auto-computed from DOB via `ZodiacHelper`, displays on profile detail)
-- [x] Incognito mode toggle in privacy settings (wired to `isPrivate` field)
-- [x] Message filter dropdown (Off/Disrespectful/AllOffensive) in privacy settings
-- [x] Help/FAQ screen with 6 expandable questions
-- [x] Dating tips dialog replaces "Coming Soon" placeholder
+### Phase 8-9: MatchmakingService Integration + Cross-Service Hooks
+- [x] ReputationScoreCache + LiveScoringStrategy rep factor
+- [x] safety-service → reputation on block/report
+- [x] GhostDetectionService (runs every 6h) + 5 tests
 
-### Phase 3: Settings UX Polish
-- [x] Settings reorganized into card-based sections (Discovery, Profile Display, Privacy & Safety, Notifications, Account, Support)
-- [x] Profile Strength card at top — real % from backend, color-coded, with suggestions
-- [x] Account pause quick-action — bottom sheet with duration options (24h/72h/1 week/Indefinite), wired to `POST /api/account/pause` + resume
+### T630-T631: Radar Confidence + Before/After Comparison
+- [x] 4-tier opacity in RadarChartWidget (gold at 95%+)
+- [x] PreviousValuesJson on backend + grey overlay polygon in Flutter
 
-### Profile Detail Display
-- [x] New fields (political views, pets, zodiac) shown in lifestyle section
+### T623/T625: Post-Date Feedback Flutter (wired)
+- [x] "Betygsätt er dejt" button in chat overflow menu
 
-### Tests
-- [x] Flutter: 3 widget tests for settings screen (scaffold, loading, accessibility)
-- [x] Backend: 6 new unit tests (notification prefs CRUD + new profile fields)
-- [x] All 277 backend tests pass, all Flutter tests pass
-- [x] Full `flutter analyze` — 0 errors in changed files
+### T633: Psykolog Axis-Based Suggestions
+- [x] WeakestAxesJson on PsykologSession, fetched from radar API
+- [x] Dynamic system prompt with axis-specific suggestions
+
+### Top Picks Backend Endpoint
+- [x] `GET /api/matchmaking/top-picks/{userId}` — uses DailyPickStrategy
+- [x] Flutter TopPicksScreen wired to real endpoint (mock fallback)
+
+### Real Prices in Catalog
+- [x] Backend: Premium plans now cost sparks (149/299/599 ⚡)
+- [x] Backend: Spark bundles have real USD cent prices (.99-4.99)
+- [x] Swedish names: Premium Månad, Kvartal, År
+- [x] Flutter: PremiumPlan model gains priceSparks field
+- [x] Flutter: Plan cards show spark price inline
+- [x] Flutter: SEK conversion for spark bundles (19-149 kr)
+- [x] Builds clean, analyze clean### AI Tester Service (new microservice :8093)
+- [x] Service scaffolded: .NET 8 + SQLite + OWASP security probes
+- [x] SecurityAuditor: SQLi, JWT manipulation, IDOR, rate limit, XSS, mass assignment checks
+- [x] TestPersona model: NormalUser, Troll, Hacker, Scammer types
+- [x] TestFinding model: severity, category, attack vector, evidence, reproducibility
+- [x] TestRun model: phase tracking, findings aggregation
+- [x] API: POST /api/tester/run, GET /api/tester/findings, GET /api/tester/report/daily
+- [x] Admin-only access (Role=admin required)
+- [x] Findings are READ-ONLY — human must accept/reject before any code change
+- [x] Docker + YARP route configured
+- [x] Builds clean — 0 errors, 0 warnings### Simple Forum (Jodel-inspired)
+- [x] Backend: ForumPost + ForumComment models in UserService
+- [x] Backend: GET/POST /api/forum/posts, GET/POST /api/forum/posts/{id}/comments
+- [x] Backend: Anonymous posting option (IsAnonymous flag)
+- [x] Flutter: forum_feed_screen.dart — single feed, posts + expandable comments
+- [x] Flutter: Create post FAB + bottom sheet with anonymous toggle
+- [x] Flutter: Comment input inline on expanded posts
+- [x] Flutter analyze — 0 issues
+- [x] UserService: 305/305 tests pass### Premium Settings + Read Receipts (2026-06-29)
+- [x] Backend: `ReadReceiptsEnabled` field on UserProfile + PrivacySettingsDto
+- [x] Backend: `PUT /api/userprofiles/{id}/privacy` handles read receipts
+- [x] Flutter: `PremiumFeatureTile` widget — lock icon + gold badge for free users
+- [x] Flutter: `PremiumUpgradeBanner` — gradient CTA for free users
+- [x] Flutter: Settings screen reorganized — "Premium-funktioner" card with diamond icon
+- [x] Flutter: Upgrade prompt dialog — lists premium benefits + navigates to plans
+- [x] Flutter analyze — 0 errors
+- [x] UserService: 305/305 tests pass
+
+### Tests- [x] messaging-service: 147/147 | reputation-service: 4/4
+- [x] UserService: 305/305 | MatchmakingService: 266 (1 pre-existing)
+- [x] Flutter analyze — 0 issues across all changed files
+- [x] All 6 microservices build clean
 
 ---
 
 ## 📋 Remaining Polish (Minor/Deferred)
 
-- [ ] Top Picks backend endpoint (`_fetchTopPicksFromBackend` throws `UnimplementedError`)
-- [ ] Real prices in catalog (sandbox: `priceSparks: 0`)
-- [ ] Dashboard pricing table from catalog API
+- [x] Real prices in catalog ✅
+- [x] Premium comparison screen with feature table ✅
 - [ ] Push notifications for received sparks (needs FCM)
-- [ ] Spotlight scheduling (date/time picker)
-- [ ] Read receipts toggle
+- [x] Spotlight scheduling screen with date/time/duration picker ✅
+- [x] Read receipts toggle ✅
 - [ ] Video clips
+
+## 🔲 Next Available Tasks
+
+| Task | Priority | Est. | Notes |
+|------|----------|------|-------|
+| T634: Forum-to-axis mapping | P2 | ~3h | Needs forum existing |
+| Bot swarm T382-T384 (multi-lang, voice, admin UI) | P3 | ~15h | |
+| Forum Phases 10-11 | P2 | ~41h | "Wait with forum" |
+| Spotlight Scheduling | P3 | ~4h | Date/time picker |
+| Read receipts toggle | P3 | ~2h | |
 
 ---
 
-## Stability (2026-06-15)
+## Stability
 
-| Aspect | Rating | Notes |
-|--------|--------|-------|
-| Backend tests | ✅ 277/277 passing | All handlers + controllers + new tests |
-| Flutter tests | ✅ 3/3 passing | Settings screen rendering |
-| Flutter analyze | ✅ 0 errors | Changed files all clean |
-| Settings persistence | ✅ Fixed | 6 formerly-broken toggles now wired |
-| Missing fields | ✅ Added | political views, pets, zodiac |
-| Missing features | ✅ Added | incognito, message filter, FAQ, dating tips |
-| Settings UX | ✅ Improved | Card sections, profile strength, pause |
+| Service | Tests | Status |
+|---------|-------|--------|
+| messaging-service | 147/147 | ✅ |
+| reputation-service | 4/4 | ✅ |
+| UserService | 305/305 | ✅ |
+| MatchmakingService | 266 (1 pre-existing) | ✅ |
+| Flutter | 0 errors | ✅ |

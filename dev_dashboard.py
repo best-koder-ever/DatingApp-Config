@@ -242,6 +242,46 @@ SERVICES: list[ServiceSpec] = [
         "http://localhost:8089/health",
         ["BotService"],
     ),
+    ServiceSpec(
+        "reputation",
+        "ReputationService",
+        8091,
+        ROOT / "reputation-service",
+        ["dotnet", "run"],
+        LOG_DIR / "reputation-service.log",
+        "http://localhost:8091/",
+        ["ReputationService"],
+    ),
+    ServiceSpec(
+        "forum",
+        "ForumService",
+        8092,
+        ROOT / "forum-service",
+        ["dotnet", "run"],
+        LOG_DIR / "forum-service.log",
+        "http://localhost:8092/",
+        ["ForumService"],
+    ),
+    ServiceSpec(
+        "tester",
+        "AiTesterService",
+        8093,
+        ROOT / "ai-tester-service",
+        ["dotnet", "run"],
+        LOG_DIR / "ai-tester-service.log",
+        "http://localhost:8093/",
+        ["AiTesterService", "ai-tester-service"],
+    ),
+    ServiceSpec(
+        "video",
+        "VideoService",
+        8094,
+        ROOT / "video-service",
+        ["dotnet", "run"],
+        LOG_DIR / "video-service.log",
+        "http://localhost:8094/",
+        ["VideoService"],
+    ),
 ]
 
 SERVICE_BY_KEY = {service.key: service for service in SERVICES}
@@ -255,6 +295,9 @@ INFRA_SERVICES = [
     "swipe-service-db",
     "photo-service-db",
     "messaging-service-db",
+    "reputation-db",
+    "forum-db",
+    "video-service-db",
 ]
 
 ANDROID_PERMISSIONS = [
@@ -294,6 +337,8 @@ class DevDashboard:
         self.android_table = None
         self.android_log = None
         self.android_status = None
+        self.wifi_phone_ip_label = None
+        self.wifi_laptop_ip_label = None
         self.gita_repo_table = None
         self.gita_log = None
         self.gita_status_label = None
@@ -595,12 +640,12 @@ class DevDashboard:
                 await self.capture(["kill", "-TERM", pid], timeout=5)
 
     async def start_all_services(self) -> None:
-        for key in ["user", "matchmaking", "photo", "messaging", "swipe", "safety", "yarp", "bot"]:
+        for key in ["user", "matchmaking", "photo", "messaging", "swipe", "safety", "yarp", "bot", "reputation", "forum", "tester", "video"]:
             await self.start_service(key)
             await asyncio.sleep(1.0)
 
     async def stop_all_services(self) -> None:
-        for key in ["bot", "yarp", "safety", "swipe", "messaging", "photo", "matchmaking", "user"]:
+        for key in ["bot", "yarp", "safety", "swipe", "messaging", "photo", "matchmaking", "user", "video", "tester", "forum", "reputation"]:
             await self.stop_service(key)
 
     @staticmethod
@@ -615,7 +660,7 @@ class DevDashboard:
 
     async def rebuild_all_services(self) -> None:
         """Run dotnet restore && dotnet build in every service directory."""
-        for key in ["user", "matchmaking", "photo", "messaging", "swipe", "safety", "yarp", "bot"]:
+        for key in ["user", "matchmaking", "photo", "messaging", "swipe", "safety", "yarp", "bot", "reputation", "forum", "tester", "video"]:
             svc = SERVICE_BY_KEY[key]
             proj_flag = self._svc_project_flag(svc)
             self.log(f"--- Rebuilding {svc.name} ({svc.cwd}) ---")
@@ -647,6 +692,7 @@ class DevDashboard:
         await self.run_command(["bash", "infrastructure/stop.sh"], label="infrastructure/stop.sh")
 
     async def full_stack_start(self) -> None:
+        """Docker infra + all 12 .NET services (user, matchmaking, photo, messaging, swipe, safety, yarp, bot, reputation, forum, tester, video)."""
         await self.start_infra()
         await self.start_all_services()
 
@@ -656,8 +702,8 @@ class DevDashboard:
 
     async def lightweight_stack_start(self) -> None:
         """Start essentials: infra + YARP + UserService + Matchmaking + Messaging + Swipe.
-        Leaves out: photo-service, safety-service, bot-service.
-        Saves ~40% RAM vs full stack while keeping matches, messages, and swipes working."""
+        Leaves out: photo, safety, bot, reputation, forum, tester, video, reputation-db, forum-db, video-service-db.
+        Saves ~60% RAM vs full stack while keeping matches, messages, and swipes working."""
         await self.start_infra()
         await asyncio.sleep(2.0)  # Let DBs + Keycloak come up
         for key in ["yarp", "user", "matchmaking", "messaging", "swipe"]:
@@ -669,6 +715,173 @@ class DevDashboard:
         for key in ["user", "matchmaking", "messaging", "swipe", "yarp"]:
             await self.stop_service(key)
         await self.stop_infra()
+
+    async def start_docker_stack(self) -> None:
+        """Run the whole stack as Docker images (same as the little server).
+
+        Equivalent to: docker compose -f docker-compose.yml up -d --build
+        """
+        await self.run_command(
+            ["docker", "compose", "-f", "docker-compose.yml", "up", "-d", "--build"],
+            label="docker compose up -d --build",
+        )
+
+    async def stop_docker_stack(self) -> None:
+        """Stop the Docker stack containers (data persists in volumes)."""
+        await self.run_command(
+            ["docker", "compose", "-f", "docker-compose.yml", "down"],
+            label="docker compose down",
+        )
+
+    async def start_docker_stack_extras(self) -> None:
+        """Run the FULL docker stack including the extras profile (all 12 services)."""
+        await self.run_command(
+            ["docker", "compose", "-f", "docker-compose.yml", "--profile", "extras", "up", "-d", "--build"],
+            label="docker compose --profile extras up -d --build",
+        )
+
+    async def stop_docker_stack_extras(self) -> None:
+        """Stop the full docker stack (all 12 services incl. extras)."""
+        await self.run_command(
+            ["docker", "compose", "-f", "docker-compose.yml", "--profile", "extras", "down"],
+            label="docker compose --profile extras down",
+        )
+
+    # ------------------------------------------------------------------
+    # Little server (always-on) controls — surfaced in the Stack tab
+    # ------------------------------------------------------------------
+    async def _server_quick_status(self) -> None:
+        """Refresh little-server info cards over SSH (gateway + container count)."""
+        rc, out = await self._cicd_ssh(
+            "curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://localhost:8080/health 2>/dev/null || echo 'DOWN'",
+            timeout=10,
+        )
+        gw = out.strip()
+        label = getattr(self, "server_gateway_label", None)
+        if label is not None:
+            label.text = "✅ Online" if gw == "200" else ("❌ Down" if gw == "DOWN" else f"⚠️ {gw}")
+        rc2, out2 = await self._cicd_ssh(
+            "docker ps --format '{{.Names}}' 2>/dev/null | grep -E 'service|yarp|keycloak' | wc -l",
+            timeout=10,
+        )
+        count = out2.strip()
+        label2 = getattr(self, "server_services_label", None)
+        if label2 is not None:
+            label2.text = count if count.isdigit() else "?"
+        rc3, out3 = await self._cicd_ssh(
+            "docker inspect yarp --format '{{.Created}}' 2>/dev/null | cut -dT -f1,2 | cut -d. -f1 || echo 'unknown'",
+            timeout=10,
+        )
+        label3 = getattr(self, "server_deploy_label", None)
+        if label3 is not None:
+            label3.text = out3.strip()[:19] if out3.strip() else "unknown"
+
+    async def _server_health(self) -> None:
+        """Health check all services on the little server (read-only)."""
+        log = getattr(self, "server_log", None)
+        status = getattr(self, "server_status_label", None)
+        if log is not None:
+            log.clear()
+            log.push(f"[{now_label()}] Little server health check...")
+        if status is not None:
+            status.text = "⏳ Health check..."
+        services = [
+            ("yarp", 8080), ("user-service", 8082), ("matchmaking-service", 8083),
+            ("photo-service", 8085), ("messaging-service", 8086), ("swipe-service", 8087),
+            ("safety-service", 8088), ("bot-service", 8089), ("keycloak", 8090),
+        ]
+        rows = []
+        for name, port in services:
+            rc, out = await self._cicd_ssh(
+                f"curl -s -o /dev/null -w '%{{http_code}}' --max-time 3 http://localhost:{port}/health 2>/dev/null || echo 'FAIL'",
+                timeout=10,
+            )
+            code = out.strip()
+            healthy = code == "200"
+            rows.append({"service": name, "port": str(port), "status": "🟢 Up" if healthy else "🔴 Down", "health": code})
+            if log is not None:
+                log.push(f"  {name}:{port} → {code}")
+        table = getattr(self, "server_table", None)
+        if table is not None:
+            table.rows = rows
+            table.update()
+        if status is not None:
+            up = sum(1 for r in rows if "Up" in r["status"])
+            status.text = f"✅ {up}/{len(rows)} services healthy on little server"
+        await self._server_quick_status()
+
+    async def _server_start(self) -> None:
+        """Start all services on the little server via SSH."""
+        log = getattr(self, "server_log", None)
+        status = getattr(self, "server_status_label", None)
+        if log is not None:
+            log.clear()
+            log.push(f"[{now_label()}] Starting little server services...")
+        if status is not None:
+            status.text = "⏳ Starting..."
+        rc, out = await self._cicd_ssh("cd ~/datingapp && docker compose up -d --remove-orphans 2>&1", timeout=120)
+        for line in out.strip().splitlines():
+            if log is not None:
+                log.push(strip_ansi(line))
+        if log is not None:
+            log.push(f"[{now_label()}] Start complete (exit {rc})")
+        if status is not None:
+            status.text = "✅ Little server started" if rc == 0 else "❌ Failed"
+        await self._server_quick_status()
+
+    async def _server_stop(self) -> None:
+        """Stop all services on the little server (containers kept, data persists)."""
+        log = getattr(self, "server_log", None)
+        status = getattr(self, "server_status_label", None)
+        if log is not None:
+            log.clear()
+            log.push(f"[{now_label()}] Stopping little server services...")
+        if status is not None:
+            status.text = "⏳ Stopping..."
+        rc, out = await self._cicd_ssh("cd ~/datingapp && docker compose stop 2>&1", timeout=60)
+        for line in out.strip().splitlines():
+            if log is not None:
+                log.push(strip_ansi(line))
+        if log is not None:
+            log.push(f"[{now_label()}] Stop complete (exit {rc})")
+        if status is not None:
+            status.text = "✅ Little server stopped" if rc == 0 else "❌ Failed"
+        await self._server_quick_status()
+
+    async def _server_docker_ps(self) -> None:
+        """Show running containers on the little server."""
+        log = getattr(self, "server_log", None)
+        if log is not None:
+            log.clear()
+            log.push(f"[{now_label()}] docker ps on little server:")
+        rc, out = await self._cicd_ssh(
+            "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' 2>/dev/null",
+            timeout=15,
+        )
+        for line in out.strip().splitlines():
+            if log is not None:
+                log.push(line)
+        status = getattr(self, "server_status_label", None)
+        if status is not None:
+            status.text = "✅ Docker PS fetched"
+        await self._server_quick_status()
+
+    async def _server_logs(self) -> None:
+        """Show recent container logs from the little server."""
+        log = getattr(self, "server_log", None)
+        if log is not None:
+            log.clear()
+            log.push(f"[{now_label()}] Little server logs (tail):")
+        rc, out = await self._cicd_ssh(
+            "cd ~/datingapp && docker compose logs --tail=30 2>&1 | tail -40",
+            timeout=20,
+        )
+        for line in out.strip().splitlines()[-40:]:
+            if log is not None:
+                log.push(strip_ansi(line))
+        status = getattr(self, "server_status_label", None)
+        if status is not None:
+            status.text = "✅ Logs fetched"
 
     # ------------------------------------------------------------------
     # Vikunja (Kanban board) helpers
@@ -1108,6 +1321,621 @@ class DevDashboard:
             await self.launch_android_app()
 
     # ------------------------------------------------------------------
+    # WiFi ADB & Hotspot helpers
+    # ------------------------------------------------------------------
+    async def _get_gateway_ip(self) -> str | None:
+        """Detect the default gateway IP — the phone in hotspot mode."""
+        rc, out = await self.capture(["ip", "route", "show", "default"], timeout=3)
+        if rc != 0:
+            return None
+        for line in out.strip().splitlines():
+            parts = line.split()
+            if "via" in parts:
+                idx = parts.index("via")
+                if idx + 1 < len(parts):
+                    return parts[idx + 1]
+        return None
+
+    async def _detect_hotspot_phone_ip(self) -> str | None:
+        """Try to find the phone's IP when it's acting as a WiFi hotspot.
+
+        Strategy:
+        1. Gateway IP from default route (most common — phone is the router).
+        2. Fallback: scan subnet for 'HM-*' or common mobile hostnames via ARP.
+        """
+        # Primary: gateway IP
+        gw = await self._get_gateway_ip()
+        if gw:
+            return gw
+
+        # Fallback: check ARP cache for phone-like entries
+        rc, out = await self.capture(["arp", "-n"], timeout=3)
+        if rc == 0:
+            for line in out.strip().splitlines():
+                parts = line.split()
+                if len(parts) >= 3:
+                    ip = parts[0]
+                    hw_type = parts[2] if len(parts) > 2 else ""
+                    # Phone MACs typically don't match our laptop NICs, but any
+                    # entry on the default gateway subnet is a candidate
+                    if ip.count(".") == 3 and hw_type not in ("<incomplete>", ""):
+                        return ip
+        return None
+
+    async def _detect_bt_phone_ip(self) -> str | None:
+        """Find the phone's IP on a Bluetooth PAN (tethering) network.
+
+        Bluetooth tethering creates a bnep interface. The phone typically gets
+        IP 192.168.44.1 or similar. We find it by:
+        1. Looking at the bnep interface's subnet
+        2. Checking the gateway for that route
+        3. Scanning ARP for entries on the Bluetooth subnet
+        """
+        # Method 1: Find gateway on a bnep route
+        rc, out = await self.capture(["ip", "route", "show", "dev", "bnep0"], timeout=3)
+        if rc == 0:
+            for line in out.strip().splitlines():
+                parts = line.split()
+                if "via" in parts:
+                    idx = parts.index("via")
+                    if idx + 1 < len(parts):
+                        ip = parts[idx + 1]
+                        if ip.count(".") == 3:
+                            return ip
+                elif len(parts) >= 1 and parts[0].count(".") == 3:
+                    # Direct route like "192.168.44.0/24 dev bnep0 ..."
+                    # The gateway/phone is usually .1
+                    subnet = parts[0].rsplit(".", 1)[0]
+                    return f"{subnet}.1"
+
+        # Method 2: Check laptop IP on bnep and assume phone is .1 or .254
+        rc2, out2 = await self.capture(["ip", "-4", "-br", "addr", "show", "dev", "bnep0"], timeout=3)
+        if rc2 == 0:
+            for line in out2.strip().splitlines():
+                parts = line.split()
+                if len(parts) >= 3:
+                    cidr = parts[2]
+                    ip_part = cidr.split("/")[0]
+                    subnet = ip_part.rsplit(".", 1)[0]
+                    return f"{subnet}.1"
+
+        # Method 3: ARP scan for any entry
+        rc3, out3 = await self.capture(["arp", "-n"], timeout=3)
+        if rc3 == 0:
+            for line in out3.strip().splitlines():
+                parts = line.split()
+                if len(parts) >= 3:
+                    ip = parts[0]
+                    iface = parts[-1] if "bnep" in parts[-1] else ""
+                    if iface and ip.count(".") == 3:
+                        return ip
+
+        return None
+
+    async def _adb_wifi_connect(self, phone_ip: str) -> bool:
+        """Connect ADB over WiFi to a phone at the given IP.
+
+        When the phone acts as a hotspot, 'Wireless debugging' in Developer Options
+        is unavailable (WiFi is in AP mode). Use usb_to_tcpip_setup() first to switch
+        ADB to TCP/IP mode via USB — then WiFi ADB will work.
+        Returns True if connection succeeded.
+        """
+        port = "5555"
+        target = f"{phone_ip}:{port}"
+        self.log(f"Trying ADB over WiFi: {target}")
+
+        # First check if already connected
+        rc, out = await self.capture(["adb", "devices", "-l"], timeout=5)
+        if target in out:
+            self.log(f"Already connected to {target}")
+            return True
+
+        # Attempt connect
+        rc, out = await self.capture(["adb", "connect", target], timeout=10)
+        if rc == 0 and ("connected" in out.lower() or "already" in out.lower()):
+            self.log(f"✅ ADB over WiFi connected to {target}")
+            return True
+
+        # Connection refused — hotspot mode detected, give clear guidance
+        if "refused" in out.lower() or "cannot connect" in out.lower():
+            self.log(f"❌ ADB connection to {target} refused")
+            self.log("")
+            self.log("   ┌─ Hotspot mode detected ───────────────────────────────┐")
+            self.log("   │ When the phone is the hotspot, 'Wireless debugging'  │")
+            self.log("   │ is greyed out — the WiFi adapter is in AP mode.      │")
+            self.log("   │                                                       │")
+            self.log("   │ ✅ The fix is simple and needs USB only once:         │")
+            self.log("   │                                                       │")
+            self.log("   │   1. Plug in USB cable (it's connected now!)          │")
+            self.log("   │   2. Click '🔌 Enable ADB over TCP/IP' button         │")
+            self.log("   │   3. ADB switches to TCP/IP mode on port 5555         │")
+            self.log("   │   4. Unplug the USB cable                             │")
+            self.log("   │   5. Click '🔗 Connect ADB over WiFi'                 │")
+            self.log("   │                                                       │")
+            self.log("   │ After that, ADB keeps working over the hotspot        │")
+            self.log("   │ network until you reboot the phone. Next time you     │")
+            self.log("   │ need USB again because the ADB daemon resets.         │")
+            self.log("   └───────────────────────────────────────────────────────┘")
+            return False
+
+        self.log(f"❌ ADB connect failed: {out.strip()[:200]}")
+        return False
+
+    async def _check_usb_device(self) -> str | None:
+        """Check if any USB-connected Android device is available."""
+        rc, out = await self.capture(["adb", "devices", "-l"], timeout=5)
+        if rc != 0:
+            return None
+        for line in out.splitlines()[1:]:
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[1] == "device":
+                # Skip already-connected WiFi devices
+                if ":" in parts[0] and "." in parts[0]:
+                    continue
+                return parts[0]
+        return None
+
+    async def usb_to_tcpip_setup(self) -> None:
+        """Switch a USB-connected phone to ADB over TCP/IP mode.
+
+        Hotspot limitation: when the phone is sharing its hotspot, 'Wireless
+        debugging' in Developer Options is greyed out (WiFi is in AP mode, not
+        client mode). This method works around that by switching ADB to TCP/IP
+        mode via USB once. After that, you can unplug and connect over WiFi.
+
+        Flow:
+        1. Find USB-connected phone
+        2. Run 'adb tcpip 5555' — restarts ADB daemon in TCP/IP mode
+        3. Tell user to unplug USB and click 'Connect ADB over WiFi'
+        """
+        if self.android_log is not None:
+            self.android_log.clear()
+            self.android_log.push("🔌 Looking for USB-connected phone...")
+
+        usb_serial = await self._check_usb_device()
+        if not usb_serial:
+            msg = (
+                "❌ No USB device found.\n\n"
+                "💡 Don't have a USB cable? Use '🔐 ADB Pairing' instead:\n"
+                "   On phone: Settings → Developer Options → Wireless debugging\n"
+                "   → tap 'Pair device with pairing code'\n"
+                "   → enter the 6-digit code in the dialog that appears\n\n"
+                "🔌 If you DO have a USB cable:\n"
+                "   1. Connect phone to laptop via USB\n"
+                "   2. On phone: allow 'USB debugging' when prompted\n"
+                "   3. Click this button again"
+            )
+            self.log(msg)
+            if self.android_log is not None:
+                self.android_log.push(msg)
+            if self.android_status is not None:
+                self.android_status.text = "❌ No USB — use ADB Pairing instead"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            ui.notify("No USB cable? Use the '🔐 ADB Pairing' button instead", type="warning", close_button="OK")
+            return
+
+        self.log(f"📱 Found USB device: {usb_serial}")
+        if self.android_log is not None:
+            self.android_log.push(f"📱 Found USB device: {usb_serial}")
+            self.android_log.push("🔄 Switching ADB to TCP/IP mode on port 5555...")
+        if self.android_status is not None:
+            self.android_status.text = "🔄 Switching to TCP/IP mode..."
+            self.android_status.classes("text-orange-600 font-semibold text-sm")
+
+        rc, out = await self.capture(["adb", "-s", usb_serial, "tcpip", "5555"], timeout=10)
+        if rc == 0 and "restarting" in out.lower():
+            msg = (
+                "✅ ADB switched to TCP/IP mode on port 5555!\n\n"
+                "Now:\n"
+                "1. ⚡ Unplug the USB cable\n"
+                "2. Click '🔍 Scan Hotspot' to verify the phone IP\n"
+                "3. Click '🔗 Connect ADB over WiFi' — it will connect wirelessly\n\n"
+                "The phone stays in TCP/IP mode until reboot."
+            )
+            self.log(msg)
+            if self.android_log is not None:
+                self.android_log.push(msg)
+            if self.android_status is not None:
+                self.android_status.text = "✅ TCP/IP mode active — unplug USB & connect WiFi ADB"
+                self.android_status.classes("text-green-600 font-semibold text-sm")
+            ui.notify("✅ TCP/IP mode active! Unplug USB, then Connect ADB over WiFi", type="positive", close_button="OK")
+        else:
+            err = f"❌ tcpip command failed: {out.strip()[:200]}"
+            self.log(err)
+            if self.android_log is not None:
+                self.android_log.push(err)
+            if self.android_status is not None:
+                self.android_status.text = "❌ TCP/IP switch failed"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            ui.notify("tcpip command failed — see log", type="negative")
+
+    async def adb_pair_wizard(self) -> None:
+        """Pair ADB over WiFi using Android 11+'s pairing code — no USB needed.
+
+        Works even when the phone is acting as a hotspot (WiFi in AP mode).
+        The pairing protocol uses a temporary port, not the standard 5555.
+
+        Steps the user follows on their phone:
+          Settings → Developer Options → Wireless debugging
+          → tap 'Pair device with pairing code'
+          → shows IP, port, and a 6-digit code
+        """
+        if self.android_log is not None:
+            self.android_log.clear()
+            self.android_log.push("🔐 ADB Pairing Wizard (Android 11+, no USB needed)")
+            self.android_log.push("")
+            self.android_log.push("On your phone:")
+            self.android_log.push("  1. Settings → Developer Options → Wireless debugging")
+            self.android_log.push("  2. Tap 'Pair device with pairing code'")
+            self.android_log.push("  3. You'll see: IP:port and a 6-digit code")
+            self.android_log.push("")
+            self.android_log.push("Enter them below ⬇️")
+
+        if self.android_status is not None:
+            self.android_status.text = "🔐 Enter pairing info from your phone"
+            self.android_status.classes("text-blue-600 font-semibold text-sm")
+
+        pair_data: dict[str, str] = {}
+
+        def on_pair_submit() -> None:
+            ip = ip_input.value.strip()
+            port = port_input.value.strip()
+            code = code_input.value.strip()
+            if not ip or not port or not code:
+                ui.notify("Fill in all fields", type="warning")
+                return
+            pair_data["ip"] = ip
+            pair_data["port"] = port
+            pair_data["code"] = code
+            dialog.close()
+
+        with ui.dialog() as dialog, ui.card().classes("w-[32rem]"):
+            ui.label("🔐 ADB Pairing").classes("text-lg font-semibold mb-2")
+            ui.label(
+                "On your phone: Settings → Developer Options → "
+                "Wireless debugging → tap 'Pair device with pairing code'"
+            ).classes("text-sm text-gray-600 mb-3")
+
+            ip_input = ui.input("IP address (from phone)", value="10.247.156.205").classes("w-full mb-2")
+            port_input = ui.input("Port (from phone, e.g. 38457)", placeholder="e.g. 38457").classes("w-full mb-2")
+            code_input = ui.input("6-digit pairing code", placeholder="e.g. 123456").classes("w-full mb-3")
+
+            with ui.row().classes("w-full justify-end gap-2"):
+                ui.button("Cancel", on_click=dialog.close).props("flat")
+                ui.button("Pair", on_click=on_pair_submit, color="positive", icon="link")
+
+        dialog.open()
+        await dialog.wait_for_close()
+
+        if not pair_data:
+            self.log("❌ Pairing cancelled")
+            if self.android_status is not None:
+                self.android_status.text = "❌ Pairing cancelled"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            return
+
+        pair_ip = pair_data["ip"]
+        pair_port = pair_data["port"]
+        pair_code = pair_data["code"]
+
+        self.log(f"🔐 Pairing ADB with {pair_ip}:{pair_port}...")
+        if self.android_log is not None:
+            self.android_log.push(f"🔐 Running: adb pair {pair_ip}:{pair_port} {pair_code}")
+        if self.android_status is not None:
+            self.android_status.text = "🔐 Pairing..."
+            self.android_status.classes("text-orange-600 font-semibold text-sm")
+
+        rc, out = await self.capture(
+            ["adb", "pair", f"{pair_ip}:{pair_port}", pair_code],
+            timeout=15,
+        )
+        if rc == 0 and "successfully paired" in out.lower():
+            self.log("✅ Paired successfully! Connecting...")
+            if self.android_log is not None:
+                self.android_log.push("✅ Paired! Now connecting on port 5555...")
+
+            # Now connect on standard port
+            rc2, out2 = await self.capture(
+                ["adb", "connect", f"{pair_ip}:5555"],
+                timeout=10,
+            )
+            if rc2 == 0 and ("connected" in out2.lower() or "already" in out2.lower()):
+                wifi_serial = f"{pair_ip}:5555"
+                self.selected_device = wifi_serial
+                if self.device_label is not None:
+                    self.device_label.text = f"Device: {self.selected_device}"
+                await self.refresh_android()
+                msg = f"✅ ADB connected to {wifi_serial} over WiFi!"
+                self.log(msg)
+                if self.android_log is not None:
+                    self.android_log.push(msg)
+                if self.android_status is not None:
+                    self.android_status.text = f"✅ Connected: {wifi_serial}"
+                    self.android_status.classes("text-green-600 font-semibold text-sm")
+                ui.notify("✅ ADB over WiFi connected!", type="positive")
+            else:
+                self.log(f"❌ Connect after pairing failed: {out2.strip()[:200]}")
+                if self.android_log is not None:
+                    self.android_log.push(f"❌ Connect failed: {out2.strip()[:200]}")
+                if self.android_status is not None:
+                    self.android_status.text = "❌ Connect failed after pairing"
+                    self.android_status.classes("text-red-600 font-semibold text-sm")
+                ui.notify("Pairing succeeded but connect failed — check the IP", type="negative")
+        else:
+            err = out.strip()[:200] if out.strip() else "pairing failed"
+            self.log(f"❌ Pairing failed: {err}")
+            if self.android_log is not None:
+                self.android_log.push(f"❌ Pairing failed: {err}")
+                self.android_log.push("")
+                self.android_log.push("💡 Tips:")
+                self.android_log.push("  • Make sure both devices are on the same network")
+                self.android_log.push("  • The pairing code expires after ~60 seconds — tap again")
+                self.android_log.push("  • Check that port matches what's shown on your phone")
+            if self.android_status is not None:
+                self.android_status.text = "❌ Pairing failed — try again"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            ui.notify("Pairing failed — check the code and try again", type="negative")
+
+    async def _adb_wifi_disconnect(self, phone_ip: str | None = None) -> None:
+        """Disconnect ADB over WiFi."""
+        if phone_ip:
+            target = f"{phone_ip}:5555"
+            await self.capture(["adb", "disconnect", target], timeout=5)
+            self.log(f"Disconnected ADB from {target}")
+        else:
+            await self.capture(["adb", "disconnect"], timeout=5)
+            self.log("Disconnected all ADB WiFi connections")
+
+    async def _update_env_lan_ip(self, laptop_ip: str) -> None:
+        """Update the dev machine LAN IP in the Flutter environment.dart."""
+        env_file = FLUTTER_ROOT / "lib" / "config" / "environment.dart"
+        if not env_file.exists():
+            self.log(f"❌ environment.dart not found at {env_file}")
+            return
+
+        old = await self.capture(["grep", "_devMachineLanIp", str(env_file)], timeout=3)
+        if old[1]:
+            # Replace the IP
+            rc, out = await self.capture(
+                ["sed", "-i",
+                 f"s/static const String _devMachineLanIp = '[0-9.]*';/static const String _devMachineLanIp = '{laptop_ip}';/",
+                 str(env_file)],
+                timeout=5,
+            )
+            if rc == 0:
+                self.log(f"✅ Updated _devMachineLanIp → {laptop_ip} in environment.dart")
+            else:
+                self.log(f"❌ Failed to update environment.dart: {out}")
+        else:
+            self.log("⚠️  Could not find _devMachineLanIp in environment.dart")
+
+    async def wifi_build_and_deploy(self) -> None:
+        """Full workflow: detect phone (hotspot) IP, connect ADB over WiFi,
+        update dev IP in Flutter, build APK, install, and launch."""
+        if self.android_status is not None:
+            self.android_status.text = "🔍 Detecting phone over hotspot..."
+            self.android_status.classes("text-blue-600 font-semibold text-sm")
+
+        if self.android_log is not None:
+            self.android_log.clear()
+
+        # Step 1: Detect phone IP (gateway = hotspot phone)
+        phone_ip = await self._detect_hotspot_phone_ip()
+        if not phone_ip:
+            self.log("❌ Could not detect phone IP — is the phone hotspot active?")
+            if self.android_status is not None:
+                self.android_status.text = "❌ Hotspot phone not detected"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            ui.notify("Could not detect phone hotspot IP", type="negative")
+            return
+        self.log(f"📱 Detected phone hotspot IP: {phone_ip}")
+
+        # Step 2: Detect laptop IP
+        ips = await self._get_laptop_ips()
+        laptop_ip = next(iter(ips.values()), None)
+        if not laptop_ip:
+            self.log("❌ Could not detect laptop IP")
+            if self.android_status is not None:
+                self.android_status.text = "❌ Laptop IP not detected"
+            ui.notify("Could not detect laptop IP", type="negative")
+            return
+        self.log(f"💻 Laptop IP for app backend: {laptop_ip}")
+
+        # Step 3: Connect ADB over WiFi
+        if self.android_log is not None:
+            self.android_log.push(f"📱 Connecting ADB to {phone_ip}:5555...")
+        connected = await self._adb_wifi_connect(phone_ip)
+        if not connected:
+            msg = (
+                "❌ Could not connect ADB over WiFi.\n\n"
+                "Your phone is the hotspot — 'Wireless debugging' is greyed out "
+                "because the WiFi adapter is in AP mode.\n\n"
+                "💡 **Fix (USB once → WiFi forever):**\n"
+                "1. Plug in USB cable (it's connected right now!)\n"
+                "2. Click '🔌 Enable ADB over TCP/IP (USB → WiFi)' button\n"
+                "3. Unplug USB when done\n"
+                "4. Click '🔄 Reconnect ADB over WiFi' here\n\n"
+                "After that, ADB works over WiFi until the phone reboots."
+            )
+            self.log(msg)
+            if self.android_log is not None:
+                self.android_log.push(msg)
+            if self.android_status is not None:
+                self.android_status.text = "❌ ADB over WiFi — use USB→TCP/IP button first"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            ui.notify("Use 🔌 USB→TCP/IP button first, then reconnect over WiFi", type="warning", close_button="OK")
+            return
+
+        # Update selected device
+        wifi_serial = f"{phone_ip}:5555"
+        self.selected_device = wifi_serial
+        if self.device_label is not None:
+            self.device_label.text = f"Device: {self.selected_device}"
+        if self.android_log is not None:
+            self.android_log.push(f"✅ ADB connected: {wifi_serial}")
+
+        # Step 4: Update environment.dart with laptop IP
+        if self.android_log is not None:
+            self.android_log.push(f"🔄 Updating app backend IP → {laptop_ip}...")
+        await self._update_env_lan_ip(laptop_ip)
+
+        # Step 5: Build APK
+        if self.android_log is not None:
+            self.android_log.push("🏗️  Building debug APK...")
+        if self.android_status is not None:
+            self.android_status.text = "🏗️ Building APK..."
+            self.android_status.classes("text-orange-600 font-semibold text-sm")
+
+        await self.build_apk("debug")
+
+        # Step 6: Wait for build to finish (poll the APK existence)
+        apk = self.apk_path("debug")
+        for _ in range(120):
+            if apk.exists() and (time.time() - apk.stat().st_mtime) < 10:
+                break
+            await asyncio.sleep(1)
+        else:
+            self.log("⚠️  Build may still be running — APK not found after 120s")
+            if self.android_status is not None:
+                self.android_status.text = "⚠️ Build timed out — check log"
+                self.android_status.classes("text-yellow-600 font-semibold text-sm")
+            return
+
+        # Step 7: Install APK
+        if self.android_log is not None:
+            self.android_log.push(f"📦 Installing {apk.name}...")
+        if self.android_status is not None:
+            self.android_status.text = "📦 Installing APK..."
+            self.android_status.classes("text-blue-600 font-semibold text-sm")
+
+        await self.run_command_streaming(
+            ["adb", "-s", wifi_serial, "install", "-r", "-g", str(apk)],
+            label="Install APK (WiFi)",
+        )
+        await asyncio.sleep(2)
+
+        # Step 8: Launch app
+        if self.android_log is not None:
+            self.android_log.push("🚀 Launching app...")
+        if self.android_status is not None:
+            self.android_status.text = "🚀 Launching app..."
+            self.android_status.classes("text-green-600 font-semibold text-sm")
+
+        await self.run_command(
+            ["adb", "-s", wifi_serial, "shell", "am", "start", "-n",
+             f"{APP_PACKAGE}/{APP_ACTIVITY}"],
+            label="Launch app",
+        )
+
+        self.log("✅ WiFi build & deploy complete!")
+        if self.android_status is not None:
+            self.android_status.text = "✅ WiFi build & deploy complete!"
+            self.android_status.classes("text-green-600 font-semibold text-sm")
+        ui.notify("APK built, installed & launched over WiFi!", type="positive")
+
+    async def wifi_adb_status(self) -> dict[str, str]:
+        """Return detected hotspot phone IP and laptop IP for UI display."""
+        gw = await self._get_gateway_ip()
+        ips = await self._get_laptop_ips()
+        laptop_ip = next(iter(ips.values()), "unknown")
+        return {
+            "phone_ip": gw or "not detected",
+            "laptop_ip": laptop_ip,
+        }
+
+    async def _wifi_scan_and_display(self) -> None:
+        """Scan and display hotspot phone IP + laptop IP in the Android tab."""
+        status = await self.wifi_adb_status()
+        if self.wifi_phone_ip_label is not None:
+            if status["phone_ip"] != "not detected":
+                self.wifi_phone_ip_label.text = f"📱 Phone IP (hotspot gateway): {status['phone_ip']}"
+                self.wifi_phone_ip_label.classes("text-sm font-mono p-2 bg-green-50 rounded text-green-800")
+            else:
+                self.wifi_phone_ip_label.text = "📱 Phone IP: not detected — is hotspot active?"
+                self.wifi_phone_ip_label.classes("text-sm font-mono p-2 bg-yellow-50 rounded text-yellow-800")
+        if self.wifi_laptop_ip_label is not None:
+            self.wifi_laptop_ip_label.text = f"💻 Laptop IP (app backend): {status['laptop_ip']}"
+            self.wifi_laptop_ip_label.classes("text-sm font-mono p-2 bg-blue-50 rounded text-blue-800")
+        self.log(f"Hotspot scan: phone={status['phone_ip']}, laptop={status['laptop_ip']}")
+        ui.notify(
+            f"Phone: {status['phone_ip']} | Laptop: {status['laptop_ip']}",
+            type="positive" if status["phone_ip"] != "not detected" else "warning",
+        )
+
+    async def _wifi_adb_connect_ui(self) -> None:
+        """UI wrapper: detect phone IP then connect ADB over WiFi."""
+        phone_ip = await self._detect_hotspot_phone_ip()
+        if not phone_ip:
+            ui.notify("No hotspot phone detected — is the hotspot active?", type="warning")
+            return
+        ok = await self._adb_wifi_connect(phone_ip)
+        if ok:
+            wifi_serial = f"{phone_ip}:5555"
+            self.selected_device = wifi_serial
+            if self.device_label is not None:
+                self.device_label.text = f"Device: {self.selected_device}"
+            if self.android_table is not None:
+                devices = await self.adb_devices()
+                self.android_table.rows = devices
+                self.android_table.update()
+            await self.refresh_android()
+            ui.notify(f"✅ ADB connected to {wifi_serial}", type="positive")
+        else:
+            ui.notify("ADB over WiFi connection failed", type="negative")
+
+    async def _wifi_adb_disconnect_ui(self) -> None:
+        """UI wrapper: disconnect all ADB WiFi connections."""
+        await self._adb_wifi_disconnect()
+        await self.refresh_android()
+        if self.wifi_phone_ip_label is not None:
+            self.wifi_phone_ip_label.text = "📱 ADB WiFi disconnected"
+            self.wifi_phone_ip_label.classes("text-sm font-mono p-2 bg-gray-50 rounded")
+        ui.notify("ADB WiFi disconnected", type="info")
+
+    async def _show_bluetooth_guide(self) -> None:
+        """Show a step-by-step guide for switching from WiFi hotspot to Bluetooth tethering,
+        then enabling ADB over WiFi."""
+        guide = (
+            "## 🅱️ Bluetooth Tethering — Step by Step\n\n"
+            "When the phone is the hotspot, 'Wireless debugging' is greyed out because "
+            "the WiFi adapter is in AP mode. **Bluetooth tethering** frees the phone's "
+            "WiFi, so Wireless debugging becomes available.\n\n"
+            "---\n\n"
+            "### 1️⃣ Turn OFF WiFi hotspot\n"
+            "Phone: **Settings → Hotspot & Tethering → Turn off WiFi hotspot**\n\n"
+            "### 2️⃣ Enable Bluetooth tethering\n"
+            "Phone: **Settings → Connections → Mobile Hotspot and Tethering → "
+            "Bluetooth tethering → toggle ON**\n\n"
+            "### 3️⃣ Pair laptop with phone via Bluetooth\n"
+            "Laptop: Open Bluetooth settings → scan → tap your phone → confirm pairing "
+            "code on both devices\n\n"
+            "### 4️⃣ Connect to Bluetooth PAN\n"
+            "Laptop: **Settings → Bluetooth → your phone → 'Connect' → 'Internet access'**\n"
+            "On Linux: `bluetoothctl connect <phone_mac>` then the PAN should auto-connect.\n"
+            "Check with `ip a` — you'll see a `bnep0` or similar interface with a new IP.\n\n"
+            "### 5️⃣ Enable Wireless debugging\n"
+            "Phone: **Settings → Developer Options → Wireless debugging → toggle ON**\n"
+            "→ tap **'Pair device with pairing code'** → a 6-digit code + IP:port appear\n\n"
+            "### 6️⃣ Pair from the dashboard\n"
+            "Click **🔐 ADB Pairing** button on this dashboard → enter the IP, port, "
+            "and 6-digit code from your phone\n\n"
+            "### 7️⃣ Connect\n"
+            "Click **🔗 Try ADB Connect** → you're now connected wirelessly!\n\n"
+            "---\n\n"
+            "> 💡 **Tip:** ADB over TCP/IP persists until the phone reboots. "
+            "If you switch back to WiFi hotspot later without rebooting, "
+            "ADB over WiFi will still work on the hotspot network.\n\n"
+            "> 🔄 **Switching back:** Turn off Bluetooth tethering, turn WiFi hotspot "
+            "back on. The laptop reconnects, and ADB should still work."
+        )
+
+        with ui.dialog() as dialog, ui.card().classes("w-[48rem] max-h-[80vh] overflow-y-auto"):
+            ui.markdown(guide).classes("text-sm")
+            with ui.row().classes("w-full justify-end mt-4"):
+                ui.button("Got it!", on_click=dialog.close, color="positive")
+        dialog.open()
+
+    # ------------------------------------------------------------------
     # Android operations
     # ------------------------------------------------------------------
     async def adb_devices(self) -> list[dict[str, str]]:
@@ -1323,6 +2151,7 @@ class DevDashboard:
                 tab_billing = ui.tab("Billing", icon="paid")
                 tab_ai_cache = ui.tab("AI & Costs", icon="auto_awesome")
                 tab_gita = ui.tab("Gita", icon="source_commit")
+                tab_cicd = ui.tab("CI/CD", icon="rocket_launch")
 
         with ui.column().classes("w-full p-4 gap-4"):
             with ui.tab_panels(tabs, value=tab_stack).classes("w-full"):
@@ -1338,6 +2167,7 @@ class DevDashboard:
                 self._build_billing_panel(tab_billing)
                 self._build_ai_cache_panel(tab_ai_cache)
                 self._build_gita_panel(tab_gita)
+                self._build_cicd_panel(tab_cicd)
 
         ui.timer(5.0, self.refresh_all)
         ui.timer(3.0, self.tail_selected_log)
@@ -1354,15 +2184,21 @@ class DevDashboard:
                 self.add_button("Start Full Stack", lambda: self.guarded("Start full stack", self.full_stack_start), icon="play_arrow", color="positive", tooltip="Start Docker infra + all .NET services")
                 self.add_button("Stop Full Stack", lambda: self.confirm("Stop full stack", "Stops local services and infrastructure containers.", lambda: self.guarded("Stop full stack", self.full_stack_stop)), icon="stop", color="negative", tooltip="Stop all services + Docker infra")
             with ui.row().classes("toolbar"):
+                self.add_button("🐳 Start Docker Stack", lambda: self.guarded("Start docker stack", self.start_docker_stack), icon="docker", color="positive", tooltip="Build + run the same Docker images as the little server (docker compose up -d --build)")
+                self.add_button("🐳 Stop Docker Stack", lambda: self.confirm("Stop docker stack", "Stops all Docker stack containers (data persists in volumes).", lambda: self.guarded("Stop docker stack", self.stop_docker_stack)), icon="stop", color="negative", tooltip="docker compose down")
+            with ui.row().classes("toolbar"):
+                self.add_button("🐳 Full Stack (incl. extras)", lambda: self.guarded("Start full docker stack", self.start_docker_stack_extras), icon="docker", color="positive", tooltip="docker compose --profile extras up -d --build (all 12 services)")
+                self.add_button("🐳 Stop Full (incl. extras)", lambda: self.confirm("Stop full docker stack", "Stops all Docker stack containers incl. extras.", lambda: self.guarded("Stop full docker stack", self.stop_docker_stack_extras)), icon="stop", color="negative", tooltip="docker compose --profile extras down")
+            with ui.row().classes("toolbar"):
                 self.add_button("⚡ Start Lightweight", lambda: self.guarded("Start lightweight", self.lightweight_stack_start), icon="bolt", color="positive", tooltip="Only Keycloak + DBs + YARP + UserService (~60% less RAM)")
                 self.add_button("⚡ Stop Lightweight", lambda: self.confirm("Stop lightweight", "Stops UserService, YARP, and Docker infra.", lambda: self.guarded("Stop lightweight", self.lightweight_stack_stop)), icon="stop", color="warning", tooltip="Stop lightweight stack")
             with ui.row().classes("toolbar"):
                 self.add_button("Start Infra", lambda: self.guarded("Start infrastructure", self.start_infra), icon="hub", tooltip="Start Docker: Keycloak, DBs, MailHog")
                 self.add_button("Stop Infra", lambda: self.confirm("Stop infrastructure", "Stops Keycloak, database, and mail containers.", lambda: self.guarded("Stop infrastructure", self.stop_infra)), icon="power_settings_new", color="warning", tooltip="Stop Docker containers (data persists in volumes)")
             with ui.row().classes("toolbar"):
-                self.add_button("Start Services", lambda: self.guarded("Start services", self.start_all_services), icon="play_circle", tooltip="Start all 8 .NET backend services")
+                self.add_button("Start Services", lambda: self.guarded("Start services", self.start_all_services), icon="play_circle", tooltip="Start all 12 .NET backend services")
                 self.add_button("Stop Services", lambda: self.confirm("Stop local services", "Stops all locally running .NET services.", lambda: self.guarded("Stop services", self.stop_all_services)), icon="stop_circle", color="warning", tooltip="Stop all .NET backend processes (Docker stays up)")
-                self.add_button("Rebuild All Services", lambda: self.confirm("Rebuild all services", "Runs dotnet restore && dotnet build for all 8 backend services. Services will be rebuilt but not restarted — use Start Services afterward.", lambda: self.guarded("Rebuild all services", self.rebuild_all_services)), icon="build", color="secondary", tooltip="dotnet restore && dotnet build for all .NET services")
+                self.add_button("Rebuild All Services", lambda: self.confirm("Rebuild all services", "Runs dotnet restore && dotnet build for all 12 backend services. Services will be rebuilt but not restarted — use Start Services afterward.", lambda: self.guarded("Rebuild all services", self.rebuild_all_services)), icon="build", color="secondary", tooltip="dotnet restore && dotnet build for all .NET services")
 
             columns = [
                 {"name": "service", "label": "Service", "field": "service", "sortable": True},
@@ -1407,6 +2243,48 @@ class DevDashboard:
                 {"name": "publishers", "label": "Ports", "field": "publishers"},
             ]
             self.infra_table = ui.table(columns=infra_columns, rows=[], row_key="service").classes("w-full")
+
+            # ── Little Server (always-on) — SSH control ──
+            ui.label("🖥️ Little Server (always-on)").classes("section-title mt-4")
+            with ui.card().classes("w-full bg-slate-50 border border-slate-300 p-4 mb-4"):
+                ui.label(
+                    "Control the little server (a@100.86.173.9) over SSH — it runs the same Docker images as this stack. "
+                    "Info refreshes automatically; Start/Stop/Health/PS/Logs touch the server."
+                ).classes("text-xs text-slate-600 mb-2")
+
+                with ui.row().classes("gap-4 flex-wrap mb-2"):
+                    with ui.element("div").classes("metric"):
+                        ui.label("Server").classes("label")
+                        ui.label("100.86.173.9").classes("value text-lg font-bold")
+                    with ui.element("div").classes("metric"):
+                        ui.label("Gateway").classes("label")
+                        self.server_gateway_label = ui.label("⏳").classes("value text-lg font-bold")
+                    with ui.element("div").classes("metric"):
+                        ui.label("Containers Up").classes("label")
+                        self.server_services_label = ui.label("⏳").classes("value text-lg font-bold")
+                    with ui.element("div").classes("metric"):
+                        ui.label("Last Deploy").classes("label")
+                        self.server_deploy_label = ui.label("⏳").classes("value text-sm")
+
+                with ui.row().classes("toolbar"):
+                    self.add_button("▶️ Start Server", lambda: self.guarded("Start little server", self._server_start), icon="play_arrow", color="positive", tooltip="SSH → docker compose up -d --remove-orphans")
+                    self.add_button("⏹️ Stop Server", lambda: self.confirm("Stop little server", "Stops all containers on the little server (data persists in volumes).", lambda: self.guarded("Stop little server", self._server_stop)), icon="stop", color="negative", tooltip="SSH → docker compose stop")
+                    self.add_button("🏥 Health", lambda: self.guarded("Little server health", self._server_health), icon="monitor_heart", color="positive", tooltip="SSH → curl /health on all services")
+                    self.add_button("📋 Docker PS", lambda: self.guarded("Little server docker ps", self._server_docker_ps), icon="list", tooltip="SSH → docker ps")
+                    self.add_button("📜 Logs", lambda: self.guarded("Little server logs", self._server_logs), icon="article", tooltip="SSH → docker compose logs --tail=30")
+
+                server_columns = [
+                    {"name": "service", "label": "Service", "field": "service"},
+                    {"name": "port", "label": "Port", "field": "port"},
+                    {"name": "status", "label": "Status", "field": "status"},
+                    {"name": "health", "label": "Health", "field": "health"},
+                ]
+                self.server_table = ui.table(columns=server_columns, rows=[], row_key="service").classes("w-full")
+
+                self.server_status_label = ui.label("Click Health for a live status, or use the buttons above.").classes("text-sm text-gray-500 mt-1")
+                self.server_log = ui.log(max_lines=200).classes("w-full h-40 font-mono text-xs")
+
+                ui.timer(0.4, lambda: self._server_quick_status(), once=True)
 
     def _build_fresh_panel(self, tab: Any) -> None:
         with ui.tab_panel(tab):
@@ -1486,7 +2364,7 @@ class DevDashboard:
     # ── Connection Diagnostics helpers ───────────────────────────────────────
 
     # Network interfaces that matter for device connectivity (skip virtual/Docker)
-    _DEVICE_IFACE_PREFIXES = ("wl", "wlan", "eth", "enp", "enx", "wlp", "usb")
+    _DEVICE_IFACE_PREFIXES = ("wl", "wlan", "eth", "enp", "enx", "wlp", "usb", "bnep")
 
     async def _get_laptop_ips(self) -> dict[str, str]:
         """Return laptop network interface IPs useful for device connectivity."""
@@ -1510,6 +2388,7 @@ class DevDashboard:
                     "wl": "WiFi",
                     "wlan": "WiFi",
                     "eth": "Ethernet",
+                    "bnep": "Bluetooth PAN",
                 }
                 name = label.get(
                     next((pfx for pfx in self._DEVICE_IFACE_PREFIXES if iface.startswith(pfx)), ""),
@@ -1998,6 +2877,84 @@ class DevDashboard:
 
             self.android_table.on("rowClick", on_device_selected)
 
+            # ── WiFi ADB / Hotspot (no cable needed after one-time USB setup) ──
+            ui.label("WiFi ADB — Cable-Free after One-Time Setup").classes("section-title mt-4")
+            with ui.row().classes("gap-2 items-start"):
+                with ui.element("div").classes("flex-1"):
+                    ui.label(
+                        "Android's 'Wireless debugging' requires WiFi client mode — greyed out when "
+                        "the phone is the hotspot (AP mode). The workaround: connect USB **once** to "
+                        "switch ADB to TCP/IP mode. After that, ADB keeps listening on the hotspot "
+                        "network — no cable needed until you reboot the phone."
+                    ).classes("text-sm text-gray-600 mb-1")
+                    ui.label(
+                        "🔌 USB needed ONCE per session → then all future builds/installs go over WiFi."
+                    ).classes("text-xs text-green-700 font-semibold")
+
+            self.wifi_phone_ip_label = ui.label("Phone IP: scanning...").classes(
+                "text-sm font-mono p-2 bg-gray-50 rounded"
+            )
+            self.wifi_laptop_ip_label = ui.label("Laptop IP: scanning...").classes(
+                "text-sm font-mono p-2 bg-gray-50 rounded"
+            )
+
+            with ui.row().classes("toolbar"):
+                self.add_button(
+                    "🔍 Scan Hotspot",
+                    lambda: self.guarded("Scan hotspot", self._wifi_scan_and_display),
+                    icon="wifi_find",
+                    tooltip="Detect phone IP (gateway) and laptop IP from the hotspot network.",
+                )
+
+            # ── One-time USB setup section ──
+            with ui.card().classes("w-full bg-blue-50 border border-blue-200 p-4"):
+                ui.label("🔌 Step 1 (once): Enable ADB over TCP/IP via USB").classes(
+                    "text-sm font-bold text-blue-800"
+                )
+                ui.label(
+                    "Since USB IS connected right now — run this once. It switches the ADB daemon "
+                    "to TCP/IP mode on port 5555. Then you can unplug and go wireless."
+                ).classes("text-xs text-blue-700 mb-2")
+                ui.label("⏳ Lasts until phone reboot. Next session: re-connect USB and click this again.").classes(
+                    "text-xs text-amber-600 font-semibold"
+                )
+                with ui.row().classes("toolbar mt-2"):
+                    self.add_button(
+                        "🔌 Enable ADB over TCP/IP (USB → WiFi)",
+                        lambda: self.guarded("USB TCP/IP setup", self.usb_to_tcpip_setup),
+                        icon="cable",
+                        color="positive",
+                        tooltip="USB → adb tcpip 5555. Switch ADB to WiFi mode. After this, unplug USB and use WiFi ADB below.",
+                    )
+
+            # ── Post-setup: connect & deploy over WiFi ──
+            ui.label("Step 2 (after USB setup): Build & Deploy over WiFi").classes("subsection-title")
+            ui.label(
+                "Once ADB is in TCP/IP mode (from Step 1), you can disconnect USB and use these."
+            ).classes("text-sm text-gray-600 mb-1")
+
+            with ui.row().classes("toolbar"):
+                self.add_button(
+                    "🔗 Connect ADB over WiFi",
+                    lambda: self.guarded("ADB WiFi connect", self._wifi_adb_connect_ui),
+                    icon="cast_connected",
+                    tooltip="After USB→TCP/IP setup, unplug USB and click here. Connects wirelessly over the hotspot link.",
+                )
+                self.add_button(
+                    "🚀 WiFi Build & Deploy",
+                    lambda: self.guarded("WiFi build & deploy", self.wifi_build_and_deploy),
+                    icon="rocket_launch",
+                    color="positive",
+                    tooltip="Update dev IP → build APK → install over ADB WiFi → launch. Works after USB→TCP/IP setup.",
+                )
+                self.add_button(
+                    "❌ Disconnect ADB WiFi",
+                    lambda: self.guarded("ADB WiFi disconnect", self._wifi_adb_disconnect_ui),
+                    icon="link_off",
+                    color="warning",
+                    tooltip="Disconnect all ADB over WiFi connections.",
+                )
+
             # ── Build / Install live output ──
             ui.label("Build Output").classes("section-title mt-4")
             self.android_status = ui.label("Idle").classes("text-sm text-gray-500")
@@ -2091,6 +3048,505 @@ class DevDashboard:
             self.event_log = ui.log(max_lines=400).classes("w-full h-80")
 
     # ─── Gita Panel ─────────────────────────────────────────────────
+
+
+    # ─── CI/CD Panel ─────────────────────────────────────────────────
+
+    def _build_cicd_panel(self, tab: Any) -> None:
+        """CI/CD panel — deploy to the always-on remote Ubuntu server."""
+        with ui.tab_panel(tab):
+            ui.label("CI/CD — Deploy to Remote Server").classes("section-title")
+
+            # ── Top info cards ──
+            with ui.row().classes("gap-4 flex-wrap mb-4"):
+                with ui.element("div").classes("metric"):
+                    ui.label("Remote Server").classes("label")
+                    self.cicd_host_label = ui.label("100.86.173.9").classes("value text-lg font-bold")
+                with ui.element("div").classes("metric"):
+                    ui.label("Gateway Health").classes("label")
+                    self.cicd_gateway_label = ui.label("⏳").classes("value text-lg font-bold")
+                with ui.element("div").classes("metric"):
+                    ui.label("Services Up").classes("label")
+                    self.cicd_services_label = ui.label("⏳").classes("value text-lg font-bold")
+                with ui.element("div").classes("metric"):
+                    ui.label("Last Deploy").classes("label")
+                    self.cicd_deploy_label = ui.label("⏳").classes("value text-sm")
+                with ui.element("div").classes("metric"):
+                    ui.label("Latest Image Tag").classes("label")
+                    self.cicd_tag_label = ui.label("⏳").classes("value text-sm font-mono")
+
+            # ═══════════════════════════════════════════════════════════════
+            # SECTION 1 — Direct Deploy from this dev machine
+            # ═══════════════════════════════════════════════════════════════
+
+            with ui.card().classes("w-full bg-blue-50 border border-blue-200 p-4 mb-4"):
+                ui.label("🚀 Direct Deploy — From This Dev Machine").classes("text-base font-bold text-blue-800")
+                ui.label(
+                    "Use this when you've made code changes on this laptop and want to push them "
+                    "directly to the remote server. No GitHub, no cloud registry — the fastest "
+                    "feedback loop. Your code is rsynced to the server, built there, and deployed."
+                ).classes("text-xs text-blue-700 mb-2")
+
+                with ui.row().classes("toolbar"):
+                    self.add_button(
+                        "🔄 Sync & Deploy",
+                        lambda: self.guarded("Sync & Deploy", self._cicd_sync_deploy),
+                        icon="sync",
+                        color="positive",
+                        tooltip="rsync all service source code to remote → docker compose build → up -d. Best for: .NET code changes."
+                    )
+                    self.add_button(
+                        "🚀 Quick Restart",
+                        lambda: self.guarded("Quick restart", self._cicd_restart),
+                        icon="restart_alt",
+                        color="warning",
+                        tooltip="SSH to remote → docker compose up -d (no rebuild, no code sync). Best for: config/env changes, restarting after crash, or just refreshing containers."
+                    )
+
+                ui.label(
+                    "💡 Sync & Deploy = rsync code + rebuild images on server. Quick Restart = just docker compose up -d with existing images."
+                ).classes("text-xs text-blue-600 mt-1 italic")
+
+            # ═══════════════════════════════════════════════════════════════
+            # SECTION 2 — Cloud Deploy via GitHub Container Registry
+            # ═══════════════════════════════════════════════════════════════
+
+            with ui.card().classes("w-full bg-purple-50 border border-purple-200 p-4 mb-4"):
+                ui.label("☁️ Cloud Deploy — Via GitHub Container Registry (GHCR)").classes("text-base font-bold text-purple-800")
+                ui.label(
+                    "Use this flow when you want versioned, shareable images. GitHub Actions "
+                    "can also build and push images automatically on push to main/develop. "
+                    "The remote server pulls pre-built images from the registry — no source "
+                    "code transfer needed. Ideal for: CI-triggered deploys, team workflows, "
+                    "or when the remote can't build (low RAM)."
+                ).classes("text-xs text-purple-700 mb-2")
+
+                with ui.row().classes("toolbar"):
+                    self.add_button(
+                        "🏗️ Build Images Locally",
+                        lambda: self.guarded("Build images", self._cicd_build_push),
+                        icon="build",
+                        color="info",
+                        tooltip="Build all 7 Docker images on this machine using deploy-to-server.sh. Images are tagged as datingapp-*:latest locally."
+                    )
+                    self.add_button(
+                        "🚢 Push to GHCR",
+                        lambda: self.guarded("Push to GHCR", self._cicd_push_ghcr),
+                        icon="cloud_upload",
+                        color="secondary",
+                        tooltip="Tag local images as ghcr.io/best-koder-ever/*:develop and push to GitHub Container Registry. Requires: docker login ghcr.io first."
+                    )
+                    self.add_button(
+                        "📥 Pull & Deploy on Remote",
+                        lambda: self.guarded("Pull from GHCR", self._cicd_ghcr_deploy),
+                        icon="cloud_download",
+                        color="accent",
+                        tooltip="SSH to remote → docker compose pull (from GHCR) → up -d. Pulls the :develop tag images from ghcr.io."
+                    )
+
+                ui.label(
+                    "💡 Typical flow: 1) Build locally → 2) Push to GHCR → 3) Pull & Deploy on remote. "
+                    "Or skip steps 1-2 and let GitHub Actions build+push automatically on git push."
+                ).classes("text-xs text-purple-600 mt-1 italic")
+
+            # ═══════════════════════════════════════════════════════════════
+            # SECTION 3 — Monitoring & Diagnostics
+            # ═══════════════════════════════════════════════════════════════
+
+            with ui.card().classes("w-full bg-green-50 border border-green-200 p-4 mb-4"):
+                ui.label("🔍 Monitoring & Diagnostics").classes("text-base font-bold text-green-800")
+                ui.label(
+                    "Check the health and status of the remote server without making any changes. "
+                    "These are read-only operations — safe to run anytime."
+                ).classes("text-xs text-green-700 mb-2")
+
+                with ui.row().classes("toolbar"):
+                    self.add_button(
+                        "🏥 Health Check",
+                        lambda: self.guarded("Health check", self._cicd_health_check),
+                        icon="monitor_heart",
+                        color="positive",
+                        tooltip="SSH to remote → curl /health on all 7 services. Populates the status table below with live data."
+                    )
+                    self.add_button(
+                        "📋 Docker PS",
+                        lambda: self.guarded("Docker PS", self._cicd_docker_ps),
+                        icon="list",
+                        tooltip="SSH to remote → docker ps. Shows all running containers with uptime and image tags."
+                    )
+                    self.add_button(
+                        "📜 View Logs",
+                        lambda: self.guarded("View logs", self._cicd_logs),
+                        icon="article",
+                        tooltip="SSH to remote → docker compose logs --tail=30. Shows recent output from all services."
+                    )
+                    self.add_button(
+                        "🧪 Test Webhook",
+                        lambda: self.guarded("Test webhook", self._cicd_webhook_test),
+                        icon="webhook",
+                        tooltip="Send a test ping to the webhook receiver on port 5000. Verifies GitHub→remote webhook connectivity."
+                    )
+
+                ui.label(
+                    "💡 Health Check populates the service table below. Docker PS and Logs output to the deploy log panel."
+                ).classes("text-xs text-green-600 mt-1 italic")
+
+            # ── Remote Service Status Table ──
+            ui.label("📊 Remote Service Status").classes("subsection-title mt-2")
+            cicd_columns = [
+                {"name": "service", "label": "Service", "field": "service"},
+                {"name": "port", "label": "Port", "field": "port"},
+                {"name": "status", "label": "Status", "field": "status"},
+                {"name": "health", "label": "Health", "field": "health"},
+                {"name": "version", "label": "Image", "field": "version"},
+            ]
+            self.cicd_table = ui.table(columns=cicd_columns, rows=[], row_key="service").classes("w-full")
+
+            # ── Deploy Log ──
+            ui.label("📜 Deploy Log").classes("subsection-title mt-4")
+            self.cicd_status_label = ui.label("Ready — click a button above to start").classes("text-sm text-gray-500")
+            self.cicd_log = ui.log(max_lines=200).classes("w-full h-48 font-mono text-xs")
+
+            # Auto-refresh status cards on tab open
+            ui.timer(0.3, lambda: self._cicd_quick_status(), once=True)
+
+    # ── CI/CD async actions ──
+
+
+    async def _cicd_ssh(self, cmd: str, timeout: int = 20) -> tuple[int, str]:
+        """Run a command on the remote server via SSH."""
+        full_cmd = [
+            "sshpass", "-p", "a", "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=10",
+            "-o", "PubkeyAuthentication=no",
+            "-o", "PreferredAuthentications=password",
+            "a@100.86.173.9", cmd
+        ]
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *full_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            return proc.returncode or 0, stdout.decode(errors="replace")
+        except asyncio.TimeoutError:
+            return -1, "TIMEOUT"
+        except Exception as e:
+            return -1, str(e)
+
+    async def _cicd_quick_status(self) -> None:
+        """Quick remote status update (gateway health + service count)."""
+        rc, out = await self._cicd_ssh(
+            "curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://localhost:8080/health 2>/dev/null || echo 'DOWN'",
+            timeout=10
+        )
+        gw = out.strip()
+        if self.cicd_gateway_label is not None:
+            if gw == "200":
+                self.cicd_gateway_label.text = "✅ Online"
+                self.cicd_gateway_label.classes("value text-lg font-bold text-green-600")
+            elif gw == "DOWN":
+                self.cicd_gateway_label.text = "❌ Down"
+                self.cicd_gateway_label.classes("value text-lg font-bold text-red-600")
+            else:
+                self.cicd_gateway_label.text = f"⚠️ {gw}"
+                self.cicd_gateway_label.classes("value text-lg font-bold text-orange-600")
+
+        rc2, out2 = await self._cicd_ssh(
+            "docker ps --format '{{.Names}}' 2>/dev/null | grep -E 'service|yarp' | wc -l",
+            timeout=10
+        )
+        count = out2.strip()
+        if self.cicd_services_label is not None:
+            self.cicd_services_label.text = count if count.isdigit() else "?"
+            self.cicd_services_label.classes("value text-lg font-bold")
+
+        rc3, out3 = await self._cicd_ssh(
+            "docker inspect yarp --format '{{.Created}}' 2>/dev/null | cut -d'T' -f1,2 | cut -d'.' -f1 || echo 'unknown'",
+            timeout=10
+        )
+        if self.cicd_deploy_label is not None:
+            self.cicd_deploy_label.text = out3.strip()[:19] if out3.strip() else "unknown"
+
+        rc4, out4 = await self._cicd_ssh(
+            "docker inspect yarp --format '{{.Config.Image}}' 2>/dev/null || echo 'unknown'",
+            timeout=10
+        )
+        if self.cicd_tag_label is not None:
+            self.cicd_tag_label.text = out4.strip() if out4.strip() else "unknown"
+
+    async def _cicd_health_check(self) -> None:
+        """Full remote health check — all services."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] Running remote health check...")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "⏳ Health check..."
+
+        services = [
+            ("yarp", 8080), ("UserService", 8082), ("MatchmakingService", 8083),
+            ("PhotoService", 8085), ("MessagingService", 8086), ("SwipeService", 8087),
+            ("SafetyService", 8088),
+        ]
+        rows = []
+        for svc, port in services:
+            rc, out = await self._cicd_ssh(
+                f"curl -s -o /dev/null -w '%{{http_code}}' --max-time 3 http://localhost:{port}/health 2>/dev/null || echo 'FAIL'",
+                timeout=10
+            )
+            code = out.strip()
+            healthy = code == "200"
+            version = ""
+            if healthy:
+                rc_v, out_v = await self._cicd_ssh(
+                    f"docker inspect {svc.lower().replace('service','-service')} --format '{{{{.Config.Image}}}}' 2>/dev/null | head -1 || echo '?'",
+                    timeout=8
+                )
+                version = out_v.strip() or "?"
+            rows.append({
+                "service": svc,
+                "port": str(port),
+                "status": "🟢 Up" if healthy else "🔴 Down",
+                "health": code,
+                "version": version,
+            })
+            self.cicd_log.push(f"  {svc}:{port} → {code}")
+
+        if self.cicd_table:
+            self.cicd_table.rows = rows
+            self.cicd_table.update()
+        if self.cicd_status_label:
+            up = sum(1 for r in rows if "Up" in r["status"])
+            self.cicd_status_label.text = f"✅ {up}/{len(rows)} services healthy"
+        await self._cicd_quick_status()
+
+    async def _cicd_docker_ps(self) -> None:
+        """Show docker ps on remote."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] docker ps on remote:")
+        rc, out = await self._cicd_ssh(
+            "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' 2>/dev/null",
+            timeout=15
+        )
+        for line in out.strip().splitlines():
+            self.cicd_log.push(line)
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "✅ Docker PS fetched"
+        await self._cicd_quick_status()
+
+    async def _cicd_logs(self) -> None:
+        """Show recent docker compose logs from remote."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] Remote docker compose logs:")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "⏳ Fetching logs..."
+        rc, out = await self._cicd_ssh(
+            "cd ~/datingapp && docker compose logs --tail=30 2>&1 | tail -40",
+            timeout=20
+        )
+        for line in out.strip().splitlines()[-40:]:
+            self.cicd_log.push(strip_ansi(line))
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "✅ Logs fetched"
+
+    async def _cicd_restart(self) -> None:
+        """Quick restart — docker compose up -d on remote."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] Restarting remote services...")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "⏳ Restarting..."
+        rc, out = await self._cicd_ssh(
+            "cd ~/datingapp && docker compose up -d --remove-orphans 2>&1",
+            timeout=60
+        )
+        for line in out.strip().splitlines():
+            self.cicd_log.push(line)
+        self.cicd_log.push(f"[{now_label()}] Restart complete (exit {rc})")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "✅ Restarted" if rc == 0 else "❌ Failed"
+        await self._cicd_quick_status()
+
+    async def _cicd_sync_deploy(self) -> None:
+        """Run sync-to-remote.sh — rsync code + rebuild + deploy."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        self.cicd_log.push(f"[{now_label()}] 🚀 Starting SYNC & DEPLOY")
+        self.cicd_log.push(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        self.cicd_log.push(f"")
+        self.cicd_log.push(f"📡 Step 1/3: Syncing source code to remote 100.86.173.9...")
+        self.cicd_log.push(f"   Services: UserService, MatchmakingService, swipe-service,")
+        self.cicd_log.push(f"            photo-service, messaging-service, safety-service,")
+        self.cicd_log.push(f"            bot-service, dejting-yarp")
+        self.cicd_log.push(f"   Excluding: bin/, obj/, .git/, node_modules/, logs/, wwwroot/")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "⏳ Step 1: Syncing code..."
+        script = ROOT / "sync-to-remote.sh"
+        if not script.exists():
+            self.cicd_log.push("❌ sync-to-remote.sh not found! (expected at DatingApp/sync-to-remote.sh)")
+            return
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "bash", str(script),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                cwd=str(ROOT),
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=600)
+            rc = proc.returncode or 0
+            # Show the output section by section
+            output = stdout.decode(errors="replace")
+            for line in output.splitlines():
+                cleaned = strip_ansi(line)
+                if cleaned.strip():
+                    self.cicd_log.push(cleaned)
+            self.cicd_log.push(f"")
+            if rc == 0:
+                self.cicd_log.push(f"✅ sync-to-remote.sh completed successfully (exit {rc})")
+                self.cicd_log.push(f"   🔄 Code synced + Docker images rebuilt + services restarted")
+            else:
+                self.cicd_log.push(f"❌ sync-to-remote.sh failed (exit {rc}) — check log above for errors")
+            if self.cicd_status_label:
+                self.cicd_status_label.text = "✅ Deploy complete" if rc == 0 else f"❌ Failed (exit {rc})"
+        except asyncio.TimeoutError:
+            self.cicd_log.push("")
+            self.cicd_log.push("❌ sync-to-remote.sh timed out after 600s")
+            self.cicd_log.push("   The rsync or build may still be running on the remote.")
+            self.cicd_log.push("   Try: ssh a@100.86.173.9 'cd ~/datingapp && docker compose ps'")
+            if self.cicd_status_label:
+                self.cicd_status_label.text = "❌ Timeout"
+        finally:
+            self.cicd_log.push(f"")
+            self.cicd_log.push(f"📊 Refreshing status cards...")
+        await self._cicd_quick_status()
+
+    async def _cicd_build_push(self) -> None:
+        """Build Docker images locally (like deploy-to-server.sh does)."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] Building Docker images locally...")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "⏳ Building..."
+        script = ROOT / "scripts" / "deploy-to-server.sh"
+        if script.exists():
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "bash", str(script),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    cwd=str(ROOT),
+                )
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=600)
+                for line in stdout.decode(errors="replace").splitlines():
+                    self.cicd_log.push(strip_ansi(line))
+                self.cicd_log.push(f"[{now_label()}] Build complete")
+                if self.cicd_status_label:
+                    self.cicd_status_label.text = "✅ Build complete"
+            except asyncio.TimeoutError:
+                self.cicd_log.push("❌ Build timed out")
+        else:
+            self.cicd_log.push("⚠️ deploy-to-server.sh not found")
+            self.cicd_log.push("Building individual images...")
+            # Fallback: build each service
+            services = {
+                "datingapp-yarp": "dejting-yarp",
+                "datingapp-user-service": "UserService",
+                "datingapp-matchmaking-service": "MatchmakingService",
+                "datingapp-swipe-service": "swipe-service",
+                "datingapp-photo-service": "photo-service",
+                "datingapp-messaging-service": "messaging-service",
+                "datingapp-safety-service": "safety-service",
+            }
+            for img, ctx in services.items():
+                self.cicd_log.push(f"  Building {img}...")
+                proc = await asyncio.create_subprocess_exec(
+                    "docker", "build", "-t", f"{img}:latest", ctx,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    cwd=str(ROOT),
+                )
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=180)
+                self.cicd_log.push(f"  {img}: {'OK' if proc.returncode == 0 else 'FAIL'}")
+        await self._cicd_quick_status()
+
+
+    async def _cicd_push_ghcr(self) -> None:
+        """Tag and push local images to GitHub Container Registry."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] Pushing images to ghcr.io...")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "⏳ Pushing to GHCR..."
+
+        registry = "ghcr.io/best-koder-ever"
+        tag = "develop"
+        services = {
+            "datingapp-yarp": "dejting-yarp",
+            "datingapp-user-service": "userservice",
+            "datingapp-matchmaking-service": "matchmakingservice",
+            "datingapp-swipe-service": "swipe-service",
+            "datingapp-photo-service": "photo-service",
+            "datingapp-messaging-service": "messaging-service",
+            "datingapp-safety-service": "safety-service",
+        }
+        for local_img, remote_name in services.items():
+            remote_img = f"{registry}/{remote_name}:{tag}"
+            self.cicd_log.push(f"  Tagging {local_img} → {remote_img}")
+            proc = await asyncio.create_subprocess_exec(
+                "docker", "tag", f"{local_img}:latest", remote_img,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            await proc.communicate()
+            self.cicd_log.push(f"  Pushing {remote_img}...")
+            proc2 = await asyncio.create_subprocess_exec(
+                "docker", "push", remote_img,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            stdout, _ = await asyncio.wait_for(proc2.communicate(), timeout=300)
+            for line in stdout.decode(errors="replace").splitlines()[-3:]:
+                if line.strip():
+                    self.cicd_log.push(f"    {line.strip()[:120]}")
+
+        self.cicd_log.push(f"[{now_label()}] Push complete")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "✅ Pushed to GHCR"
+        await self._cicd_quick_status()
+
+
+    async def _cicd_ghcr_deploy(self) -> None:
+        """Deploy from GHCR — pull images on remote and restart."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] Pulling GHCR images on remote...")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "⏳ GHCR deploy..."
+        rc, out = await self._cicd_ssh(
+            "cd ~/datingapp && docker compose pull 2>&1 && docker compose up -d --remove-orphans 2>&1",
+            timeout=120
+        )
+        for line in out.strip().splitlines():
+            self.cicd_log.push(line)
+        self.cicd_log.push(f"[{now_label()}] GHCR deploy complete")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "✅ GHCR deployed"
+        await self._cicd_quick_status()
+
+    async def _cicd_webhook_test(self) -> None:
+        """Send test ping to webhook receiver on remote."""
+        self.cicd_log.clear()
+        self.cicd_log.push(f"[{now_label()}] Testing webhook receiver...")
+        rc, out = await self._cicd_ssh(
+            "curl -s --max-time 5 http://localhost:5000/health 2>&1",
+            timeout=10
+        )
+        self.cicd_log.push(f"  Health: {out.strip()}")
+        # Send test webhook
+        rc2, out2 = await self._cicd_ssh(
+            "curl -s -X POST --max-time 5 http://localhost:5000/webhook -H \"X-GitHub-Event: ping\" -H \"Content-Type: application/json\" -d '{\"zen\":\"test\"}' 2>&1",
+            timeout=10
+        )
+        self.cicd_log.push(f"  Webhook: {out2.strip()}")
+        if self.cicd_status_label:
+            self.cicd_status_label.text = "✅ Webhook tested"
 
     def _build_gita_panel(self, tab: Any) -> None:
         """Multi-repo Git control via gita workflow. Commit & push all repos from one button."""
