@@ -15,7 +15,8 @@
       "publicClient": false,
       "protocol": "openid-connect",
       "redirectUris": [
-        "http://localhost:8082/*"
+        "http://localhost:8082/*",
+        "https://fastdev.tail45c6a7.ts.net/*"
       ],
       "baseUrl": "http://localhost:8082",
       "standardFlowEnabled": true,
@@ -44,7 +45,8 @@
       "publicClient": false,
       "protocol": "openid-connect",
       "redirectUris": [
-        "http://localhost:8083/*"
+        "http://localhost:8083/*",
+        "https://fastdev.tail45c6a7.ts.net/*"
       ],
       "baseUrl": "http://localhost:8083",
       "standardFlowEnabled": true,
@@ -73,7 +75,8 @@
       "publicClient": false,
       "protocol": "openid-connect",
       "redirectUris": [
-        "http://localhost:8084/*"
+        "http://localhost:8084/*",
+        "https://fastdev.tail45c6a7.ts.net/*"
       ],
       "baseUrl": "http://localhost:8084",
       "standardFlowEnabled": true,
@@ -102,7 +105,8 @@
       "publicClient": false,
       "protocol": "openid-connect",
       "redirectUris": [
-        "http://localhost:8085/*"
+        "http://localhost:8085/*",
+        "https://fastdev.tail45c6a7.ts.net/*"
       ],
       "baseUrl": "http://localhost:8085",
       "standardFlowEnabled": true,
@@ -132,7 +136,8 @@
       "protocol": "openid-connect",
       "redirectUris": [
         "dejtingapp://callback",
-        "com.dejtingapp://oauth2redirect"
+        "com.dejtingapp://oauth2redirect",
+        "https://fastdev.tail45c6a7.ts.net/*"
       ],
       "webOrigins": [
         "*"
@@ -179,7 +184,8 @@
       "publicClient": false,
       "protocol": "openid-connect",
       "redirectUris": [
-        "http://localhost:9000/*"
+        "http://localhost:9000/*",
+        "https://fastdev.tail45c6a7.ts.net/*"
       ],
       "baseUrl": "http://localhost:9000",
       "standardFlowEnabled": true,
@@ -277,27 +283,10 @@
     ]
   },
   "groups": [],
-  "users": [
-    {
-      "username": "demo-user",
-      "enabled": true,
-      "emailVerified": true,
-      "firstName": "Demo",
-      "lastName": "User",
-      "email": "demo@example.com",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Password123!",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "user"
-      ]
-    }
+  "users": [],
+  "defaultRoles": [
+    "user"
   ],
-  "defaultRoles": ["user"],
   "verifyEmail": true,
   "registrationEmailAsUsername": true,
   "requiredActions": [
@@ -322,5 +311,8 @@
     "ssl": "",
     "starttls": "",
     "auth": ""
-  }
+  },
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 7200,
+  "ssoSessionMaxLifespan": 86400
 }

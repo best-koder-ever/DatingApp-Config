@@ -1,0 +1,47 @@
+name: Deploy to Dev Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
+  push:
+    branches: [main]
+    paths:
+      - 'docker-compose*.yml'
+      - '.env*'
+      - 'infra/**'
+      - 'scripts/deploy*.sh'
+
+jobs:
+  deploy:
+    name: Deploy to 192.168.1.103
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 192.168.1.103
+          username: a
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /home/a/datingapp
+            echo "🚀 Deploying $(date)"
+            echo "Stack: $(sudo docker compose ps --services | wc -l) services"
+            sudo docker compose pull 2>/dev/null || true
+            sudo docker compose up -d --remove-orphans
+            echo ""
+            echo "⏳ Health check..."
+            sleep 10
+            for port in 8080 8082 8083 8085 8086 8087; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:$port/health 2>/dev/null || echo "FAIL")
+              echo "  :$port → $code"
+            done
+            echo ""
+            echo "✅ Deploy complete"

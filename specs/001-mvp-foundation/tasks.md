@@ -837,7 +837,7 @@ graph TB
 	- **Source**: Competitive standard - Tinder, Bumble have this
 	- **Reference**: [FEATURE_BACKLOG.md](FEATURE_BACKLOG.md#communication-features) - P2 Messaging Enhancement
 
-- [ ] T096 [Backlog] [P2] Typing Indicators - "... is typing" in chat (`MessagingService/Hubs/MessagesHub.cs`, SignalR, Flutter)
+- [x] T096 [Backlog] [P2] Typing Indicators - "... is typing" in chat (`MessagingService/Hubs/MessagesHub.cs`, SignalR, Flutter)
 	- **Estimate**: 4h
 	- **Source**: Competitive standard - every modern messaging app
 	- **Reference**: [FEATURE_BACKLOG.md](FEATURE_BACKLOG.md#communication-features) - P2 Messaging Enhancement

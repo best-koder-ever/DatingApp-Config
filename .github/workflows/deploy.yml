@@ -1,0 +1,63 @@
+name: Deploy to Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options: [dev, test, prod]
+      image_tag:
+        description: 'Image tag (default: stable for main, develop for develop)'
+        required: false
+        default: ''
+
+  # Auto-deploy to dev on push to develop
+  push:
+    branches: [develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'mobile-apps/**'
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment || 'dev' }}
+    runs-on: ${{ inputs.environment == 'prod' && 'prod-server' || 'dev-test-server' }}
+    environment:
+      name: ${{ inputs.environment || 'dev' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine target
+        id: target
+        run: |
+          ENV="${{ inputs.environment || 'dev' }}"
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then
+            if [ "$ENV" = "prod" ]; then
+              TAG="stable"
+            else
+              TAG="develop"
+            fi
+          fi
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "image_tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Deploy
+        run: |
+          chmod +x scripts/deploy-env.sh scripts/health-check.sh
+          ./scripts/deploy-env.sh ${{ steps.target.outputs.environment }} ${{ steps.target.outputs.image_tag }}
+
+      - name: Post-deploy health check
+        run: |
+          sleep 10
+          ./scripts/health-check.sh http://localhost 15
+
+      - name: Notify
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          echo "Deploy to ${{ steps.target.outputs.environment }}: $STATUS"

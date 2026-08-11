@@ -1,0 +1,183 @@
+# Production overlay — no host ports, no debug tools, no MailHog.
+# Combine: docker compose -f docker-compose.yml -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
+# All traffic through YARP on internal port 80. Cloudflare Tunnel maps to YARP.
+# Keycloak is behind YARP at /auth/*
+
+services:
+  # ── Remove dev-only services ──
+  mailhog:
+    deploy:
+      replicas: 0
+  debug:
+    deploy:
+      replicas: 0
+  seq:
+    deploy:
+      replicas: 0
+  loki:
+    deploy:
+      replicas: 0
+  promtail:
+    deploy:
+      replicas: 0
+  grafana:
+    deploy:
+      replicas: 0
+  deepface:
+    deploy:
+      replicas: 0
+
+  # ── Production hardening ──
+  keycloak:
+    environment:
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+
+  yarp:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:80
+    ports: !reset []
+
+  user-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:80
+      - Kestrel__Endpoints__Http__Url=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__2=https://localhost:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__3=http://localhost:8080/auth/realms/DatingApp
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: always
+
+  matchmaking-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+      - Services__MessagingService=http://messaging-service:80
+      - Services__UserService__BaseUrl=http://user-service:80
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: always
+
+  swipe-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  photo-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+    depends_on: !override
+      photo-service-db:
+        condition: service_healthy
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: always
+
+  messaging-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:80
+      - Authentication__Keycloak__Authority=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__RequireHttpsMetadata=false
+      - Authentication__Keycloak__ValidIssuers__0=http://keycloak:8080/auth/realms/DatingApp
+      - Authentication__Keycloak__ValidIssuers__1=https://${TUNNEL_HOST}/auth/realms/DatingApp
+      - Gateway__BaseUrl=http://yarp:80
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: always
+
+  # ── Resource limits on databases ──
+  keycloak-db:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  UserService-db:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  MatchmakingService-db:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  swipe-service-db:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  photo-service-db:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  messaging-service-db:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    restart: always
+
+  # ── Cloudflare Tunnel ──
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: always
+    networks:
+      - app-network
+    depends_on:
+      - yarp

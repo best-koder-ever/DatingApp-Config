@@ -1,0 +1,138 @@
+name: CI — Build & Test
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+jobs:
+  # ── Backend: build all .NET services ──
+  dotnet-build:
+    name: Build (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - UserService
+          - MatchmakingService
+          - swipe-service
+          - photo-service
+          - messaging-service
+          - safety-service/SafetyService
+          - bot-service/BotService
+          - dejting-yarp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore & Build
+        run: |
+          cd ${{ matrix.service }}
+          dotnet restore
+          dotnet build --no-restore -c Release
+
+  # ── Backend: run tests ──
+  dotnet-test:
+    name: Test (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: dotnet-build
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - UserService
+          - MatchmakingService
+          - swipe-service
+          - photo-service
+          - messaging-service
+          - dejting-yarp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Test
+        run: |
+          TEST_DIR="${{ matrix.service }}/${{ matrix.service }}.Tests"
+          # Some services use a different test project structure
+          if [ -d "$TEST_DIR" ]; then
+            dotnet test "$TEST_DIR" -c Release --no-build --verbosity normal
+          else
+            echo "No test project found at $TEST_DIR, skipping"
+          fi
+
+  # ── Frontend: Flutter analyze ──
+  flutter-analyze:
+    name: Flutter Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+      - name: Analyze
+        run: |
+          cd mobile-apps/flutter/dejtingapp
+          flutter pub get
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+  # ── Frontend: Flutter tests ──
+  flutter-test:
+    name: Flutter Test
+    runs-on: ubuntu-latest
+    needs: flutter-analyze
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+      - name: Test
+        run: |
+          cd mobile-apps/flutter/dejtingapp
+          flutter pub get
+          flutter test
+
+  # ── API smoke tests (needs services running, skipped on PR) ──
+  api-smoke:
+    name: API Smoke Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: [dotnet-test, flutter-test]
+    services:
+      keycloak:
+        image: quay.io/keycloak/keycloak:25.0.0
+        env:
+          KC_DB: dev-file
+          KEYCLOAK_ADMIN: admin
+          KEYCLOAK_ADMIN_PASSWORD: admin
+        ports:
+          - 8090:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/health/ready || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Keycloak
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8090/health/ready; then
+              echo "Keycloak ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Keycloak not ready"
+          exit 1
+      - name: Smoke test
+        run: |
+          pip install requests
+          python3 api_tests.py
+        env:
+          KEYCLOAK_URL: http://localhost:8090
+          USER_SERVICE_URL: http://localhost:8082
+          SWIPE_SERVICE_URL: http://localhost:8087
+          MATCHMAKING_SERVICE_URL: http://localhost:8083
+          KEYCLOAK_ADMIN_PASSWORD: admin

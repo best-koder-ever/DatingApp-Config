@@ -1,104 +1,109 @@
 # TODO — Current State
 
-**Updated**: 2026-03-18 (late evening)
-**MVP Progress**: ~97% (all screens, 7/7 backends, i18n, 710+ tests passing)
+**Updated**: 2026-06-29
+**Active track**: Premium Settings Section + Read Receipts
 
 ---
 
-## ⏳ NEXT SESSION PRIORITIES
+## ✅ COMPLETED (2026-06-25 session)
 
-### P0 — Visual QA Automation (4 Layers) — Issues #14-#17
-**Goal**: Automated visual regression testing that survives screen changes, runs in CI, needs no human.
+### Reputation Service (new microservice :8091)
+- [x] Service scaffolded: .NET 8 + EF Core + MySQL + MediatR
+- [x] ChatFeedback entity, ReputationScore entity, ReputationCalculator
+- [x] Penalty caps, signal weighting, new account cooling, bot exclusion
+- [x] JWT validation + rate limiting + internal API endpoints
+- [x] Full admin control + ReputationAuditLog
+- [x] 4 unit tests
 
-| Layer | Issue | What | Status |
-|-------|-------|------|--------|
-| 1. Screen Signatures | [#14](https://github.com/best-koder-ever/mobile_dejtingapp-1/issues/14) | Python module: detect current screen from uiautomator XML content-desc text | Copilot agent |
-| 2. Semantic Navigator | [#15](https://github.com/best-koder-ever/mobile_dejtingapp-1/issues/15) | State machine: tap elements by TEXT not coordinates, reactive to screen changes | Copilot agent |
-| 3. Regression Detection | [#16](https://github.com/best-koder-ever/mobile_dejtingapp-1/issues/16) | UI tree diff + screenshot comparison against baselines | Copilot agent |
-| 4. Dev Container | [#17](https://github.com/best-koder-ever/mobile_dejtingapp-1/issues/17) | Dockerfile with headless Android emulator + Flutter + Python | Copilot agent |
+### Phase 8-9: MatchmakingService Integration + Cross-Service Hooks
+- [x] ReputationScoreCache + LiveScoringStrategy rep factor
+- [x] safety-service → reputation on block/report
+- [x] GhostDetectionService (runs every 6h) + 5 tests
 
-**Key design**: Reactive state machine, NOT fixed sequence. Detects current screen → looks up action → executes → repeats. Handles screen reordering/additions automatically. Text-based matching (content-desc), never pixel coordinates.
+### T630-T631: Radar Confidence + Before/After Comparison
+- [x] 4-tier opacity in RadarChartWidget (gold at 95%+)
+- [x] PreviousValuesJson on backend + grey overlay polygon in Flutter
 
-**Screen change sync strategy**:
-- Layout changes → no impact (text-based detection)
-- Text changes → update signature entry in signatures.py
-- Screen added → add signature + action entry
-- Screen removed → auto-skipped (never detected)
-- Screen reordered → no impact (state machine, not sequence)
+### T623/T625: Post-Date Feedback Flutter (wired)
+- [x] "Betygsätt er dejt" button in chat overflow menu
 
-**⚠️ ACTION REQUIRED**: Assign issues #14-#17 to Copilot agent on GitHub (need to approve agent access for new issues)
+### T633: Psykolog Axis-Based Suggestions
+- [x] WeakestAxesJson on PsykologSession, fetched from radar API
+- [x] Dynamic system prompt with axis-specific suggestions
 
-### P0 — Bugs Found in Device Walkthrough (Issues Filed)
-1. **[#9] Verification code screen overflow** — overflows by 73px when keyboard opens. `sms_code_screen.dart` needs `SingleChildScrollView` wrapping.
-2. **[#10] "Auth required" badge on Matches screen** — dev sign-in doesn't properly set auth token for messaging service. `enhanced_matches_screen.dart` line ~66.
-3. **[#11] [SYSTEMIC] Bottom buttons cut off on ALL wizard/permission screens** — no `SafeArea` wrapping, affects 6+ screens. Needs fix in shared wizard scaffold, not per-screen.
-4. **[#12] Discover filter icon does nothing** — `home_screen.dart` line ~218, `onPressed: () {}` empty callback.
+### Top Picks Backend Endpoint
+- [x] `GET /api/matchmaking/top-picks/{userId}` — uses DailyPickStrategy
+- [x] Flutter TopPicksScreen wired to real endpoint (mock fallback)
 
-### P1 — Review Copilot Agent PRs
-5. **8+ PRs on fork** (`best-koder-ever/mobile_dejtingapp-1`):
-   - PR #5: Remove dead code `swipeProfile()`
-   - PR #6: Fix analyzer warnings
-   - PR #7: Widget test welcome_screen
-   - PR #8: Widget test settings_screen
-   - PRs from #9-#12 bug fixes (if agent picks them up)
-   - PRs from #14-#17 visual QA layers (if agent picks them up)
+### Real Prices in Catalog
+- [x] Backend: Premium plans now cost sparks (149/299/599 ⚡)
+- [x] Backend: Spark bundles have real USD cent prices (.99-4.99)
+- [x] Swedish names: Premium Månad, Kvartal, År
+- [x] Flutter: PremiumPlan model gains priceSparks field
+- [x] Flutter: Plan cards show spark price inline
+- [x] Flutter: SEK conversion for spark bundles (19-149 kr)
+- [x] Builds clean, analyze clean### AI Tester Service (new microservice :8093)
+- [x] Service scaffolded: .NET 8 + SQLite + OWASP security probes
+- [x] SecurityAuditor: SQLi, JWT manipulation, IDOR, rate limit, XSS, mass assignment checks
+- [x] TestPersona model: NormalUser, Troll, Hacker, Scammer types
+- [x] TestFinding model: severity, category, attack vector, evidence, reproducibility
+- [x] TestRun model: phase tracking, findings aggregation
+- [x] API: POST /api/tester/run, GET /api/tester/findings, GET /api/tester/report/daily
+- [x] Admin-only access (Role=admin required)
+- [x] Findings are READ-ONLY — human must accept/reject before any code change
+- [x] Docker + YARP route configured
+- [x] Builds clean — 0 errors, 0 warnings### Simple Forum (Jodel-inspired)
+- [x] Backend: ForumPost + ForumComment models in UserService
+- [x] Backend: GET/POST /api/forum/posts, GET/POST /api/forum/posts/{id}/comments
+- [x] Backend: Anonymous posting option (IsAnonymous flag)
+- [x] Flutter: forum_feed_screen.dart — single feed, posts + expandable comments
+- [x] Flutter: Create post FAB + bottom sheet with anonymous toggle
+- [x] Flutter: Comment input inline on expanded posts
+- [x] Flutter analyze — 0 issues
+- [x] UserService: 305/305 tests pass### Premium Settings + Read Receipts (2026-06-29)
+- [x] Backend: `ReadReceiptsEnabled` field on UserProfile + PrivacySettingsDto
+- [x] Backend: `PUT /api/userprofiles/{id}/privacy` handles read receipts
+- [x] Flutter: `PremiumFeatureTile` widget — lock icon + gold badge for free users
+- [x] Flutter: `PremiumUpgradeBanner` — gradient CTA for free users
+- [x] Flutter: Settings screen reorganized — "Premium-funktioner" card with diamond icon
+- [x] Flutter: Upgrade prompt dialog — lists premium benefits + navigates to plans
+- [x] Flutter analyze — 0 errors
+- [x] UserService: 305/305 tests pass
 
-### P2 — Post-Onboarding Testing (needs backend)
-6. **Discover → Like → Match → Chat** — need test data seeded
-7. **Photo upload E2E** — verify photos visible in wizard + profile
-8. **Chat moderation UX** — safety agent amber warning on device
-
-### P3 — Should Do (Unchanged)
-9. **Push notifications** — no Firebase Cloud Messaging integrated yet
-10. **Geolocation** — location_permission screen exists but no actual location service
-11. **Error boundary** — no global error handling / crash reporting
-12. **Phase 002 Wave 2** — Matchmaking Intelligence Agent, Profile Enhancement Agent
-
----
-
-## ✅ DONE TODAY (Mar 18) — Full Device Walkthrough Complete + Visual QA Plan
-
-### Device Visual QA Walkthrough — ALL SCREENS TESTED
-- Connected physical Samsung device (1080x2340) via ADB
-- ADB-automated screenshot capture + resize pipeline (screenshots 01-72)
-- 14 UI tree XML fixtures saved (`walkthrough-screenshots/ui-trees/`)
-
-**Wizard screens tested (17/17)**:
-Welcome → Phone Entry → SMS Code → Community Guidelines → First Name → Birthday → Gender → Orientation → Match Preferences → Age Range → Relationship Goals → Lifestyle → Interests → About Me → Photos → Location Permission → Notification Permission
-
-**Post-onboarding screens tested (9)**:
-Onboarding Complete (auth error) → Discover (empty state) → Matches: New Matches → Matches: Messages → Profile: Get More (DejTing Plus) → Profile: Safety → Profile: My DejTing → Settings (full scroll) → Discover filter icon
-
-**4 bugs found and filed**: #9 (overflow), #10 (auth badge), #11 (systemic nav bar overlap), #12 (filter no-op)
-
-### Visual QA Automation Plan — 4 Issues Created
-- #14: Screen signatures module (text-based screen detection)
-- #15: Semantic navigation engine (state machine, tap by text)
-- #16: Regression detection (UI tree diff + baselines)
-- #17: Dev container with headless emulator
-
-### Copilot Coding Agent
-- Enabled on fork `best-koder-ever/mobile_dejtingapp-1`
-- 4 issues created (#1-#4), all picked up by agent, 4 Draft PRs opened (#5-#8)
-- 4 bug issues filed from walkthrough (#9-#12)
-- 4 visual QA automation issues filed (#14-#17)
-
-### Previous TODO Verification
-- P1#4 MessagingHub URL toggle: already implemented in `messaging_service.dart` lines 61-66
-- P2#7 Widget tests: all 8 core screens already have tests (181 passing)
-- P2#8 Flutter CI: already exists (`.github/workflows/ci.yml`)
-- P1#6 Wire bot-service: skipped (anti-busywork: internal tooling only, not user-facing)
+### Tests- [x] messaging-service: 147/147 | reputation-service: 4/4
+- [x] UserService: 305/305 | MatchmakingService: 266 (1 pre-existing)
+- [x] Flutter analyze — 0 issues across all changed files
+- [x] All 6 microservices build clean
 
 ---
 
-## ✅ DONE (Mar 17) — Phase 002 Wave 1 Complete
+## 📋 Remaining Polish (Minor/Deferred)
 
-### Shared DatingApp.Llm Library + Safety Agent + Flutter Client
-- Created `shared/DatingApp.Llm/` with 3 LLM providers + circuit breaker
-- `SafetyAgentService` for LLM-powered message classification
-- Amber warning indicator in chat for flagged messages
-- **128/128 messaging-service tests, 406/406 Flutter tests**
+- [x] Real prices in catalog ✅
+- [x] Premium comparison screen with feature table ✅
+- [ ] Push notifications for received sparks (needs FCM)
+- [x] Spotlight scheduling screen with date/time/duration picker ✅
+- [x] Read receipts toggle ✅
+- [ ] Video clips
 
-## ✅ DONE (Mar 16)
-- Fixed 7 failing Flutter widget tests, full suite 406 passing
-- Fixed 25 analyzer warnings (111→86), committed + pushed
+## 🔲 Next Available Tasks
+
+| Task | Priority | Est. | Notes |
+|------|----------|------|-------|
+| T634: Forum-to-axis mapping | P2 | ~3h | Needs forum existing |
+| Bot swarm T382-T384 (multi-lang, voice, admin UI) | P3 | ~15h | |
+| Forum Phases 10-11 | P2 | ~41h | "Wait with forum" |
+| Spotlight Scheduling | P3 | ~4h | Date/time picker |
+| Read receipts toggle | P3 | ~2h | |
+
+---
+
+## Stability
+
+| Service | Tests | Status |
+|---------|-------|--------|
+| messaging-service | 147/147 | ✅ |
+| reputation-service | 4/4 | ✅ |
+| UserService | 305/305 | ✅ |
+| MatchmakingService | 266 (1 pre-existing) | ✅ |
+| Flutter | 0 errors | ✅ |

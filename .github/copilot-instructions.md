@@ -1,12 +1,8 @@
 # DatingApp Development Guidelines
 
-**⚠️ BEFORE DOING ANYTHING: Check [RUNBOOK.md](../RUNBOOK.md) for operational commands and workflows**
-
-Auto-generated from Spec Kit feature plans. Last updated: 2025-10-20
-
 ## Active Technologies
 - .NET 8 + ASP.NET Core + Entity Framework Core 8 (backend services)
-- SignalR, Keycloak OIDC, ImageSharp, ML.NET, OpenCvSharp (real-time & media)
+- SignalR, Keycloak OIDC, ImageSharp (real-time & media)
 - Flutter 3.32.1 + Dart 3.5 (web + mobile client)
 - Python 3.12 (tooling, API smoke tests)
 
@@ -19,146 +15,227 @@ messaging-service/           # SignalR messaging hub
 photo-service/               # Photo storage, moderation, privacy pipeline
 swipe-service/               # Swipe ingestion + matchmaking hooks
 dejting-yarp/                # YARP gateway, routing config
+bot-service/                 # Bot personas for demo/testing
+safety-service/              # LLM-based content moderation
 mobile-apps/flutter/dejtingapp/  # Flutter client
-specs/001-mvp-foundation/    # Spec Kit artifacts for current MVP feature
 infrastructure/, dev-*.sh    # Environment and orchestration scripts
-TestDataGenerator/, api_tests.py  # Legacy demo seeding (avoid new usage); rely on Keycloak-first automation instead
 ```
 
 ## Commands
 - `./infrastructure/start.sh` → start Keycloak + shared databases
-- `./dev-start.sh` → run services (TestDataGenerator no longer auto-started; replace with Keycloak automation when ready)
+- `./dev-start.sh` → run all backend services
+- `./dev-stop.sh` && `./infrastructure/stop.sh` → clean shutdown
 - `python3 api_tests.py` → verify auth/profile/match/messaging APIs
-- `cd mobile-apps/flutter/dejtingapp && flutter test integration_test/visual_photo_upload_test.dart`
-- `./dev-stop.sh` and `./infrastructure/stop.sh` → clean shutdown
+- `cd mobile-apps/flutter/dejtingapp && flutter test`
+- `bash scripts/generate-ai-context.sh` → refresh the live context section below
 
 ## Code Style
 - Follow .NET 8 conventions with analyzers enabled per service
 - Flutter uses `analysis_options.yaml` (pedantic + lint) and Riverpod-lite patterns
-- Python tooling adheres to `ruff` defaults when run locally (`ruff check .`)
+- Python tooling adheres to `ruff` defaults
 
-## Recent Changes
-- 001-mvp-foundation: Captured MVP constitution, user stories, implementation plan, and API/message contracts
-
-<!-- MANUAL ADDITIONS START -->
-
-## Multi-Repo Workflow (CRITICAL - READ FIRST!)
-**This project has 8+ Git repositories.** Use these tools, don't manually iterate:
+## Multi-Repo Workflow
+**This project has 8+ Git repositories.** Use these tools:
 - **For commits/pushes:** `./gita-workflow.sh` or `./ai-commit-helper.sh`
 - **For GitHub operations:** `./gh-multi-repo.sh`
-- **Never:** Loop through repos with manual `cd repo && git commit && cd ..` patterns
+- **Never:** Loop through repos with manual `cd repo && git commit && cd ..`
 
-Why: User set up gita and helper scripts specifically to avoid tedious manual operations. Always check for and use these tools first.
-
-## AI Workflow - ZERO "ALLOW" PROMPTS (CRITICAL! READ TWICE!)
-**🚫 NEVER make the user press "Allow" or "Accept". NOT ONCE. EVER.**
+## AI Workflow - ZERO "ALLOW" PROMPTS (CRITICAL!)
 **ALWAYS use `run_in_terminal` with `cat > file << 'EOF'` for ALL file creation and editing.**
+- ✅ `cat > file.ext << 'EOF'` / `sed -i` / `echo >>` / `cp` / `mv`
+- ✅ `dotnet add package` / `flutter pub add` / `pip install`
+- ❌ NEVER: `create_file`, `replace_string_in_file`, `multi_replace_string_in_file`
 
-The user HATES the Allow button. Every Allow prompt = broken workflow. If you use `create_file`, `replace_string_in_file`, or `multi_replace_string_in_file` you are wasting the user's time. The user wants to review UI manually on device, not babysit file permission dialogs.
+## Anti-Busywork Gate
+Before ANY task, answer: (1) WHO calls this? (2) WHAT breaks if we skip it? (3) Does it produce RUNNABLE output? If any answer is "nobody/nothing/no" → ask user before proceeding.
 
-### File Creation & Editing — TERMINAL ONLY
-- ✅ **DO:** `cat > file.ext << 'EOF'` ... `EOF` (create/overwrite files)
-- ✅ **DO:** `sed -i 's/old/new/g' file.ext` (inline edits)
-- ✅ **DO:** `echo "line" >> file.ext` (append)
-- ✅ **DO:** `cp`, `mv`, `rm`, `mkdir -p` (file system ops)
-- ✅ **DO:** `dotnet add package`, `flutter pub add` (package managers)
-- ❌ **NEVER:** `create_file` tool — triggers Allow prompt
-- ❌ **NEVER:** `replace_string_in_file` tool — triggers Allow prompt  
-- ❌ **NEVER:** `multi_replace_string_in_file` tool — triggers Allow prompt
-- ❌ **NEVER:** Any tool that shows "Allow" / "Accept" / confirmation dialog
+## Admin Reset Endpoints (dev/staging/demo only)
+Per-service:
+- `DELETE /api/admin/matches`  (MatchmakingService :8083)
+- `DELETE /api/admin/messages` (messaging-service :8086)
+- `DELETE /api/admin/swipes`   (swipe-service :8087)
 
-### Build & Test Operations
-- ✅ **DO:** `dotnet build`, `dotnet test`, `flutter build`, `flutter test`
-- ✅ **DO:** Use `--no-restore` flag when packages already restored
-- ✅ **DO:** Chain commands with `&&` for atomic operations: `cd dir && dotnet build && dotnet test`
+Composite (YARP fan-out):
+- `POST /api/admin/reset-interactions` (gateway :8080) → wipes matches+messages+swipes in one call
 
-### Package Management
-- ✅ **DO:** `dotnet add package PackageName --version X.Y.Z`
-- ✅ **DO:** `flutter pub add package_name`
-- ✅ **DO:** `pip install package` or add to requirements.txt + `pip install -r requirements.txt`
+Returns 200 on all-success, 207 multi-status if any backend fails. Requires a valid JWT Authorization header; rejected in `Production` environment. Useful for resetting bot/demo state between runs.
 
-### Why Terminal-First?
-User requires **fully autonomous, non-blocking execution**. The user's role is reviewing PRs and testing UI manually on device/emulator — NOT pressing Allow buttons. Terminal commands never block on confirmations, allowing AI to complete entire tasks without human intervention.
+<!-- LIVE-CONTEXT-START — Auto-generated by scripts/generate-ai-context.sh — DO NOT EDIT BELOW -->
+## Live System Context
+> Auto-generated. Run `bash scripts/generate-ai-context.sh` to refresh.
 
-### User's Manual Testing Workflow
-The user will manually test onboarding wizard screens on device/emulator. AI should:
-1. Create/modify code autonomously (terminal commands)
-2. Run `flutter analyze` to validate
-3. Commit + push
-4. User pulls and runs on device to inspect UI/UX visually
+### Services
+| Port | Service | DB |
+|------|---------|-----|
+| 8080 | dejting-yarp (gateway) | - |
+| 8082 | UserService | MySQL :3310 UserServiceDb |
+| 8083 | MatchmakingService | MySQL :3309 MatchmakingDb |
+| 8085 | photo-service | MySQL :3310 PhotoServiceDb |
+| 8086 | messaging-service (SignalR) | MySQL :3310 MessagingServiceDb |
+| 8087 | swipe-service | MySQL :3310 SwipeServiceDb |
+| 8088 | safety-service | - |
+| 8089 | bot-service | SQLite bot-service.db |
+| 8090 | Keycloak | Docker |
 
-<!-- MANUAL ADDITIONS END -->
+### Service Health
+- YARP (:8080): UP
+- User (:8082): UP
+- Matchmaking (:8083): UP
+- Photo (:8085): UP
+- Messaging (:8086): UP
+- Swipe (:8087): UP
+- Safety (:8088): UP
+- Bot (:8089): UP
+- Keycloak (:8090): UP
 
-## AI Helper Tools (CRITICAL - USE IN EVERY CONVERSATION!)
-**Philosophy**: "Make the Invisible Visible" - AI can verify state WITHOUT asking user
+### Keycloak Users (realm: DatingApp)
+Admin: admin/admin on master realm at localhost:8090
+| Username | Keycloak ID | Email |
+|----------|-------------|-------|
+| alice@test.se | `3f69f757-e81c-4516-bf36-1213f6edc1cf` | alice@test.se |
+| bob@test.se | `75ff2a6a-93ed-4346-8378-ac1a78ac74d2` | bob@test.se |
+| bot_astrid@bot.local | `9eadfb1d-0577-4921-bd59-2db99c2f2f25` | bot_astrid@bot.local |
+| bot_axel@bot.local | `17dd4605-6209-4d0f-83f5-030c7901dbaa` | bot_axel@bot.local |
+| bot_demo-user@bot.local | `167d5636-f945-4726-9fd8-fd1d8d9b96c9` | bot_demo-user@bot.local |
+| bot_elsa@bot.local | `01398d2b-ab55-4a82-a8b8-5ac1dbf23031` | bot_elsa@bot.local |
+| bot_erik-b@bot.local | `ed9ccce2-47b5-45a6-abbd-897117934a8c` | bot_erik-b@bot.local |
+| bot_gustav@bot.local | `700a952c-89fe-4dc9-aa8f-46ffe322de86` | bot_gustav@bot.local |
+| bot_linnea@bot.local | `f011f459-d226-4cdf-ba57-0d103695d1ef` | bot_linnea@bot.local |
+| bot_maja@bot.local | `157e2d60-1393-4bda-81b0-c53932d5d552` | bot_maja@bot.local |
+| bot_noah@bot.local | `263c037a-2083-4e85-9a63-34cb62547498` | bot_noah@bot.local |
+| bot_oscar@bot.local | `709113e8-72a2-4a58-8728-6240516aaf05` | bot_oscar@bot.local |
+| bot_saga@bot.local | `c9627cea-7fa9-4c79-af19-edd76eda044a` | bot_saga@bot.local |
+| bot_wilma@bot.local | `f99e9b3c-76c8-4c51-82d1-770847dd2e3e` | bot_wilma@bot.local |
+| charlie@test.se | `ac744ecd-bb7d-458d-90ee-543b78489958` | charlie@test.se |
+| diana@test.se | `ba3524a3-38c0-40bb-a473-3af2b2d2ded5` | diana@test.se |
+| e2e_onboard_1780234599@demo.local | `7a482dd1-2b39-465c-adea-d944a43d13ea` | e2e_onboard_1780234599@demo.local |
+| erik@test.se | `6f246c24-9968-4fd9-987f-ceecff6ddf86` | erik@test.se |
+| fresh@test.com | `ecd708c4-6962-41c3-ac14-9714861ac04b` | fresh@test.com |
 
-### 🚨 BEFORE Starting ANY Work
-```bash
-# Read cheatsheet (60 seconds):
-cat AI_HELPERS_CHEATSHEET.md
+### Bot State
+- **demo-user**: Status=Paused, KeycloakId=`167d5636-f945-4726-9fd8-fd1d8d9b96c9`, ProfileId=1, MsgsSent=0
+- **maja**: Status=Active, KeycloakId=`157e2d60-1393-4bda-81b0-c53932d5d552`, ProfileId=3, MsgsSent=47
+- **elsa**: Status=Active, KeycloakId=`01398d2b-ab55-4a82-a8b8-5ac1dbf23031`, ProfileId=5, MsgsSent=55
+- **linnea**: Status=Active, KeycloakId=`f011f459-d226-4cdf-ba57-0d103695d1ef`, ProfileId=10, MsgsSent=49
 
-# Check database state (1 second vs asking user):
-python3 scripts/ai-verify-state.py
+### Flutter Client
+Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
+
+**Screens:** 19 files
+```
+  account_consent_screen.dart
+  auth_screens.dart
+  enhanced_chat_screen.dart
+  enhanced_matches_screen.dart
+  help_screen.dart
+  home_screen.dart
+  location_settings_screen.dart
+  match_insight_screen.dart
+  photo_upload_screen.dart
+  privacy_settings_screen.dart
+  profile_detail_screen.dart
+  profile_hub_screen.dart
+  settings_screen.dart
+  sparks_store_screen.dart
+  verification_selfie_screen.dart
+  voice_onboarding_screen.dart
+  voice_prompt_screen.dart
+  welcome_screen.dart
+  wizard
+```
+**Services:** 27 files
+```
+  api_service.dart
+  app_initialization_service.dart
+  auth_service_pkce.dart
+  auth_session_manager.dart
+  billing_service.dart
+  cached_photo_service.dart
+  compatibility_service.dart
+  dev_auto_login.dart
+  feedback_service.dart
+  firebase_phone_auth_service.dart
+  http_client_factory.dart
+  keycloak_token_exchange_service.dart
+  location_service.dart
+  match_insight_service.dart
+  matchmaking_realtime_service.dart
+  messaging_service.dart
+  messaging_service_simple.dart
+  onboarding_api_service.dart
+  onboarding_coordinator.dart
+  photo_service.dart
+  safety_service.dart
+  support_service.dart
+  swipe_cache_service.dart
+  swipe_service.dart
+  verification_service.dart
+  voice_answer_service.dart
+  voice_prompt_service.dart
 ```
 
-### ✅ IN EVERY Flutter Test
-```dart
-import 'helpers/test_assertions.dart';
-import 'helpers/database_queries.dart';
+### Backend Controllers & Hubs
+- **UserService**: AccountStatusController.cs
+Admin
+BillingController.cs
+BotProvisionController.cs
+DemoController.cs
+DeviceTokenController.cs
+OnboardingMetricsController.cs
+PreferencesController.cs
+ProfileController.cs
+SafetyController.cs
+SupportController.cs
+UserProfilesController.cs
+VerificationController.cs
+WizardController.cs
+- **MatchmakingService**: AdminController.cs
+CompatibilityController.cs
+HealthController.cs
+MatchmakingController.cs
+MatchStatsController.cs
+ProfilesController.cs
+SyncController.cs
+UserMatchDeletionController.cs | Hubs: MatchmakingHub.cs
+- **photo-service**: HealthController.cs
+PhotoDeletionController.cs
+PhotosController.cs
+VerificationController.cs
+VoiceAnswersController.cs
+VoiceMessagesController.cs
+VoicePromptsController.cs
+- **messaging-service**: AdminController.cs
+HealthController.cs
+MessageDeletionController.cs
+MessagesController.cs
+ModerationController.cs
+ReadReceiptsController.cs
+TypingController.cs | Hubs: MessagingHub.cs
+MessagingHub.Spec.cs
+- **swipe-service**: AdminController.cs
+HealthController.cs
+MatchCheckController.cs
+SwipeAnalyticsController.cs
+SwipeBehaviorController.cs
+SwipeDeletionController.cs
+SwipesController.cs
+- **BotService**: BotController.cs
+ExperimentsController.cs
+FindingsController.cs
+SwarmController.cs
+UserFeedbackController.cs
+- **SafetyService**: BlockingController.cs
+ReportsController.cs
+SafetyDeletionController.cs
 
-setUpAll(() async {
-  await TestAssertions.assertFixturesLoaded(); // ← ALWAYS include!
-});
-```
+### Known Gotchas
+- **SignalR format**: Flutter sends positional args but MessagingHub.Spec expects object. REST fallback `/api/messages` works.
+- **Dev login identity**: Flutter 'Dev Sign In' uses `bot_demo-user@bot.local` / `bot_pass_demo-user` → keycloakId `167d5636-f945-4726-9fd8-fd1d8d9b96c9` → 'Alex Devsson' → ProfileId 1 across all services. (The old `demo@example.com` user was removed — do not reintroduce it.)
+- **Bot demo-user**: Bot-service has a "demo-user" bot persona = same identity as the Flutter dev user. If Active, creates rapid message loop. Keep paused.
+- **LLM keys**: groq/gemini/ollama circuit-break without API keys. Bots use canned Swedish fallback.
+- **Photo auth**: Photos need `Authorization: Bearer <token>` header. Use `AuthenticatedAvatar` widget. URL: `http://10.0.2.2:8085/api/photos/{id}/image`
+- **ConversationId**: REST = alphabetically-sorted keycloak IDs joined by `_`. Spec hub = matchId as string.
+- **Emulator host**: Use `10.0.2.2` for localhost from Android emulator.
 
-### 🔧 Quick Reference
-- **Fixture users**: alice, bob, charlie, diana, erik
-- **Known matches**: bob↔charlie, diana→erik
-- **Check state**: `python3 scripts/ai-verify-state.py` (BEFORE asking user!)
-- **Get user**: `await TestDatabaseQueries.getFixtureUser('bob')`
-- **Reset**: `make test-clean` (1 command vs 6 steps)
-
-### 📚 Full Context Files
-1. **[START_HERE_AI.md](../START_HERE_AI.md)** ← Read first in new conversations (1 min)
-2. **[.ai-context.json](../.ai-context.json)** ← Machine-readable context (parse this!)
-3. **[AI_HELPERS_CHEATSHEET.md](../AI_HELPERS_CHEATSHEET.md)** ← Quick reference (60 sec)
-4. **[AI_HELPER_STRATEGIES.md](../AI_HELPER_STRATEGIES.md)** ← Complete guide (30 min)
-
-**Impact**: 10x faster AI development - no guessing, no asking user for basic info!
-
-
-## Anti-Busywork Gate (CRITICAL — READ BEFORE EXECUTING ANY TASK!)
-**🚫 Do NOT blindly execute tasks from queues, spec-kits, or backlogs.**
-
-### Before starting ANY task, answer these 3 questions:
-1. **WHO calls this?** — Is the code/script/file imported, wired into CI, called by a Makefile target, or used by a running service? If **nobody** → STOP and flag to user.
-2. **WHAT breaks if we skip it?** — Does skipping this task cause a test failure, build error, or user-facing bug? If **nothing** → STOP and flag to user.
-3. **Does it produce RUNNABLE output?** — Will this result in code that runs in production, gets tested in CI, or is exercised by an existing test suite? If **no** → STOP and flag to user.
-
-### If any answer is "nobody / nothing / no":
-```
-⚠️ Task [X] looks low-value:
-- Called by: nobody
-- Breaks if skipped: nothing
-- Suggest: skip, or wire it into [Makefile/CI/startup] first
-Skip it? (y/n)
-```
-**Do NOT auto-execute. Ask the user.**
-
-### Examples of WASTE (never do without asking):
-- Enhancing scripts nobody calls
-- Writing docs that duplicate `flutter test` or `dotnet test` output
-- Refactoring files with zero imports/usages
-- Creating "infrastructure" that isn't wired into any pipeline
-- Polishing unused config files
-
-### Examples of REAL WORK (always do):
-- Code that a running service imports and executes
-- Tests that run in `flutter test` or `dotnet test`
-- Bug fixes for failing tests or broken builds
-- UI screens the user will see on their device
-- API endpoints that the Flutter client calls
-
-### The Conveyor Belt Rule:
-A task queue is NOT a permission slip. Every task must pass the 3-question gate.
-An AI that ships 10 useless tasks is worse than one that ships 1 real fix.
+_Context generated: 2026-06-09 13:56:50_
+<!-- LIVE-CONTEXT-END -->

@@ -117,7 +117,7 @@ Configured in: `messaging-service/Program.cs`
 - ✅ `ValidateAudience` (when audiences configured)
 - ✅ `NameClaimType = "preferred_username"`
 - ✅ `RoleClaimType = "roles"`
-- ⚠️ `ClockSkew = TimeSpan.Zero` only in UserService + MessagingService (others use 5-min default)
+- ✅ `ClockSkew = TimeSpan.Zero` — standardized across all 7 services
 
 ### Service-to-Service Authentication (Internal APIs)
 

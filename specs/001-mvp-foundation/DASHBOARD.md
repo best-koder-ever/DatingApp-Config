@@ -1,13 +1,16 @@
 # MVP Foundation Dashboard
 
-**Last Updated**: 2025-07-17 UTC  
-**Project**: [001-mvp-foundation](https://github.com/users/best-koder-ever/projects/2)
+**Last Updated**: 2026-05-31 UTC  
+**Project Board**: Vikunja running at http://localhost:3456  
+**Board Reference**: `docs/VIKUNJA_BOARD.md` — complete task inventory organized by column/label  
+**Use-Case Checker Agents**: `.github/agents/` — 5 agents: onboarding, discovery, messaging, safety, e2e  
+**Health Check**: `./scripts/health-check.sh` — 9 services status
 
 ---
 
 ## 📊 Overall Progress (Core MVP: Phases 0–7)
 
-**66% Complete** (50/76 tasks)
+**~66% Complete** (50/76 core tasks; many Spec 005 tasks also shipped since Jul 2025)
 
 ```
 Progress: █████████████░░░░░░░░ 66%

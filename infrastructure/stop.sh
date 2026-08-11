@@ -16,7 +16,7 @@ if ! ${COMPOSE_CMD} version >/dev/null 2>&1; then
     fi
 fi
 
-SERVICES=(keycloak keycloak-db mailhog UserService-db MatchmakingService-db swipe-service-db photo-service-db messaging-service-db)
+SERVICES=(keycloak keycloak-db UserService-db MatchmakingService-db swipe-service-db photo-service-db messaging-service-db reputation-db forum-db video-service-db)
 
 pushd "${PROJECT_ROOT}" >/dev/null
 

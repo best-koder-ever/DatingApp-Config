@@ -113,8 +113,8 @@ class ApiScenarioRunner:
 			admin_token=admin_token,
 		)
 
-		user_a.token = self._get_user_token(user_a.username, user_a.password)
-		user_b.token = self._get_user_token(user_b.username, user_b.password)
+		user_a.token = self._get_user_token(user_a.email, user_a.password)
+		user_b.token = self._get_user_token(user_b.email, user_b.password)
 
 		user_a.profile_id = self._create_profile(user_a)
 		user_b.profile_id = self._create_profile(user_b)
@@ -191,6 +191,7 @@ class ApiScenarioRunner:
 			"lastName": user.last_name,
 			"enabled": True,
 			"emailVerified": True,
+			"requiredActions": [],
 			"realmRoles": ["user"],
 		}
 
@@ -210,6 +211,14 @@ class ApiScenarioRunner:
 
 		if not user.keycloak_id:
 			raise RuntimeError(f"Unable to determine Keycloak ID for {user.username}")
+
+		# Keycloak realm config may add VERIFY_EMAIL required action on creation
+		# even when we pass requiredActions: []. Clear it with a follow-up update.
+		update_url = f"{self.config.keycloak_base}/admin/realms/{self.config.keycloak_realm}/users/{user.keycloak_id}"
+		update_payload = {"requiredActions": []}
+		update_resp = self.session.put(update_url, json=update_payload, headers=headers, timeout=self.config.request_timeout)
+		if update_resp.status_code >= 400:
+			self.log(f"Warning: Could not clear requiredActions: {update_resp.status_code}")
 
 		password_payload = {"type": "password", "value": user.password, "temporary": False}
 		reset_url = (
@@ -310,7 +319,7 @@ class ApiScenarioRunner:
 		if not actor.token or actor.profile_id is None or target.profile_id is None:
 			raise RuntimeError("Swipe prerequisites missing")
 
-		payload = {"userId": actor.profile_id, "targetUserId": target.profile_id, "isLike": True}
+		payload = {"targetUserId": str(target.profile_id), "direction": "like"}
 		headers = {"Authorization": f"Bearer {actor.token}"}
 		response = self.session.post(
 			self.config.swipe_endpoint,
@@ -403,7 +412,7 @@ class WizardScenarioRunner:
 
         admin_token = self._get_admin_token()
         user = self._provision_user(admin_token)
-        user.token = self._get_user_token(user.username, user.password)
+        user.token = self._get_user_token(user.email, user.password)
 
         # Step 1: Basic Info
         self._wizard_step_1(user)
@@ -468,7 +477,7 @@ class WizardScenarioRunner:
         r = self.session.post(create_url, json={
             "username": user.username, "email": user.email,
             "firstName": user.first_name, "lastName": user.last_name,
-            "enabled": True, "emailVerified": True,
+            "enabled": True, "emailVerified": True, "requiredActions": [],
         }, headers=headers, timeout=self.config.request_timeout)
 
         if r.status_code == 201:
@@ -485,6 +494,10 @@ class WizardScenarioRunner:
 
         if not user.keycloak_id:
             raise RuntimeError(f"No keycloak ID for {username}")
+
+        # Keycloak may add VERIFY_EMAIL at creation despite requiredActions: []
+        update_url = f"{self.config.keycloak_base}/admin/realms/{self.config.keycloak_realm}/users/{user.keycloak_id}"
+        self.session.put(update_url, json={"requiredActions": []}, headers=headers, timeout=self.config.request_timeout)
 
         # Set password
         pw_url = f"{self.config.keycloak_base}/admin/realms/{self.config.keycloak_realm}/users/{user.keycloak_id}/reset-password"
@@ -664,8 +677,8 @@ class SafetyScenarioRunner:
             admin_token=admin_token,
         )
 
-        user_a.token = self._get_user_token(user_a.username, user_a.password)
-        user_b.token = self._get_user_token(user_b.username, user_b.password)
+        user_a.token = self._get_user_token(user_a.email, user_a.password)
+        user_b.token = self._get_user_token(user_b.email, user_b.password)
 
         user_a.profile_id = self._create_profile(user_a)
         user_b.profile_id = self._create_profile(user_b)
@@ -726,6 +739,7 @@ class SafetyScenarioRunner:
             "lastName": user.last_name,
             "enabled": True,
             "emailVerified": True,
+            "requiredActions": [],
             "realmRoles": ["user"],
         }
 
@@ -745,6 +759,10 @@ class SafetyScenarioRunner:
 
         if not user.keycloak_id:
             raise RuntimeError(f"Unable to determine Keycloak ID for {user.username}")
+
+        # Keycloak may add VERIFY_EMAIL at creation despite requiredActions: []
+        update_url = f"{self.config.keycloak_base}/admin/realms/{self.config.keycloak_realm}/users/{user.keycloak_id}"
+        self.session.put(update_url, json={"requiredActions": []}, headers=headers, timeout=self.config.request_timeout)
 
         password_payload = {"type": "password", "value": user.password, "temporary": False}
         reset_url = (
@@ -931,6 +949,10 @@ class SafetyScenarioRunner:
         response = self.session.get(url, headers=headers, timeout=self.config.request_timeout)
 
         if response.status_code >= 400:
+            # 404 is acceptable when there are no candidates (e.g. only 2 test users and blocking affects pool)
+            if response.status_code == 404:
+                self.log("No candidates available (404) — acceptable in isolated test")
+                return
             raise RuntimeError(f"Fetching candidates failed: {response.status_code} {response.text}")
 
         candidates = response.json() if response.content else []

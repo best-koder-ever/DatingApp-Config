@@ -16,7 +16,13 @@ if ! ${COMPOSE_CMD} version >/dev/null 2>&1; then
     fi
 fi
 
-REQUIRED_SERVICES=(keycloak-db keycloak mailhog MatchmakingService-db swipe-service-db UserService-db photo-service-db)
+# Fail loudly if the compose file is missing/empty (avoid silently starting nothing)
+if [ ! -s "${PROJECT_ROOT}/docker-compose.yml" ]; then
+    echo "❌ ${PROJECT_ROOT}/docker-compose.yml is missing or empty - cannot start infrastructure." >&2
+    echo "   Restore it (model: DatingAppController/repos/DatingApp-Config/docker-compose.yml)." >&2
+    exit 1
+fi
+REQUIRED_SERVICES=(keycloak-db keycloak matchmaking-service-db swipe-service-db user-service-db photo-service-db messaging-service-db reputation-db forum-db video-service-db)
 
 pushd "${PROJECT_ROOT}" >/dev/null
 
@@ -67,7 +73,7 @@ else
     echo "✅ DatingApp realm already present."
 fi
 
-MYSQL_CONTAINER=$(${COMPOSE_CMD} ps -q MatchmakingService-db)
+MYSQL_CONTAINER=$(${COMPOSE_CMD} ps -q matchmaking-service-db)
 if [ -n "${MYSQL_CONTAINER}" ]; then
     echo "\n🗑️ Resetting MatchmakingService demo data..."
     docker exec "${MYSQL_CONTAINER}" sh -c "mysql -u matchmakingservice_user -pmatchmakingservice_user_password MatchmakingServiceDb -e \"SET FOREIGN_KEY_CHECKS=0; TRUNCATE TABLE MatchScores; TRUNCATE TABLE Matches; TRUNCATE TABLE Messages; TRUNCATE TABLE UserInteractions; SET FOREIGN_KEY_CHECKS=1;\"" >/dev/null && \
@@ -77,7 +83,7 @@ if [ -n "${MYSQL_CONTAINER}" ]; then
     docker exec swipe-service-db sh -c "mysql -u root -proot_password SwipeServiceDb -e \"SET FOREIGN_KEY_CHECKS=0; TRUNCATE TABLE Swipes; TRUNCATE TABLE Matches; SET FOREIGN_KEY_CHECKS=1;\"" >/dev/null && \
         echo "✅ SwipeService tables truncated." || echo "⚠️  SwipeService reset skipped."
 else
-    echo "⚠️ Could not determine MatchmakingService-db container ID; skipping data reset." >&2
+    echo "⚠️ Could not determine matchmaking-service-db container ID; skipping data reset." >&2
 fi
 
 popd >/dev/null
