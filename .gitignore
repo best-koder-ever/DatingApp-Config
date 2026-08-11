@@ -88,3 +88,7 @@ ai-tester-service/
 forum-service/
 reputation-service/
 video-service/
+
+# Local Vikunja board binary + data (not versioned)
+vikunja_binary
+vikunja-data/
