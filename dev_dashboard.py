@@ -2152,6 +2152,7 @@ class DevDashboard:
                 tab_ai_cache = ui.tab("AI & Costs", icon="auto_awesome")
                 tab_gita = ui.tab("Gita", icon="source_commit")
                 tab_cicd = ui.tab("CI/CD", icon="rocket_launch")
+                tab_testers = ui.tab("Testers", icon="group")
 
         with ui.column().classes("w-full p-4 gap-4"):
             with ui.tab_panels(tabs, value=tab_stack).classes("w-full"):
@@ -2168,6 +2169,7 @@ class DevDashboard:
                 self._build_ai_cache_panel(tab_ai_cache)
                 self._build_gita_panel(tab_gita)
                 self._build_cicd_panel(tab_cicd)
+                self._build_testers_panel(tab_testers)
 
         ui.timer(5.0, self.refresh_all)
         ui.timer(3.0, self.tail_selected_log)
@@ -3209,6 +3211,93 @@ class DevDashboard:
 
             # Auto-refresh status cards on tab open
             ui.timer(0.3, lambda: self._cicd_quick_status(), once=True)
+
+    # ── Testers panel ──────────────────────────────────────────────
+
+    def _build_testers_panel(self, tab: Any) -> None:
+        """Tester version tracking — who runs what app version."""
+        with ui.tab_panel(tab):
+            ui.label("Testers — App Versions").classes("section-title")
+            ui.label(
+                "Each app reports its version on startup. The latest published version "
+                "comes from GitHub Releases via the backend. Refresh reads the server "
+                "where testers connect (little server via SSH) or local UserService."
+            ).classes("text-sm text-gray-600")
+
+            with ui.row().classes("gap-4 flex-wrap mb-2"):
+                with ui.element("div").classes("metric"):
+                    ui.label("Latest Published").classes("label")
+                    self.testers_latest_label = ui.label("⏳").classes("value text-lg font-bold")
+                with ui.element("div").classes("metric"):
+                    ui.label("Download").classes("label")
+                    self.testers_download_label = ui.label("–").classes("value text-xs")
+
+            with ui.row().classes("toolbar"):
+                self.add_button("🖥️ Refresh (server)", lambda: self.guarded("Refresh testers (server)", self._testers_refresh), icon="cloud_download", color="positive", tooltip="Fetch version reports + latest from the little server via SSH")
+                self.add_button("💻 Refresh (local)", lambda: self.guarded("Refresh testers (local)", self._testers_refresh_local), icon="laptop", tooltip="Fetch version reports from the local UserService")
+
+            tcols = [
+                {"name": "keycloakId", "label": "Who (Keycloak)", "field": "keycloakId"},
+                {"name": "version", "label": "Version", "field": "version"},
+                {"name": "platform", "label": "Platform", "field": "platform"},
+                {"name": "device", "label": "Device", "field": "device"},
+                {"name": "reported", "label": "Reported", "field": "reported"},
+            ]
+            self.testers_table = ui.table(columns=tcols, rows=[], row_key="id").classes("w-full")
+            self.testers_status_label = ui.label("Click Refresh to load tester versions.").classes("text-sm text-gray-500 mt-1")
+
+    def _testers_render(self, latest: dict, reports: list) -> None:
+        if self.testers_latest_label is not None:
+            self.testers_latest_label.text = f"{latest.get('versionName', '?')}+{latest.get('versionCode', '?')}"
+        if self.testers_download_label is not None:
+            self.testers_download_label.text = latest.get("downloadUrl", "–") or "–"
+        rows = []
+        for r in reports:
+            if not isinstance(r, dict):
+                continue
+            rows.append({
+                "id": r.get("id", 0),
+                "keycloakId": (r.get("keycloakId") or "anonymous")[:24],
+                "version": f"{r.get('versionName', '?')}+{r.get('versionCode', '?')}",
+                "platform": r.get("platform") or "?",
+                "device": (r.get("deviceModel") or "?")[:40],
+                "reported": (r.get("reportedAt") or "")[:19].replace("T", " "),
+            })
+        if self.testers_table is not None:
+            self.testers_table.rows = rows
+            self.testers_table.update()
+        if self.testers_status_label is not None:
+            self.testers_status_label.text = f"✅ {len(rows)} reports"
+
+    async def _testers_refresh(self) -> None:
+        """Refresh from the little server (where testers report) via SSH."""
+        if self.testers_status_label is not None:
+            self.testers_status_label.text = "⏳ Fetching from little server..."
+        try:
+            rc, latest_raw = await self._cicd_ssh(
+                "curl -s --max-time 6 http://localhost:8082/api/app/version 2>/dev/null || echo '{}'", timeout=12)
+            rc2, reports_raw = await self._cicd_ssh(
+                "curl -s --max-time 6 http://localhost:8082/api/app/version/reports 2>/dev/null || echo '[]'", timeout=12)
+            latest = json.loads(latest_raw or "{}")
+            reports = json.loads(reports_raw or "[]")
+            self._testers_render(latest, reports)
+        except Exception as e:
+            if self.testers_status_label is not None:
+                self.testers_status_label.text = f"❌ {e}"
+
+    async def _testers_refresh_local(self) -> None:
+        """Refresh from the local UserService."""
+        if self.testers_status_label is not None:
+            self.testers_status_label.text = "⏳ Fetching from local UserService..."
+        try:
+            r1 = httpx.get("http://localhost:8082/api/app/version", timeout=8)
+            r2 = httpx.get("http://localhost:8082/api/app/version/reports", timeout=8)
+            latest = r1.json() if r1.status_code == 200 else {}
+            reports = r2.json() if r2.status_code == 200 else []
+            self._testers_render(latest, reports)
+        except Exception as e:
+            if self.testers_status_label is not None:
+                self.testers_status_label.text = f"❌ {e}"
 
     # ── CI/CD async actions ──
 
