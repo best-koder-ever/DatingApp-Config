@@ -227,6 +227,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8086
       ConnectionStrings__DefaultConnection: Server=messaging-service-db;Port=3306;Database=MessagingServiceDb;User=${MESSAGING_DB_USER:-messagingservice_user};Password=${MESSAGING_DB_PASSWORD:-messagingservice_user_password};
+      Services__SwipeService__BaseUrl: http://swipe-service:8087
       Authentication__Keycloak__Authority: http://keycloak:8080/realms/DatingApp
       Authentication__Keycloak__RequireHttpsMetadata: "false"
       Authentication__Keycloak__ValidIssuers__0: http://keycloak:8080/realms/DatingApp
