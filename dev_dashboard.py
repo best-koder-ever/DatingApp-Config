@@ -3246,6 +3246,25 @@ class DevDashboard:
             self.testers_table = ui.table(columns=tcols, rows=[], row_key="id").classes("w-full")
             self.testers_status_label = ui.label("Click Refresh to load tester versions.").classes("text-sm text-gray-500 mt-1")
 
+            # ── Firebase App Distribution ──
+            ui.label("🚀 Firebase App Distribution").classes("subsection-title mt-4")
+            with ui.card().classes("w-full bg-orange-50 border border-orange-200 p-4 mb-4"):
+                ui.label(
+                    "Build the release APK and push it to testers automatically. Testers get an "
+                    "install/update link from Firebase. One-time setup: `firebase login` and add "
+                    "tester emails (see scripts/distribute-firebase.sh)."
+                ).classes("text-xs text-orange-700 mb-2")
+                with ui.row().classes("toolbar"):
+                    self.add_button(
+                        "🚀 Build & Distribute",
+                        lambda: self.guarded("Distribute to Firebase", self._firebase_distribute),
+                        icon="rocket_launch",
+                        color="warning",
+                        tooltip="flutter build --release + firebase appdistribution:distribute (testers group)",
+                    )
+                self.distribute_status_label = ui.label("Not run yet.").classes("text-sm text-gray-500 mt-1")
+                self.distribute_log = ui.log(max_lines=200).classes("w-full h-40 font-mono text-xs")
+
     def _testers_render(self, latest: dict, reports: list) -> None:
         if self.testers_latest_label is not None:
             self.testers_latest_label.text = f"{latest.get('versionName', '?')}+{latest.get('versionCode', '?')}"
@@ -3298,6 +3317,40 @@ class DevDashboard:
         except Exception as e:
             if self.testers_status_label is not None:
                 self.testers_status_label.text = f"❌ {e}"
+
+    async def _firebase_distribute(self) -> None:
+        """Build release APK + distribute to Firebase App Distribution testers."""
+        log = getattr(self, "distribute_log", None)
+        status = getattr(self, "distribute_status_label", None)
+        if log is not None:
+            log.clear()
+            log.push(f"[{now_label()}] Building + distributing to Firebase...")
+        if status is not None:
+            status.text = "⏳ Building + distributing (this can take a few minutes)..."
+        script = ROOT / "scripts" / "distribute-firebase.sh"
+        if not script.exists():
+            if status is not None:
+                status.text = "❌ scripts/distribute-firebase.sh not found"
+            return
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "bash", str(script),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                cwd=str(ROOT),
+            )
+            out, _ = await asyncio.wait_for(proc.communicate(), timeout=900)
+            for line in out.decode(errors="replace").splitlines():
+                if log is not None:
+                    log.push(strip_ansi(line))
+            if status is not None:
+                status.text = "✅ Distributed to Firebase" if proc.returncode == 0 else "❌ Distribution failed"
+        except asyncio.TimeoutError:
+            if status is not None:
+                status.text = "❌ Timed out (build + upload took >15 min)"
+        except Exception as e:
+            if status is not None:
+                status.text = f"❌ {e}"
 
     # ── CI/CD async actions ──
 
