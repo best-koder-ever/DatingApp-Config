@@ -3254,6 +3254,11 @@ class DevDashboard:
                     "install/update link from Firebase. One-time setup: `firebase login` and add "
                     "tester emails (see scripts/distribute-firebase.sh)."
                 ).classes("text-xs text-orange-700 mb-2")
+                with ui.row().classes("gap-2 items-end mb-2"):
+                    self.distribute_testers_input = ui.input(
+                        "Tester emails (comma-separated)",
+                        value="martinch@hotmail.com",
+                    ).classes("w-72")
                 with ui.row().classes("toolbar"):
                     self.add_button(
                         "🚀 Build & Distribute",
@@ -3332,12 +3337,18 @@ class DevDashboard:
             if status is not None:
                 status.text = "❌ scripts/distribute-firebase.sh not found"
             return
+        testers = ""
+        inp = getattr(self, "distribute_testers_input", None)
+        if inp is not None and inp.value:
+            testers = str(inp.value).strip()
+        env = {**os.environ.copy(), "TESTERS_EMAILS": testers}
         try:
             proc = await asyncio.create_subprocess_exec(
                 "bash", str(script),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=str(ROOT),
+                env=env,
             )
             out, _ = await asyncio.wait_for(proc.communicate(), timeout=900)
             for line in out.decode(errors="replace").splitlines():
