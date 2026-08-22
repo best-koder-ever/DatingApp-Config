@@ -29,8 +29,10 @@ if ! command -v firebase >/dev/null 2>&1; then
     exit 1
 fi
 
-# Build the release APK (use explicit version args only if provided)
-FLUTTER_ARGS=("--release")
+# Build the release APK (use explicit version args only if provided).
+# Tester builds include the in-app feedback FAB via the dart-define flag;
+# a plain production release is built without it (FAB stays hidden).
+FLUTTER_ARGS=("--release" "--dart-define=DEJTING_FEEDBACK_VISIBLE=true")
 if [ -n "$VERSION_NAME" ]; then
     FLUTTER_ARGS+=("--build-name" "$VERSION_NAME")
     [ -n "$VERSION_CODE" ] && FLUTTER_ARGS+=("--build-number" "$VERSION_CODE")

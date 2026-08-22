@@ -16,6 +16,9 @@ pkill -f "MessagingService" 2>/dev/null || true
 pkill -f "SwipeService" 2>/dev/null || true
 pkill -f "dejting-yarp" 2>/dev/null || true
 
+# Stop Whisper feedback transcription watcher
+pkill -f "process-feedback.py" 2>/dev/null || true
+
 # Wait for processes to stop
 sleep 2
 
