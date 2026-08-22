@@ -1,0 +1,24 @@
+[submodule "ai-tester-service"]
+	path = ai-tester-service
+	url = https://github.com/best-koder-org/ai-tester-service.git
+[submodule "dejting-yarp"]
+	path = dejting-yarp
+	url = https://github.com/best-koder-org/dejting-yarp.git
+[submodule "forum-service"]
+	path = forum-service
+	url = https://github.com/best-koder-org/forum-service.git
+[submodule "reputation-service"]
+	path = reputation-service
+	url = https://github.com/best-koder-org/reputation-service.git
+[submodule "safety-service"]
+	path = safety-service
+	url = https://github.com/best-koder-org/safety-service.git
+[submodule "video-service"]
+	path = video-service
+	url = https://github.com/best-koder-org/video-service.git
+[submodule "tools/spec-kit"]
+	path = tools/spec-kit
+	url = https://github.com/github/spec-kit
+[submodule "bot-service"]
+	path = bot-service
+	url = https://github.com/best-koder-org/bot-service.git
