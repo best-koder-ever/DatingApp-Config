@@ -128,6 +128,17 @@ services:
           memory: 512M
     restart: always
 
+  # ── Whisper transcription engine ──
+  # Internal-only (no host port); reachable by bot-service on the app-network
+  # at http://whisper-service:8095. Memory capped so it never starves the stack.
+  whisper-service:
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    restart: always
+
   # ── Resource limits on databases ──
   keycloak-db:
     deploy:

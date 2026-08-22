@@ -310,6 +310,24 @@ ANDROID_PERMISSIONS = [
     "android.permission.POST_NOTIFICATIONS",
 ]
 
+# Ports the Flutter app reaches over USB when "Laptop (dev)" is selected.
+# The app talks to http://localhost on the phone; adb reverse forwards these
+# ports over the USB cable to the laptop backend. Keep in sync with
+# scripts/adb-reverse-laptop.sh and the backend service ports.
+USB_REVERSE_PORTS = [8080, 8082, 8083, 8085, 8086, 8087, 8090]
+
+# Readable labels for known Keycloak subjects seen in feedback submissions.
+FEEDBACK_KNOWN_USERS = {
+    "167d5636-f945-4726-9fd8-fd1d8d9b96c9": "Alex Devsson (demo-user)",
+}
+
+
+def feedback_who(subject: str | None) -> str:
+    """Human-readable submitter label, falling back to a truncated subject id."""
+    if not subject:
+        return "anonymous"
+    return FEEDBACK_KNOWN_USERS.get(subject, subject[:8] + "…")
+
 
 class DevDashboard:
     def __init__(self, dry_run: bool = False) -> None:
@@ -358,6 +376,15 @@ class DevDashboard:
         self.billing_subs_table = None
         self.billing_sparks_table = None
         self.stack_event_log = None
+        self.usb_dev_status_label = None
+        self.feedback_pending_label = None
+        self.feedback_table = None
+        self.feedback_filter_input = None
+        self._feedback_rows: list[dict] = []
+        self._feedback_audio: dict[str, Any] | None = None
+        self.feedback_audio_label = None
+        self.whisper_proc: asyncio.subprocess.Process | None = None
+        self.whisper_task: asyncio.Task | None = None
 
     # ------------------------------------------------------------------
     # UI helpers
@@ -695,9 +722,11 @@ class DevDashboard:
         """Docker infra + all 12 .NET services (user, matchmaking, photo, messaging, swipe, safety, yarp, bot, reputation, forum, tester, video)."""
         await self.start_infra()
         await self.start_all_services()
+        await self.start_whisper_watcher()
 
     async def full_stack_stop(self) -> None:
         await self.stop_all_services()
+        await self.stop_whisper_watcher()
         await self.stop_infra()
 
     async def lightweight_stack_start(self) -> None:
@@ -1154,6 +1183,10 @@ class DevDashboard:
         await self.refresh_bots()
         await self.refresh_android()
         await self.refresh_vikunja()
+        await self.refresh_usb_dev()
+        # NOTE: feedback status/table are intentionally NOT refreshed here —
+        # they run on their own slow timer + after feedback actions, to avoid
+        # tripping the gateway's /api/userfeedback rate limit (1000/hr).
 
     async def refresh_status(self) -> None:
         rows = await self.service_rows()
@@ -1187,6 +1220,16 @@ class DevDashboard:
         url = f"http://localhost:8089{path}"
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.request(method, url, json=json_body)
+            response.raise_for_status()
+            if response.content:
+                return response.json()
+            return {}
+
+    async def demo_json(self, path: str, method: str = "GET", json_body: dict[str, Any] | None = None, params: dict[str, Any] | None = None) -> Any:
+        """Call bot-service /api/demo endpoints (Tester Demo Mode)."""
+        url = f"http://localhost:8089{path}"
+        async with httpx.AsyncClient(timeout=60) as client:
+            response = await client.request(method, url, json=json_body, params=params)
             response.raise_for_status()
             if response.content:
                 return response.json()
@@ -1548,6 +1591,412 @@ class DevDashboard:
                 self.android_status.text = "❌ TCP/IP switch failed"
                 self.android_status.classes("text-red-600 font-semibold text-sm")
             ui.notify("tcpip command failed — see log", type="negative")
+
+    # ------------------------------------------------------------------
+    # USB Dev Mode — full stack on laptop + USB phone reaching it
+    # ------------------------------------------------------------------
+    async def usb_reverse_setup(self, serial: str) -> list[str]:
+        """Set up adb reverse on a USB device for every app backend port.
+
+        The Flutter app's "Laptop (dev)" option talks to http://localhost on the
+        phone; adb reverse forwards those ports over the USB cable to this
+        laptop, so the phone reaches the laptop backend without WiFi or IPs.
+        """
+        reversed_ok: list[str] = []
+        for port in USB_REVERSE_PORTS:
+            rc, out = await self.capture(
+                ["adb", "-s", serial, "reverse", f"tcp:{port}", f"tcp:{port}"],
+                timeout=10,
+            )
+            if rc == 0:
+                reversed_ok.append(str(port))
+                self.log(f"  ✅ tcp:{port} → tcp:{port}")
+            else:
+                self.log(f"  ⚠️  reverse tcp:{port} failed: {out.strip()[:120]}")
+        return reversed_ok
+
+    async def usb_reverse_remove(self, serial: str | None = None) -> None:
+        if serial:
+            await self.capture(["adb", "-s", serial, "reverse", "--remove-all"], timeout=10)
+        else:
+            await self.capture(["adb", "reverse", "--remove-all"], timeout=10)
+        self.log("🔌 adb reverse removed (all ports)")
+
+    async def _usb_dev_text(self) -> str:
+        """Short status line for the USB Dev Mode card."""
+        serial = await self._check_usb_device()
+        if not serial:
+            return "No USB device detected — plug in the phone (USB debugging on)."
+        rc, out = await self.capture(["adb", "-s", serial, "reverse", "--list"], timeout=5)
+        reversed_ports = [ln.split()[1] for ln in out.splitlines() if "tcp:" in ln]
+        status = f"📱 {serial} · reverses: {len(reversed_ports)}/{len(USB_REVERSE_PORTS)}"
+        if reversed_ports:
+            status += f" ({', '.join(reversed_ports)})"
+        status += " · in the app pick 'Laptop (dev)'"
+        return status
+
+    async def refresh_usb_dev(self) -> None:
+        if self.usb_dev_status_label is not None:
+            self.usb_dev_status_label.text = await self._usb_dev_text()
+
+    async def usb_dev_start(self) -> None:
+        """USB Dev Mode: adb reverse + start the full stack on the laptop.
+
+        The phone keeps talking to http://localhost, which adb reverse forwards
+        over the USB cable — ideal for quick local iteration of new builds.
+        """
+        serial = await self._check_usb_device()
+        if not serial:
+            msg = (
+                "❌ No USB device found.\n\n"
+                "1. Connect the phone to this laptop via USB cable\n"
+                "2. On the phone: allow 'USB debugging' when prompted\n"
+                "3. Click this button again"
+            )
+            self.log(msg)
+            ui.notify("No USB device found — plug in the phone via USB", type="negative", close_button="OK")
+            return
+
+        self.selected_device = serial
+        if self.device_label is not None:
+            self.device_label.text = f"Device: {self.selected_device}"
+        self.log(f"📱 USB device found: {serial}")
+
+        self.log("🔌 Setting up adb reverse (phone → laptop backend over USB)...")
+        ok = await self.usb_reverse_setup(serial)
+        if not ok:
+            self.log("❌ No ports could be reversed — the phone cannot reach the laptop backend.")
+            ui.notify("adb reverse failed — see log", type="negative")
+            return
+
+        self.log("🚀 Starting full stack...")
+        await self.start_infra()
+        await asyncio.sleep(2.0)  # Let DBs + Keycloak come up
+        await self.start_all_services()
+        await self.start_whisper_watcher()
+
+        self.log("✅ USB Dev Mode ready: stack up + phone reaching laptop over USB.")
+        await self.refresh_usb_dev()
+        ui.notify("✅ USB Dev Mode ready — pick 'Laptop (dev)' in the app", type="positive")
+
+    async def usb_dev_stop(self) -> None:
+        """Stop USB Dev Mode: stop services, watcher, and remove adb reverses."""
+        self.log("🛑 Stopping USB Dev Mode...")
+        await self.stop_all_services()
+        await self.stop_whisper_watcher()
+        serial = await self._check_usb_device()
+        await self.usb_reverse_remove(serial)
+        await self.refresh_usb_dev()
+        ui.notify("USB Dev Mode stopped (services + reverses removed)", type="positive")
+
+    async def usb_dev_rebuild_deploy(self) -> None:
+        """Quick iteration loop: ensure reverse → build debug APK → install → launch."""
+        serial = await self._check_usb_device()
+        if not serial:
+            ui.notify("No USB device found — plug in the phone via USB", type="negative", close_button="OK")
+            return
+        self.selected_device = serial
+        if self.device_label is not None:
+            self.device_label.text = f"Device: {self.selected_device}"
+
+        # Ensure reverses exist (idempotent)
+        ok = await self.usb_reverse_setup(serial)
+        if not ok:
+            ui.notify("adb reverse failed — see log", type="negative")
+            return
+
+        if self.android_log is not None:
+            self.android_log.clear()
+            self.android_log.push(f"🔨 USB Dev rebuild & deploy → {serial}...")
+        if self.android_status is not None:
+            self.android_status.text = "🔨 Building APK..."
+            self.android_status.classes("text-orange-600 font-semibold text-sm")
+
+        # Build in background (streaming), then poll for the APK like WiFi deploy.
+        await self.build_apk("debug")
+        apk = self.apk_path("debug")
+        for _ in range(180):
+            if apk.exists() and (time.time() - apk.stat().st_mtime) < 10:
+                break
+            await asyncio.sleep(1)
+        else:
+            self.log("⚠️  Build may still be running — APK not found after 180s")
+            if self.android_status is not None:
+                self.android_status.text = "⚠️ Build timed out — check log"
+                self.android_status.classes("text-yellow-600 font-semibold text-sm")
+            return
+
+        if self.android_log is not None:
+            self.android_log.push(f"📦 Installing {apk.name} on {serial}...")
+        await self.run_command_streaming(
+            ["adb", "-s", serial, "install", "-r", "-g", str(apk)],
+            label="Install APK (USB)",
+        )
+        await asyncio.sleep(2)
+
+        if self.android_log is not None:
+            self.android_log.push("🚀 Launching app...")
+        await self.run_command(
+            ["adb", "-s", serial, "shell", "am", "start", "-n",
+             f"{APP_PACKAGE}/{APP_ACTIVITY}"],
+            label="Launch app (USB)",
+        )
+        self.log("✅ USB rebuild & deploy complete!")
+        if self.android_status is not None:
+            self.android_status.text = "✅ USB rebuild & deploy complete!"
+            self.android_status.classes("text-green-600 font-semibold text-sm")
+        await self.refresh_usb_dev()
+        ui.notify("APK rebuilt, installed & launched on the USB phone!", type="positive")
+
+    # ------------------------------------------------------------------
+    # Voice feedback transcription.
+    # Server-side: bot-service runs WhisperTranscriptionService -> whisper-service
+    # container (Docker stack). Laptop-side: the old scripts/process-feedback.py
+    # pump is kept as a dev fallback for local dotnet-run (no whisper-service).
+    # ------------------------------------------------------------------
+    async def feedback_pending(self) -> int:
+        """Number of unprocessed feedback items.
+
+        Queries bot-service directly (:8089) instead of the YARP gateway, which
+        rate-limits /api/userfeedback to 1000/hour per identity — the dashboard's
+        polling would otherwise trip it. Returns -2 on 429, -1 on other errors.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.get(
+                    "http://localhost:8089/api/userfeedback",
+                    params={"unprocessed": "true", "pageSize": 1},
+                )
+                if r.status_code == 200:
+                    return int(r.json().get("total", 0))
+                if r.status_code == 429:
+                    return -2
+        except Exception:
+            pass
+        return -1
+
+    async def refresh_feedback_status(self) -> None:
+        if self.feedback_pending_label is None:
+            return
+        pending = await self.feedback_pending()
+        if pending == -2:
+            self.feedback_pending_label.text = "⏳ Rate limited — will retry on next refresh"
+        elif pending < 0:
+            self.feedback_pending_label.text = "⚠️ Could not reach bot-service (:8089)"
+        elif pending == 0:
+            self.feedback_pending_label.text = "✅ No pending feedback — all transcribed"
+        else:
+            self.feedback_pending_label.text = (
+                f"⏳ {pending} pending voice memo(s) — click 'Transcribe now'"
+            )
+
+    async def _feedback_periodic_refresh(self) -> None:
+        """Slow periodic refresh for the feedback panel (rate-limit friendly)."""
+        await self.refresh_feedback_table()
+
+    async def transcribe_feedback(self) -> None:
+        """Run the laptop-side Whisper pump once (scripts/process-feedback.py --once).
+
+        Laptop-dev fallback — the Docker/server stack transcribes via bot-service's
+        WhisperTranscriptionService instead.
+        """
+        self.log("🎤 Running transcription pump (scripts/process-feedback.py --once)...")
+        rc, out = await self.capture(
+            [sys.executable, "scripts/process-feedback.py", "--once"],
+            cwd=ROOT,
+            timeout=600,
+        )
+        for line in out.splitlines():
+            self.log(line)
+        if rc == 0:
+            self.log("✅ Transcription pump finished.")
+        else:
+            self.log(f"❌ Transcription pump failed (exit {rc})")
+        await self.refresh_feedback_status()
+
+    async def start_whisper_watcher(self) -> None:
+        """Start the laptop-dev Whisper watcher (--watch 600) in the background.
+
+        Fallback only: the Docker/server stack transcribes via bot-service's
+        WhisperTranscriptionService. This laptop watcher matters for local
+        dotnet-run dev (no whisper-service container). Re-runs harmlessly if
+        already running. Stopped by stop_whisper_watcher / stack stop.
+        """
+        if self.whisper_proc and self.whisper_proc.returncode is None:
+            self.log("🎤 Whisper watcher already running")
+            return
+        self.log("🎤 Starting Whisper feedback watcher (--watch 600)...")
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, "scripts/process-feedback.py", "--watch", "600",
+                cwd=str(ROOT),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+        except FileNotFoundError as exc:
+            self.log(f"❌ Cannot start Whisper watcher: {exc}")
+            ui.notify("Whisper watcher failed to start (missing script)", type="negative")
+            return
+        self.whisper_proc = proc
+        assert proc.stdout is not None
+
+        async def _drain() -> None:
+            async for raw in proc.stdout:
+                self.log(f"[whisper] {raw.decode(errors='replace').rstrip()}")
+            self.log(f"🎤 Whisper watcher exited (code {proc.returncode})")
+            if self.whisper_proc is proc:
+                self.whisper_proc = None
+                await self.refresh_feedback_status()
+
+        self.whisper_task = asyncio.create_task(_drain())
+        if self.feedback_pending_label is not None:
+            self.feedback_pending_label.text = "🎤 Whisper watcher running (every 10 min)"
+        self.log("✅ Whisper watcher running — feedback will transcribe automatically.")
+        ui.notify("🎤 Whisper watcher started", type="positive")
+
+    async def stop_whisper_watcher(self) -> None:
+        """Stop the background Whisper watcher (if running)."""
+        proc = self.whisper_proc
+        if proc and proc.returncode is None:
+            self.log("🛑 Stopping Whisper watcher...")
+            try:
+                proc.terminate()
+                await asyncio.wait_for(proc.wait(), timeout=5)
+            except (ProcessLookupError, asyncio.TimeoutError):
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
+        self.whisper_proc = None
+        if self.whisper_task and not self.whisper_task.done():
+            self.whisper_task.cancel()
+        self.whisper_task = None
+        await self.refresh_feedback_status()
+        ui.notify("⏹️ Whisper watcher stopped", type="warning")
+
+    async def refresh_feedback_table(self) -> None:
+        """Load feedback (who, time, screen, app, transcript/note) into the Feedback tab table."""
+        if self.feedback_table is None:
+            return
+        rows: list[dict] = []
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                r = await client.get(
+                    "http://localhost:8089/api/userfeedback",
+                    params={"pageSize": 100},
+                )
+                if r.status_code == 200:
+                    for it in r.json().get("items", []):
+                        has_audio = bool(it.get("hasAudio"))
+                        fid = it.get("id")
+                        rows.append({
+                            "id": fid,
+                            "who": feedback_who(it.get("submitterKeycloakId")),
+                            "received": (it.get("receivedAt") or "")[:16],
+                            "screen": it.get("screen") or "-",
+                            "app": it.get("appVersion") or "-",
+                            "text": (it.get("transcript") or it.get("noteText") or "(no transcript)"),
+                            "processed": "✅" if it.get("processedAt") else "…",
+                            "hasAudio": has_audio,
+                            "audioUrl": f"http://localhost:8089/api/userfeedback/{fid}/audio" if has_audio else "",
+                        })
+        except Exception as exc:
+            self.log(f"❌ Failed to load feedback: {exc}")
+        rows.sort(key=lambda r: r.get("id") or 0, reverse=True)
+        self._feedback_rows = rows
+        self._apply_feedback_filter()
+        await self.refresh_feedback_status()
+
+    def _apply_feedback_filter(self) -> None:
+        """Client-side filter on the feedback table (who / text / screen)."""
+        if self.feedback_table is None:
+            return
+        q = ""
+        if self.feedback_filter_input is not None:
+            q = (self.feedback_filter_input.value or "").strip().lower()
+        rows = self._feedback_rows
+        if q:
+            rows = [
+                r for r in rows
+                if q in str(r.get("who") or "").lower()
+                or q in str(r.get("text") or "").lower()
+                or q in str(r.get("screen") or "").lower()
+            ]
+        self.feedback_table.rows = rows
+        self.feedback_table.update()
+
+    async def submit_feedback(self, who: str, screen: str, note: str) -> None:
+        """Leave feedback from the dashboard (note + optional audio → bot-service)."""
+        audio = self._feedback_audio
+        if not note.strip() and audio is None:
+            ui.notify("Type a note or attach audio to send feedback", type="warning")
+            return
+        self.log(
+            f"📨 Sending feedback (who={who or 'anonymous'}, screen={screen or '-'}, "
+            f"audio={'yes' if audio else 'no'})..."
+        )
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                files = None
+                if audio is not None:
+                    files = {
+                        "Audio": (
+                            audio.get("name") or "recording.m4a",
+                            audio.get("data") or b"",
+                            "audio/m4a",
+                        )
+                    }
+                r = await client.post(
+                    "http://localhost:8080/api/userfeedback",
+                    data={
+                        "noteText": note.strip() or None,
+                        "screen": screen.strip() or None,
+                        "appVersion": "dashboard",
+                        "submitterKeycloakId": who.strip() or None,
+                    },
+                    files=files,
+                )
+                if r.status_code in (200, 201):
+                    self.log("✅ Feedback submitted (audio stored server-side).")
+                    self._clear_feedback_audio()
+                    ui.notify("Feedback sent — thanks!", type="positive")
+                    await self.refresh_feedback_table()
+                else:
+                    self.log(f"❌ Submit failed ({r.status_code}): {r.text[:200]}")
+                    ui.notify("Feedback send failed", type="negative")
+        except Exception as exc:
+            self.log(f"❌ Submit error: {exc}")
+            ui.notify("Feedback send failed", type="negative")
+
+    def _on_feedback_audio_upload(self, e: Any) -> None:
+        """Store an uploaded audio file so it's sent with the next feedback submit."""
+        data = e.content.read()
+        self._feedback_audio = {"name": e.name, "data": data, "size": len(data)}
+        if self.feedback_audio_label is not None:
+            self.feedback_audio_label.text = f"🎵 {e.name} ({len(data):,} bytes)"
+        self.log(f"🎵 Attached audio: {e.name} ({len(data)} bytes)")
+
+    def _clear_feedback_audio(self) -> None:
+        self._feedback_audio = None
+        if self.feedback_audio_label is not None:
+            self.feedback_audio_label.text = "No audio attached"
+
+    async def export_feedback_prompt(self) -> None:
+        """Write all tester feedback to feedback-prompt.md for Copilot/Claude."""
+        self.log("📝 Exporting feedback prompt (scripts/export-feedback.py)...")
+        rc, out = await self.capture(
+            [sys.executable, "scripts/export-feedback.py"],
+            cwd=ROOT,
+            timeout=60,
+        )
+        for line in out.splitlines():
+            self.log(line)
+        if rc == 0:
+            self.log("✅ Feedback prompt exported → feedback-prompt.md (repo root).")
+            ui.notify("Feedback prompt exported → feedback-prompt.md", type="positive")
+        else:
+            self.log("❌ Feedback export failed.")
+            ui.notify("Feedback export failed — see log", type="negative")
 
     async def adb_pair_wizard(self) -> None:
         """Pair ADB over WiFi using Android 11+'s pairing code — no USB needed.
@@ -1987,9 +2436,15 @@ class DevDashboard:
         if self.android_log is not None:
             self.android_log.clear()
             self.android_log.push(f"Starting flutter build apk --{mode}...")
+        # Release builds from the dashboard are for testers/installs, so enable
+        # the in-app feedback FAB (--dart-define). A real production release is
+        # built separately without this flag (FAB stays hidden in that case).
+        args = ["flutter", "build", "apk", f"--{mode}"]
+        if mode == "release":
+            args.append("--dart-define=DEJTING_FEEDBACK_VISIBLE=true")
         # Run in background — dashboard stays responsive
         await self.run_command_streaming(
-            ["flutter", "build", "apk", f"--{mode}"],
+            args,
             cwd=FLUTTER_ROOT,
             label=f"Build APK ({mode})",
         )
@@ -2153,6 +2608,7 @@ class DevDashboard:
                 tab_gita = ui.tab("Gita", icon="source_commit")
                 tab_cicd = ui.tab("CI/CD", icon="rocket_launch")
                 tab_testers = ui.tab("Testers", icon="group")
+                tab_feedback = ui.tab("Feedback", icon="rate_review")
 
         with ui.column().classes("w-full p-4 gap-4"):
             with ui.tab_panels(tabs, value=tab_stack).classes("w-full"):
@@ -2170,6 +2626,7 @@ class DevDashboard:
                 self._build_gita_panel(tab_gita)
                 self._build_cicd_panel(tab_cicd)
                 self._build_testers_panel(tab_testers)
+                self._build_feedback_panel(tab_feedback)
 
         ui.timer(5.0, self.refresh_all)
         ui.timer(3.0, self.tail_selected_log)
@@ -2185,6 +2642,90 @@ class DevDashboard:
             with ui.row().classes("toolbar"):
                 self.add_button("Start Full Stack", lambda: self.guarded("Start full stack", self.full_stack_start), icon="play_arrow", color="positive", tooltip="Start Docker infra + all .NET services")
                 self.add_button("Stop Full Stack", lambda: self.confirm("Stop full stack", "Stops local services and infrastructure containers.", lambda: self.guarded("Stop full stack", self.full_stack_stop)), icon="stop", color="negative", tooltip="Stop all services + Docker infra")
+
+            # ── USB Dev Mode (phone over USB cable) ──
+            with ui.card().classes("w-full bg-green-50 border border-green-200 p-4 mb-2"):
+                ui.label("📱 USB Dev Mode — full stack + phone over USB cable").classes(
+                    "text-sm font-bold text-green-800"
+                )
+                ui.label(
+                    "One click: start the full stack on this laptop AND point a USB-connected "
+                    "phone at it (adb reverse → the app's 'Laptop (dev)' option uses localhost "
+                    "over the cable — no WiFi or IP needed). Great for quick local iteration "
+                    "of new builds."
+                ).classes("text-xs text-green-700 mb-2")
+                with ui.row().classes("toolbar"):
+                    self.add_button(
+                        "📱 USB Dev: Stack + Reverse",
+                        lambda: self.guarded("USB dev start", self.usb_dev_start),
+                        icon="cable",
+                        color="positive",
+                        tooltip="Find USB phone → adb reverse all backend ports → start infra + all .NET services",
+                    )
+                    self.add_button(
+                        "🔨 Rebuild + Deploy to USB",
+                        lambda: self.guarded("USB rebuild & deploy", self.usb_dev_rebuild_deploy),
+                        icon="rocket_launch",
+                        color="positive",
+                        tooltip="Ensure adb reverse → build debug APK → install → launch on the USB phone",
+                    )
+                    self.add_button(
+                        "🔌 Stop & Remove Reverse",
+                        lambda: self.confirm(
+                            "Stop USB Dev Mode",
+                            "Stops all local .NET services and removes adb reverse ports.",
+                            lambda: self.guarded("USB dev stop", self.usb_dev_stop),
+                        ),
+                        icon="stop",
+                        color="warning",
+                        tooltip="Stop services + adb reverse --remove-all",
+                    )
+                self.usb_dev_status_label = ui.label("Checking USB device...").classes(
+                    "text-xs font-mono text-green-800"
+                )
+                ui.timer(1.0, lambda: self.refresh_usb_dev(), once=True)
+
+            # ── Voice feedback transcription (laptop-side Whisper pump) ──
+            with ui.card().classes("w-full bg-indigo-50 border border-indigo-200 p-4 mb-2"):
+                ui.label("🎤 Voice Feedback Transcription").classes(
+                    "text-sm font-bold text-indigo-800"
+                )
+                ui.label(
+                    "Feedback voice memos are transcribed by a laptop-side script "
+                    "(scripts/process-feedback.py + faster-whisper) — there is no "
+                    "running service, so the app stays on 'Waiting for Whisper…' "
+                    "until you run it. Click below to process pending items now."
+                ).classes("text-xs text-indigo-700 mb-2")
+                with ui.row().classes("toolbar"):
+                    self.add_button(
+                        "🎤 Transcribe now (once)",
+                        lambda: self.guarded("Transcribe feedback", self.transcribe_feedback),
+                        icon="mic",
+                        color="positive",
+                        tooltip="Run scripts/process-feedback.py --once: transcribe all pending voice memos via Whisper",
+                    )
+                    self.add_button(
+                        "▶️ Start Watcher",
+                        lambda: self.guarded("Start whisper watcher", self.start_whisper_watcher),
+                        icon="play_circle",
+                        color="positive",
+                        tooltip="Run scripts/process-feedback.py --watch 600 in background so feedback transcribes automatically",
+                    )
+                    self.add_button(
+                        "⏹️ Stop Watcher",
+                        lambda: self.guarded("Stop whisper watcher", self.stop_whisper_watcher),
+                        icon="stop_circle",
+                        color="warning",
+                        tooltip="Stop the background Whisper watcher",
+                    )
+                self.feedback_pending_label = ui.label("Checking pending feedback...").classes(
+                    "text-xs font-mono text-indigo-800"
+                )
+                ui.label(
+                    "See who said what, add your own, and export the fix-it prompt "
+                    "in the 📋 Feedback tab in the sidebar."
+                ).classes("text-xs text-indigo-700")
+
             with ui.row().classes("toolbar"):
                 self.add_button("🐳 Start Docker Stack", lambda: self.guarded("Start docker stack", self.start_docker_stack), icon="docker", color="positive", tooltip="Build + run the same Docker images as the little server (docker compose up -d --build)")
                 self.add_button("🐳 Stop Docker Stack", lambda: self.confirm("Stop docker stack", "Stops all Docker stack containers (data persists in volumes).", lambda: self.guarded("Stop docker stack", self.stop_docker_stack)), icon="stop", color="negative", tooltip="docker compose down")
@@ -3214,6 +3755,99 @@ class DevDashboard:
 
     # ── Testers panel ──────────────────────────────────────────────
 
+    def _build_feedback_panel(self, tab: Any) -> None:
+        """Feedback — see what testers (and you) reported, and add your own."""
+        with ui.tab_panel(tab):
+            ui.label("Feedback").classes("section-title")
+            ui.label(
+                "Every voice memo / note from the app lands in bot-service. Transcripts are "
+                "filled in by the laptop-side Whisper watcher. Use the table to see who said "
+                "what, and the form below to leave feedback right from here — even if you're "
+                "not a tester."
+            ).classes("text-sm text-gray-600 mb-2")
+
+            # ── Leave feedback ──
+            ui.label("✍️ Leave feedback").classes("subsection-title")
+            with ui.card().classes("w-full p-4 mb-4"):
+                with ui.row().classes("gap-2 items-end"):
+                    who_input = ui.input("Who (name / role)", value="dev").classes("w-56")
+                    screen_input = ui.input("Screen (optional)", placeholder="e.g. matches").classes("w-56")
+                note_input = ui.textarea("What happened? (note)").classes("w-full mt-2").props("outlined")
+                upload = ui.upload(
+                    on_upload=self._on_feedback_audio_upload,
+                    auto_upload=True,
+                    max_files=1,
+                    max_file_size=8 * 1024 * 1024,
+                    label="Attach audio (optional) — .m4a/.mp3/.wav/.ogg, max 8 MB",
+                ).classes("w-full mt-2")
+                upload.props('accept=".m4a,.mp3,.wav,.ogg,audio/*"')
+                self.feedback_audio_label = ui.label("No audio attached").classes(
+                    "text-xs text-gray-500"
+                )
+                with ui.row().classes("toolbar mt-1"):
+                    self.add_button(
+                        "❌ Remove Audio",
+                        self._clear_feedback_audio,
+                        icon="delete_sweep",
+                        color="warning",
+                        tooltip="Remove the attached audio file",
+                    )
+                    self.add_button(
+                        "📨 Send Feedback",
+                        lambda: self.guarded(
+                            "Send feedback",
+                            lambda: self.submit_feedback(
+                                who_input.value.strip(),
+                                screen_input.value.strip(),
+                                note_input.value,
+                            ),
+                        ),
+                        icon="send",
+                        color="positive",
+                        tooltip="POST note + optional audio to bot-service /api/userfeedback",
+                    )
+
+            # ── View feedback ──
+            ui.label("📋 All feedback").classes("subsection-title")
+            with ui.row().classes("toolbar"):
+                self.add_button(
+                    "🔁 Refresh",
+                    lambda: self.guarded("Refresh feedback", self.refresh_feedback_table),
+                    icon="refresh",
+                    tooltip="Reload feedback from bot-service",
+                )
+                self.add_button(
+                    "📝 Export Prompt",
+                    lambda: self.guarded("Export feedback prompt", self.export_feedback_prompt),
+                    icon="article",
+                    tooltip="Write all feedback to feedback-prompt.md (repo root) — paste into Copilot/Claude to fix the app",
+                )
+            self.feedback_filter_input = (
+                ui.input("Filter (who / text / screen)")
+                .classes("w-72 mt-2")
+                .on_value_change(lambda e: self._apply_feedback_filter())
+            )
+
+            fcols = [
+                {"name": "id", "label": "#", "field": "id", "sortable": True},
+                {"name": "who", "label": "Who", "field": "who"},
+                {"name": "received", "label": "Received", "field": "received", "sortable": True},
+                {"name": "screen", "label": "Screen", "field": "screen"},
+                {"name": "app", "label": "App", "field": "app"},
+                {"name": "text", "label": "Transcript / Note", "field": "text", "sortable": True},
+                {"name": "processed", "label": "Tx", "field": "processed"},
+                {"name": "audio", "label": "Audio", "field": "audio"},
+            ]
+            self.feedback_table = ui.table(columns=fcols, rows=[], row_key="id").classes("w-full")
+            self.feedback_table.add_slot(
+                "body-cell-audio",
+                '<audio v-if="props.row.hasAudio" :src="props.row.audioUrl" '
+                'controls preload="none" style="height:32px; max-width:190px"></audio>'
+                '<span v-else>–</span>',
+            )
+            ui.timer(0.5, lambda: self.refresh_feedback_table(), once=True)
+            ui.timer(60.0, self._feedback_periodic_refresh)
+
     def _build_testers_panel(self, tab: Any) -> None:
         """Tester version tracking — who runs what app version."""
         with ui.tab_panel(tab):
@@ -3245,6 +3879,40 @@ class DevDashboard:
             ]
             self.testers_table = ui.table(columns=tcols, rows=[], row_key="id").classes("w-full")
             self.testers_status_label = ui.label("Click Refresh to load tester versions.").classes("text-sm text-gray-500 mt-1")
+
+            # ── Tester Demo Mode (bots as fake users) ──
+            ui.label("🎭 Tester Demo Mode — bots as fake users").classes("subsection-title mt-4")
+            with ui.card().classes("w-full p-4 mb-4"):
+                ui.label(
+                    "Makes the app feel populated for testers: bots only like you back (never "
+                    "proactively spam), fresh signups get pre-likes from bots, and bot-generated "
+                    "data is auto-purged so the DBs stay lean. Controls live on bot-service /api/demo."
+                ).classes("text-xs text-gray-600 mb-2")
+
+                with ui.row().classes("gap-4 flex-wrap mb-2"):
+                    with ui.element("div").classes("metric"):
+                        ui.label("Demo Mode").classes("label")
+                        self.demo_enabled_label = ui.label("–").classes("value text-lg font-bold")
+                    with ui.element("div").classes("metric"):
+                        ui.label("Active Bots").classes("label")
+                        self.demo_active_label = ui.label("–").classes("value text-lg font-bold")
+                    with ui.element("div").classes("metric"):
+                        ui.label("Bot Matches").classes("label")
+                        self.demo_matches_label = ui.label("–").classes("value text-lg font-bold")
+                    with ui.element("div").classes("metric"):
+                        ui.label("Bot Messages").classes("label")
+                        self.demo_messages_label = ui.label("–").classes("value text-lg font-bold")
+                    with ui.element("div").classes("metric"):
+                        ui.label("Onboarded Testers").classes("label")
+                        self.demo_onboarded_label = ui.label("–").classes("value text-lg font-bold")
+
+                with ui.row().classes("toolbar"):
+                    self.add_button("🟢 Enable Demo", lambda: self.guarded("Enable demo", self._demo_enable), icon="smart_toy", color="positive", tooltip="Turn on reactive fake-user mode: bots like back + onboard new testers")
+                    self.add_button("⏹️ Disable Demo", lambda: self.guarded("Disable demo", self._demo_disable), icon="stop", color="warning", tooltip="Turn off demo mode and purge all bot-generated interactions")
+                    self.add_button("🧹 Purge Bot Data", lambda: self.guarded("Purge bot data", self._demo_purge), icon="cleaning_services", color="negative", tooltip="Delete ALL bot-generated swipes/matches/messages (real user data is untouched)")
+                    self.add_button("Refresh", lambda: self.guarded("Refresh demo", self._demo_refresh), icon="refresh", tooltip="Reload demo mode status from bot-service")
+
+                self.demo_status_label = ui.label("Click Refresh to load demo mode status.").classes("text-sm text-gray-500 mt-1")
 
             # ── Firebase App Distribution ──
             ui.label("🚀 Firebase App Distribution").classes("subsection-title mt-4")
@@ -3322,6 +3990,45 @@ class DevDashboard:
         except Exception as e:
             if self.testers_status_label is not None:
                 self.testers_status_label.text = f"❌ {e}"
+
+    # ─── Tester Demo Mode ────────────────────────────────────────────
+    async def _demo_refresh(self) -> None:
+        try:
+            status = await self.demo_json("/api/demo/status")
+        except Exception as exc:
+            if self.demo_status_label is not None:
+                self.demo_status_label.text = f"❌ {exc}"
+            return
+        if self.demo_enabled_label is not None:
+            self.demo_enabled_label.text = "ON" if status.get("demoEnabled") else "OFF"
+        if self.demo_active_label is not None:
+            self.demo_active_label.text = str(status.get("activeBots", "–"))
+        if self.demo_matches_label is not None:
+            self.demo_matches_label.text = str(status.get("totalBotMatches", "–"))
+        if self.demo_messages_label is not None:
+            self.demo_messages_label.text = str(status.get("totalBotMessages", "–"))
+        if self.demo_onboarded_label is not None:
+            self.demo_onboarded_label.text = str(status.get("onboardedTesters", "–"))
+        if self.demo_status_label is not None:
+            self.demo_status_label.text = (
+                f"✅ Demo mode is {'ON' if status.get('demoEnabled') else 'OFF'} "
+                f"(reactiveOnly={status.get('reactiveOnly')})"
+            )
+
+    async def _demo_enable(self) -> None:
+        result = await self.demo_json("/api/demo/enable", method="POST", json_body={"enabled": True, "reactiveOnly": True})
+        if self.demo_status_label is not None:
+            self.demo_status_label.text = f"✅ Demo mode enabled (reactiveOnly={result.get('reactiveOnly')})"
+
+    async def _demo_disable(self) -> None:
+        result = await self.demo_json("/api/demo/disable", method="POST")
+        if self.demo_status_label is not None:
+            self.demo_status_label.text = "⏹️ Demo mode disabled; bot data purged."
+
+    async def _demo_purge(self) -> None:
+        result = await self.demo_json("/api/demo/purge", method="POST", params={"olderThanHours": 0})
+        if self.demo_status_label is not None:
+            self.demo_status_label.text = f"🧹 Purge {'OK' if result.get('purged') else 'failed'}"
 
     async def _firebase_distribute(self) -> None:
         """Build release APK + distribute to Firebase App Distribution testers."""

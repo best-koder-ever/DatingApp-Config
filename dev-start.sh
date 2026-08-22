@@ -45,8 +45,20 @@ ensure_infrastructure() {
     fi
 
     if [ "$missing" -eq 1 ]; then
-        echo "💡 Please run ./infrastructure/start.sh before launching the services."
-        exit 1
+        echo "💡 Infrastructure is not running — starting it now (./infrastructure/start.sh)..."
+        echo "   (Data persists in Docker volumes across reboots.)"
+        if ! bash "${SCRIPT_DIR}/infrastructure/start.sh"; then
+            echo "❌ Failed to start infrastructure. Check Docker is running, then try ./infrastructure/start.sh manually."
+            exit 1
+        fi
+        # Re-check after infra starts
+        if ! check_port localhost 8090 || ! check_port localhost 3309; then
+            echo "❌ Infrastructure started but Keycloak/MySQL are still not reachable."
+            exit 1
+        fi
+        echo "✅ Infrastructure up (Keycloak + DBs)."
+    else
+        echo "✅ Infrastructure already running (Keycloak + DBs)."
     fi
 }
 
@@ -231,4 +243,26 @@ if [ "${BOT_MODE:-true}" = "true" ]; then
     fi
 else
     echo "🤖 BotService: Skipped (set BOT_MODE=true to enable)"
+fi
+
+# Start Whisper feedback transcription watcher (laptop-dev fallback).
+# In the full Docker stack the server-side bot-service transcribes voice memos
+# itself (WhisperTranscriptionService -> whisper-service). This laptop watcher
+# only matters for local dotnet-run dev, where no whisper-service container runs.
+if [ "${WHISPER_WATCHER:-true}" = "true" ]; then
+    echo "🎤 Starting Whisper feedback watcher (laptop-dev fallback)..."
+    if [ -x "$SCRIPT_DIR/.venv/bin/python" ] && [ -f "$SCRIPT_DIR/scripts/process-feedback.py" ]; then
+        nohup "$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/scripts/process-feedback.py" --watch 600 > "$SCRIPT_DIR/logs/whisper-feedback.log" 2>&1 &
+        WHISPER_PID=$!
+        sleep 2
+        if kill -0 "$WHISPER_PID" 2>/dev/null; then
+            echo "✅ Whisper watcher: Running (PID: $WHISPER_PID) — logs/whisper-feedback.log"
+        else
+            echo "⚠️  Whisper watcher exited early — check logs/whisper-feedback.log"
+        fi
+    else
+        echo "⚠️  Whisper watcher skipped: missing .venv/bin/python or scripts/process-feedback.py"
+    fi
+else
+    echo "🎤 Whisper watcher: Skipped (set WHISPER_WATCHER=true to enable the laptop fallback)"
 fi

@@ -2,6 +2,10 @@
 """
 process-feedback.py — Whisper transcription pump for in-app voice feedback.
 
+LEGACY laptop-dev fallback: the Docker/server stack now transcribes in-process
+via bot-service's WhisperTranscriptionService -> whisper-service container.
+Keep this script for local dotnet-run dev (no whisper-service) or manual runs.
+
 Pulls unprocessed feedback rows from bot-service, downloads each audio file,
 runs Whisper locally, then PATCHes the transcript back. Run from your laptop
 on a timer (cron / systemd) — keep API keys off the server.
@@ -12,7 +16,8 @@ Usage:
     python3 scripts/process-feedback.py --watch 600   # loop every 10 minutes
 
 Env / flags:
-    --base-url   default http://localhost:8080  (the YARP gateway)
+    --base-url   default http://localhost:8089  (bot-service direct — bypasses
+                 the YARP gateway /api/userfeedback rate limit)
     --model      faster-whisper model size (tiny/base/small/medium/large-v3)
     --language   ISO code or 'auto'
     --gh-issue OWNER/REPO  open a GitHub issue per transcribed feedback
@@ -30,7 +35,7 @@ from pathlib import Path
 
 import requests
 
-DEFAULT_BASE_URL = os.environ.get("DEJTING_API_BASE", "http://localhost:8080")
+DEFAULT_BASE_URL = os.environ.get("DEJTING_API_BASE", "http://localhost:8089")
 
 
 def fetch_unprocessed(base_url: str) -> list[dict]:
