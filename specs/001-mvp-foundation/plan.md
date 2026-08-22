@@ -121,3 +121,33 @@ Specs: specs/001-mvp-foundation/
 - `lib/main.dart` — `loadDevServerChoice()` at startup
 - `scripts/reset-and-seed.py` — new server-side seeding script
 
+---
+
+## Project Status — 2026-08-22
+
+### Done today (all tested + committed + pushed)
+| Item | Repo / commit | Status |
+|------|---------------|--------|
+| **P1 real semantic embeddings** — OpenAI-compatible `/embeddings` via local Ollama, keyless (`Embeddings:RequireApiKey=false`), `all-minilm:l6-v2` (fast + meaningful: cos 0.996 similar vs 0.693 different). Hash fallback for dev/demo. | UserService `83862c4`, `717c710`, `5dacd52` | ✅ 318 tests |
+| **AI Psykolog visibility + sessions** — home-screen Discover icon, transcript re-read (new `PsykologTranscriptScreen` + `GET .../messages`), configurable premium-aware limits (`Psykolog:*`, 5 free/mo), transcripts kept (purge removed), stale-session auto-expiry. | UserService `c6a8722` · Flutter `a67b8fd` | ✅ 325 tests |
+| **Dating Coach P1** — relationship-expert prompt, partner-theme extraction (`PartnerValue/PartnerAttachment/PartnerTrait`), `POST /api/psykolog/bio-audit` (recommendation only), bio-audit card in "Din resa". | UserService `6a9d43b` · Flutter `1441b61` | ✅ 328 tests |
+| **T1 + T4 verified already fixed** (SignalR object payload; bot-to-bot guard) — no work needed, known-issues updated. | — | ✅ |
+| **P2 assessed** — `forum-service` + `reputation-service` cloned, both build clean; found the **contract mismatch** (backend content-only vs Flutter title/category/votes) that causes `forum_feed_screen_test` failures. | — | 🔎 |
+
+### Current state (working)
+- Full core stack (auth, discover, swipe, match, chat, photos, safety, psykolog, bots, whisper) runs locally; all repos clean + pushed.
+- Ollama running on laptop for free local embeddings (`all-minilm:l6-v2`).
+- 4 pre-existing Flutter test failures fixed this session (psykolog stale tests) → 62-failure debt is now ~58.
+
+### What's next (backlog)
+1. **P2 Forumet** — extend `forum-service` to the Flutter/vision contract (title/category/voteScore/vote/delete), wire compose (move out of `extras`), deploy to the little server, fix `forum_feed_screen_test`. *(biggest open item)*
+2. **Dating Coach P2** — AI bio drafts + one-line rewrite + "Använd" apply flow into the profile editor.
+3. **P3 Push notifications** — backend FCM sender + Flutter `firebase_messaging` (needs your Firebase `google-services.json`).
+4. **Dating Coach P3** — second "who I want" vector blended into matchmaking.
+5. **Debt** — remaining ~58 Flutter test failures (triage), debug prints cleanup, LLM resilience (GROQ key fallback), real-user cold-start check, whisper `ggml-tiny` on server.
+
+### Rough cost notes (heuristic, ~$0.30/1M tokens blended)
+- P1 done ≈ 100k · Psykolog sessions ≈ 80k · Dating Coach P1 ≈ 70k (≈ $0.08 total today).
+- P2 Forumet ~120–300k · Dating Coach P2 ~50–100k · P3 push ~80–200k.
+
+
