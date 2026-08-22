@@ -92,3 +92,7 @@ video-service/
 # Local Vikunja board binary + data (not versioned)
 vikunja_binary
 vikunja-data/
+
+## Local/generated junk (kept on disk, not tracked)
+httpx
+feedback-prompt.md
