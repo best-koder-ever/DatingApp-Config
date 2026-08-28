@@ -333,6 +333,7 @@ class DevDashboard:
     def __init__(self, dry_run: bool = False) -> None:
         self.dry_run = dry_run
         self.processes: dict[str, asyncio.subprocess.Process] = {}
+        self._bg_tasks: list[asyncio.Task] = []
         self.busy = False
         self.active_job = "Idle"
         self.last_refresh = "Never"
@@ -550,6 +551,9 @@ class DevDashboard:
         Returns immediately after spawning the background task. The command runs
         independently — the dashboard stays responsive. Output appears in the
         Android tab's build log area.
+
+        Use :meth:`run_command_streaming_wait` when the caller needs to block
+        until the subprocess finishes (e.g. before installing the produced APK).
         """
         title = label or shell_join(cmd)
         self.log(f"[BG] Starting: {title}")
@@ -605,8 +609,84 @@ class DevDashboard:
                     self.android_status.classes("text-red-600 font-semibold text-sm")
             return return_code
 
-        asyncio.create_task(_runner())
+        # Hold a strong reference so the task is not garbage-collected before
+        # completion (asyncio.create_task returns a weak ref otherwise).
+        task = asyncio.create_task(_runner())
+        self._bg_tasks.append(task)
+        task.add_done_callback(self._bg_tasks.discard)
         return 0  # Return immediately — task runs in background
+
+    async def run_command_streaming_wait(
+        self,
+        cmd: list[str],
+        *,
+        cwd: Path = ROOT,
+        env: dict[str, str] | None = None,
+        label: str = "Background task",
+        timeout: float | None = None,
+    ) -> int:
+        """Like :meth:`run_command_streaming` but blocks until the subprocess
+        finishes (or `timeout` seconds elapse, default 10 min).
+
+        Use this when the next step depends on the produced artifact (e.g.
+        installing the APK that the build just produced). Output is still
+        streamed to the Android log.
+        """
+        done = asyncio.Event()
+        holder: dict[str, int] = {}
+
+        title = label or shell_join(cmd)
+        self.log(f"[BG-WAIT] Starting: {title}")
+
+        if self.android_status is not None:
+            self.android_status.text = f"⏳ {title}..."
+            self.android_status.classes("text-orange-600 font-semibold text-sm")
+
+        async def _runner() -> int:
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    cwd=str(cwd),
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+            except FileNotFoundError as exc:
+                msg = f"Command not found: {exc}"
+                self.log(f"[BG-WAIT] {msg}")
+                if self.android_log is not None:
+                    self.android_log.push(strip_ansi(f"[ERROR] {msg}"))
+                holder["rc"] = 127
+                done.set()
+                return 127
+
+            assert proc.stdout is not None
+            line_count = 0
+            while True:
+                raw = await proc.stdout.readline()
+                if not raw:
+                    break
+                line = raw.decode(errors="replace").rstrip()
+                self.log(f"[BG-WAIT:{title}] {line}")
+                if self.android_log is not None:
+                    line_count += 1
+                    if line_count % 5 == 1 or 'error' in line.lower() or 'fail' in line.lower():
+                        self.android_log.push(strip_ansi(line))
+            return_code = await proc.wait()
+            holder["rc"] = return_code
+            done.set()
+            return return_code
+
+        task = asyncio.create_task(_runner())
+        self._bg_tasks.append(task)
+        task.add_done_callback(self._bg_tasks.discard)
+
+        try:
+            await asyncio.wait_for(done.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.log(f"⚠️ {title} timed out after {timeout}s — proceeding anyway")
+            return -1
+        return holder.get("rc", -1)
 
     async def start_service(self, key: str) -> None:
         service = SERVICE_BY_KEY[key]
@@ -1235,12 +1315,63 @@ class DevDashboard:
                 return response.json()
             return {}
 
+    def _persona_counts(self) -> dict[str, int]:
+        """Count fake users by scanning the Personas folder (source of truth)."""
+        root = ROOT / "bot-service" / "BotService" / "Personas"
+        counts = {"total": 0, "curated": 0, "generated": 0, "disabled": 0,
+                  "with_photo": 0, "no_photo": 0}
+        photos: set[str] = set()
+        photo_dir = root / "photos"
+        if photo_dir.exists():
+            photos = {pth.stem for pth in photo_dir.glob("*.png")}
+        for subdir, key in ((root, "curated"),
+                            (root / "generated", "generated"),
+                            (root / "disabled", "disabled")):
+            if not subdir.exists():
+                continue
+            for f in sorted(subdir.glob("*.json")):
+                counts["total"] += 1
+                counts[key] += 1
+                has_remote = False
+                try:
+                    data = json.loads(f.read_text(encoding="utf-8"))
+                    has_remote = bool(data.get("photoUrl"))
+                except (json.JSONDecodeError, OSError):
+                    pass
+                if f.stem in photos or has_remote:
+                    counts["with_photo"] += 1
+                else:
+                    counts["no_photo"] += 1
+        return counts
+
+    def _set_label(self, attr: str, value: str) -> None:
+        label = getattr(self, attr, None)
+        if label is not None:
+            label.text = value
+
     async def refresh_bots(self) -> None:
         bot_rows: list[dict[str, Any]] = []
         finding_rows: list[dict[str, Any]] = []
+
+        pc = self._persona_counts()
+        self._set_label("botsum_personas_total", f"{pc['total']}")
+        self._set_label("botsum_curated", f"{pc['curated']}")
+        self._set_label("botsum_generated", f"{pc['generated']}")
+        self._set_label("botsum_disabled", f"{pc['disabled']}")
+        self._set_label("botsum_with_photo", f"{pc['with_photo']}")
+        self._set_label("botsum_no_photo", f"{pc['no_photo']}")
+
         try:
             status = await self.bot_json("/api/Bot/status")
             bots = status.get("bots", [])
+            active = sum(1 for b in bots if str(b.get("status", "")).lower() == "active")
+            paused = sum(1 for b in bots if str(b.get("status", "")).lower() == "paused")
+            self._set_label("botsum_bots_total", str(len(bots)))
+            self._set_label("botsum_active", str(active))
+            self._set_label("botsum_paused", str(paused))
+            self._set_label("botsum_swipes", str(sum(int(b.get("swipesToday") or 0) for b in bots)))
+            self._set_label("botsum_messages", str(sum(int(b.get("messagesSentToday") or 0) for b in bots)))
+            self._set_label("botsum_matches", str(sum(int(b.get("matchCount") or 0) for b in bots)))
             for bot in bots:
                 bot_rows.append(
                     {
@@ -1255,6 +1386,9 @@ class DevDashboard:
                 )
         except Exception as exc:
             bot_rows.append({"persona": "BotService unavailable", "status": str(exc)})
+            for attr in ("botsum_bots_total", "botsum_active", "botsum_paused",
+                         "botsum_swipes", "botsum_messages", "botsum_matches"):
+                self._set_label(attr, "—")
 
         try:
             summary = await self.bot_json("/api/Findings/summary")
@@ -1712,30 +1846,47 @@ class DevDashboard:
             self.android_status.text = "🔨 Building APK..."
             self.android_status.classes("text-orange-600 font-semibold text-sm")
 
-        # Build in background (streaming), then poll for the APK like WiFi deploy.
-        await self.build_apk("debug")
+        # Build synchronously so the install step below only runs after the new
+        # APK is on disk. The previous mtime-polling approach was racy because
+        # run_command_streaming used to return immediately, so a slow build
+        # could leave the dashboard installing the stale APK from a prior run.
+        try:
+            await self.build_apk("debug", sync=True, timeout=600)
+        except RuntimeError as exc:
+            ui.notify(f"Build failed: {exc}", type="negative")
+            return
+
         apk = self.apk_path("debug")
-        for _ in range(180):
-            if apk.exists() and (time.time() - apk.stat().st_mtime) < 10:
-                break
-            await asyncio.sleep(1)
-        else:
-            self.log("⚠️  Build may still be running — APK not found after 180s")
+        if not apk.exists():
+            self.log(f"❌ APK still missing after build: {apk}")
             if self.android_status is not None:
-                self.android_status.text = "⚠️ Build timed out — check log"
-                self.android_status.classes("text-yellow-600 font-semibold text-sm")
+                self.android_status.text = "❌ APK missing after build"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
             return
 
         if self.android_log is not None:
             self.android_log.push(f"📦 Installing {apk.name} on {serial}...")
-        await self.run_command_streaming(
+        if self.android_status is not None:
+            self.android_status.text = "📦 Installing APK..."
+            self.android_status.classes("text-blue-600 font-semibold text-sm")
+        rc = await self.run_command_streaming_wait(
             ["adb", "-s", serial, "install", "-r", "-g", str(apk)],
             label="Install APK (USB)",
+            timeout=180,
         )
+        if rc != 0:
+            self.log(f"❌ adb install failed (exit {rc}) — see log")
+            if self.android_status is not None:
+                self.android_status.text = f"❌ Install failed (exit {rc})"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            return
         await asyncio.sleep(2)
 
         if self.android_log is not None:
             self.android_log.push("🚀 Launching app...")
+        if self.android_status is not None:
+            self.android_status.text = "🚀 Launching app..."
+            self.android_status.classes("text-green-600 font-semibold text-sm")
         await self.run_command(
             ["adb", "-s", serial, "shell", "am", "start", "-n",
              f"{APP_PACKAGE}/{APP_ACTIVITY}"],
@@ -1787,12 +1938,33 @@ class DevDashboard:
             self.feedback_pending_label.text = "✅ No pending feedback — all transcribed"
         else:
             self.feedback_pending_label.text = (
-                f"⏳ {pending} pending voice memo(s) — click 'Transcribe now'"
+                f"⏳ {pending} pending voice memo(s) — auto-transcribing via "
+                "whisper-service :8095 (~30s). 'Transcribe now' forces a run."
             )
 
     async def _feedback_periodic_refresh(self) -> None:
         """Slow periodic refresh for the feedback panel (rate-limit friendly)."""
         await self.refresh_feedback_table()
+
+    def start_transcribe_background(self) -> None:
+        """Launch the transcription pump in the background — the dashboard stays
+        interactive. Server-side whisper-service normally auto-transcribes; this
+        is a manual fallback/force-run, so it must never lock the whole UI."""
+        if getattr(self, "_transcribing", False):
+            ui.notify("Transcription already running", type="warning")
+            return
+        self._transcribing = True
+        self.log("🎤 Starting transcription pump in background...")
+        ui.notify("🎤 Transcribing in background — dashboard stays responsive",
+                  type="positive")
+
+        async def _run() -> None:
+            try:
+                await self.transcribe_feedback()
+            finally:
+                self._transcribing = False
+
+        asyncio.create_task(_run())
 
     async def transcribe_feedback(self) -> None:
         """Run the laptop-side Whisper pump once (scripts/process-feedback.py --once).
@@ -2235,19 +2407,21 @@ class DevDashboard:
             self.android_status.text = "🏗️ Building APK..."
             self.android_status.classes("text-orange-600 font-semibold text-sm")
 
-        await self.build_apk("debug")
+        # Build synchronously so the install step only runs after the new APK
+        # is on disk. The previous mtime-polling approach was racy because
+        # run_command_streaming used to return immediately.
+        try:
+            await self.build_apk("debug", sync=True, timeout=600)
+        except RuntimeError as exc:
+            ui.notify(f"Build failed: {exc}", type="negative")
+            return
 
-        # Step 6: Wait for build to finish (poll the APK existence)
         apk = self.apk_path("debug")
-        for _ in range(120):
-            if apk.exists() and (time.time() - apk.stat().st_mtime) < 10:
-                break
-            await asyncio.sleep(1)
-        else:
-            self.log("⚠️  Build may still be running — APK not found after 120s")
+        if not apk.exists():
+            self.log(f"❌ APK still missing after build: {apk}")
             if self.android_status is not None:
-                self.android_status.text = "⚠️ Build timed out — check log"
-                self.android_status.classes("text-yellow-600 font-semibold text-sm")
+                self.android_status.text = "❌ APK missing after build"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
             return
 
         # Step 7: Install APK
@@ -2256,11 +2430,17 @@ class DevDashboard:
         if self.android_status is not None:
             self.android_status.text = "📦 Installing APK..."
             self.android_status.classes("text-blue-600 font-semibold text-sm")
-
-        await self.run_command_streaming(
+        rc = await self.run_command_streaming_wait(
             ["adb", "-s", wifi_serial, "install", "-r", "-g", str(apk)],
             label="Install APK (WiFi)",
+            timeout=180,
         )
+        if rc != 0:
+            self.log(f"❌ adb install (WiFi) failed (exit {rc}) — see log")
+            if self.android_status is not None:
+                self.android_status.text = f"❌ Install failed (exit {rc})"
+                self.android_status.classes("text-red-600 font-semibold text-sm")
+            return
         await asyncio.sleep(2)
 
         # Step 8: Launch app
@@ -2426,7 +2606,19 @@ class DevDashboard:
     async def stop_emulator(self) -> None:
         await self.adb(["emu", "kill"], label="stop emulator")
 
-    async def build_apk(self, mode: str) -> None:
+    async def build_apk(self, mode: str, *, sync: bool = False, timeout: float = 600.0) -> None:
+        """Run `flutter build apk --<mode>`.
+
+        Args:
+            mode: ``"debug"`` or ``"release"``.
+            sync: When ``True``, await the build to finish (use this when the
+                caller needs the APK on disk, e.g. before installing). When
+                ``False`` (default), spawn the build as a fire-and-forget
+                background task so the dashboard stays responsive.
+            timeout: Maximum seconds to wait when ``sync=True``. Default 10 min
+                — enough for a clean Gradle build on a laptop. A return of ``-1``
+                means the wait timed out; the build may still be running.
+        """
         if not FLUTTER_ROOT.exists():
             self.log(f"Flutter root missing: {FLUTTER_ROOT}")
             if self.android_status is not None:
@@ -2442,12 +2634,30 @@ class DevDashboard:
         args = ["flutter", "build", "apk", f"--{mode}"]
         if mode == "release":
             args.append("--dart-define=DEJTING_FEEDBACK_VISIBLE=true")
-        # Run in background — dashboard stays responsive
-        await self.run_command_streaming(
-            args,
-            cwd=FLUTTER_ROOT,
-            label=f"Build APK ({mode})",
-        )
+
+        if sync:
+            rc = await self.run_command_streaming_wait(
+                args,
+                cwd=FLUTTER_ROOT,
+                label=f"Build APK ({mode})",
+                timeout=timeout,
+            )
+            if rc != 0:
+                self.log(f"❌ Build APK ({mode}) failed (exit {rc}) — not installing")
+                if self.android_status is not None:
+                    self.android_status.text = f"❌ Build failed (exit {rc})"
+                    self.android_status.classes("text-red-600 font-semibold text-sm")
+                # Bump the APK mtime check would fail anyway, so we surface
+                # the failure to the caller explicitly.
+                raise RuntimeError(f"flutter build apk --{mode} failed (exit {rc})")
+        else:
+            # Fire-and-forget — dashboard stays responsive. The standalone
+            # "Build APK" button uses this.
+            await self.run_command_streaming(
+                args,
+                cwd=FLUTTER_ROOT,
+                label=f"Build APK ({mode})",
+            )
 
     def apk_path(self, mode: str) -> Path:
         file_name = "app-release.apk" if mode == "release" else "app-debug.apk"
@@ -2691,18 +2901,18 @@ class DevDashboard:
                     "text-sm font-bold text-indigo-800"
                 )
                 ui.label(
-                    "Feedback voice memos are transcribed by a laptop-side script "
-                    "(scripts/process-feedback.py + faster-whisper) — there is no "
-                    "running service, so the app stays on 'Waiting for Whisper…' "
-                    "until you run it. Click below to process pending items now."
+                    "Voice memos are transcribed automatically server-side "
+                    "(bot-service → whisper-service :8095). The buttons below are a "
+                    "manual fallback (laptop faster-whisper) — only needed if the "
+                    "server-side worker is down."
                 ).classes("text-xs text-indigo-700 mb-2")
                 with ui.row().classes("toolbar"):
                     self.add_button(
                         "🎤 Transcribe now (once)",
-                        lambda: self.guarded("Transcribe feedback", self.transcribe_feedback),
+                        self.start_transcribe_background,
                         icon="mic",
                         color="positive",
-                        tooltip="Run scripts/process-feedback.py --once: transcribe all pending voice memos via Whisper",
+                        tooltip="Force-run scripts/process-feedback.py --once (server-side whisper-service normally auto-transcribes)",
                     )
                     self.add_button(
                         "▶️ Start Watcher",
@@ -3547,6 +3757,49 @@ class DevDashboard:
                     tooltip="Launch a bot swarm experiment with 3 bots in onboarding mode. Bots will register, create profiles, and start swiping.",
                 )
 
+            ui.label("Fake users (personas)").classes("section-title")
+            with ui.row().classes("gap-3 flex-wrap mb-2"):
+                with ui.element("div").classes("metric"):
+                    ui.label("Total").classes("label")
+                    self.botsum_personas_total = ui.label("⏳").classes("value text-lg font-bold")
+                with ui.element("div").classes("metric"):
+                    ui.label("Curated").classes("label")
+                    self.botsum_curated = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("Generated").classes("label")
+                    self.botsum_generated = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("Disabled").classes("label")
+                    self.botsum_disabled = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("With photo").classes("label")
+                    self.botsum_with_photo = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("No photo").classes("label")
+                    self.botsum_no_photo = ui.label("⏳").classes("value")
+
+            ui.label("Bots (runtime state)").classes("section-title")
+            with ui.row().classes("gap-3 flex-wrap mb-2"):
+                with ui.element("div").classes("metric"):
+                    ui.label("Bot states").classes("label")
+                    self.botsum_bots_total = ui.label("⏳").classes("value text-lg font-bold")
+                with ui.element("div").classes("metric"):
+                    ui.label("Active").classes("label")
+                    self.botsum_active = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("Paused").classes("label")
+                    self.botsum_paused = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("Swipes today").classes("label")
+                    self.botsum_swipes = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("Messages today").classes("label")
+                    self.botsum_messages = ui.label("⏳").classes("value")
+                with ui.element("div").classes("metric"):
+                    ui.label("Matches total").classes("label")
+                    self.botsum_matches = ui.label("⏳").classes("value")
+
+            ui.label("Bot activity").classes("section-title")
             bot_columns = [
                 {"name": "persona", "label": "Persona", "field": "persona"},
                 {"name": "status", "label": "Status", "field": "status"},
