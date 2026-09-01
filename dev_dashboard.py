@@ -3862,6 +3862,9 @@ class DevDashboard:
                     ui.label("Gateway Health").classes("label")
                     self.cicd_gateway_label = ui.label("⏳").classes("value text-lg font-bold")
                 with ui.element("div").classes("metric"):
+                    ui.label("Funnel (phone)").classes("label")
+                    self.cicd_funnel_label = ui.label("⏳").classes("value text-sm font-mono")
+                with ui.element("div").classes("metric"):
                     ui.label("Services Up").classes("label")
                     self.cicd_services_label = ui.label("⏳").classes("value text-lg font-bold")
                 with ui.element("div").classes("metric"):
@@ -4366,6 +4369,23 @@ class DevDashboard:
             else:
                 self.cicd_gateway_label.text = f"⚠️ {gw}"
                 self.cicd_gateway_label.classes("value text-lg font-bold text-orange-600")
+
+        # Funnel (phone-facing HTTPS endpoint) — checked directly from this
+        # laptop over the public Tailscale Funnel. If this goes down, the app
+        # on a phone can't reach the little machine (the little machine's own
+        # watchdog auto-restarts tailscaled; this just surfaces it here).
+        try:
+            import httpx as _httpx
+            fresp = await _httpx.AsyncClient(timeout=8).get(
+                "https://a.tail45c6a7.ts.net/health")
+            fcode = str(fresp.status_code)
+        except Exception:
+            fcode = "DOWN"
+        if getattr(self, "cicd_funnel_label", None) is not None:
+            self.cicd_funnel_label.text = f"✅ {fcode}" if fcode == "200" else (
+                "❌ Down" if fcode == "DOWN" else f"⚠️ {fcode}")
+            self.cicd_funnel_label.classes(
+                "value text-sm font-mono " + ("text-green-600" if fcode == "200" else "text-red-600"))
 
         rc2, out2 = await self._cicd_ssh(
             "docker ps --format '{{.Names}}' 2>/dev/null | grep -E '^(bot-service|whisper-service|yarp|photo-service|matchmaking-service|swipe-service|messaging-service|user-service|ai-tester-service|safety-service|forum-service|reputation-service|video-service)$' | wc -l",
