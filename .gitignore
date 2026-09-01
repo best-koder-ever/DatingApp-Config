@@ -107,3 +107,6 @@ whisper-service/models/
 
 # Backup files
 *.bak
+
+# Local service auto-port registry (scripts/auto-deploy.sh)
+scripts/.auto-ports

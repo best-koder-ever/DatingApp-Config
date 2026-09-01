@@ -4368,7 +4368,7 @@ class DevDashboard:
                 self.cicd_gateway_label.classes("value text-lg font-bold text-orange-600")
 
         rc2, out2 = await self._cicd_ssh(
-            "docker ps --format '{{.Names}}' 2>/dev/null | grep -E 'service|yarp' | wc -l",
+            "docker ps --format '{{.Names}}' 2>/dev/null | grep -E '^(bot-service|whisper-service|yarp|photo-service|matchmaking-service|swipe-service|messaging-service|user-service|ai-tester-service|safety-service|forum-service|reputation-service|video-service)$' | wc -l",
             timeout=10
         )
         count = out2.strip()
@@ -4397,19 +4397,33 @@ class DevDashboard:
         if self.cicd_status_label:
             self.cicd_status_label.text = "⏳ Health check..."
 
+        # (name, port, has_/health?) — reputation/forum/tester/video have no
+        # /health endpoint, so fall back to a port-open check for those.
         services = [
-            ("yarp", 8080), ("UserService", 8082), ("MatchmakingService", 8083),
-            ("PhotoService", 8085), ("MessagingService", 8086), ("SwipeService", 8087),
-            ("SafetyService", 8088),
+            ("yarp", 8080, True), ("UserService", 8082, True), ("MatchmakingService", 8083, True),
+            ("PhotoService", 8085, True), ("MessagingService", 8086, True), ("SwipeService", 8087, True),
+            ("SafetyService", 8088, True), ("BotService", 8089, True),
+            ("ReputationService", 8091, False), ("ForumService", 8092, False),
+            ("AiTesterService", 8093, False), ("VideoService", 8094, False),
+            ("WhisperService", 8095, False),
         ]
         rows = []
-        for svc, port in services:
-            rc, out = await self._cicd_ssh(
-                f"curl -s -o /dev/null -w '%{{http_code}}' --max-time 3 http://localhost:{port}/health 2>/dev/null || echo 'FAIL'",
-                timeout=10
-            )
-            code = out.strip()
-            healthy = code == "200"
+        for svc, port, has_health in services:
+            code = "FAIL"
+            if has_health:
+                rc, out = await self._cicd_ssh(
+                    f"curl -s -o /dev/null -w '%{{http_code}}' --max-time 3 http://localhost:{port}/health 2>/dev/null || echo 'FAIL'",
+                    timeout=10
+                )
+                code = out.strip()
+                healthy = code == "200"
+            else:
+                rc, out = await self._cicd_ssh(
+                    f"(echo > /dev/tcp/127.0.0.1/{port}) 2>/dev/null && echo UP || echo DOWN",
+                    timeout=8
+                )
+                code = "open" if out.strip() == "UP" else "closed"
+                healthy = out.strip() == "UP"
             version = ""
             if healthy:
                 rc_v, out_v = await self._cicd_ssh(

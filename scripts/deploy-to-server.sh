@@ -24,6 +24,11 @@ declare -A SERVICES=(
   ["photo-service"]="photo-service"
   ["messaging-service"]="messaging-service"
   ["safety-service"]="safety-service/SafetyService"
+  ["bot-service"]="bot-service/BotService"
+  ["forum-service"]="forum-service"
+  ["reputation-service"]="reputation-service"
+  ["video-service"]="video-service"
+  ["ai-tester-service"]="ai-tester-service"
 )
 
 for svc in "${!SERVICES[@]}"; do
@@ -57,6 +62,11 @@ docker save \
   datingapp-photo-service:latest \
   datingapp-safety-service:latest \
   datingapp-messaging-service:latest \
+  datingapp-bot-service:latest \
+  datingapp-forum-service:latest \
+  datingapp-reputation-service:latest \
+  datingapp-video-service:latest \
+  datingapp-ai-tester-service:latest \
   -o /tmp/datingapp-deploy.tar
 
 echo "📤 Transferring to $SERVER..."
@@ -72,7 +82,7 @@ $SSH "$SERVER" "
   sleep 10
   echo ''
   echo '=== Health Check ==='
-  for port in 8080 8082 8083 8085 8086 8087; do
+  for port in 8080 8082 8083 8085 8086 8087 8088 8089 8091 8092 8093 8094; do
     code=\$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://localhost:\$port/health 2>/dev/null || echo 'NO')
     echo \"  :\$port → \$code\"
   done
