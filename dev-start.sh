@@ -245,11 +245,52 @@ else
     echo "🤖 BotService: Skipped (set BOT_MODE=true to enable)"
 fi
 
+# Start whisper-service (Docker) — server-side Whisper transcription for
+# voice feedback. bot-service's WhisperTranscriptionService polls :8095 and
+# transcribes automatically (~30s), so no dashboard button or laptop watcher
+# is needed in the normal flow. Disable with WHISPER_SERVICE=false.
+if [ "${WHISPER_SERVICE:-true}" = "true" ]; then
+    echo "🐳 Starting whisper-service (datingapp-whisper:latest on :8095)..."
+    if ! docker image inspect datingapp-whisper:latest >/dev/null 2>&1; then
+        echo "   ⏳ Image missing — building in background (first build is slow)..."
+        mkdir -p "${SCRIPT_DIR}/logs"
+        setsid nohup bash -c "cd ${SCRIPT_DIR}/whisper-service && docker build -t datingapp-whisper:latest . > ${SCRIPT_DIR}/logs/whisper-build.log 2>&1; echo EXIT=\$? >> ${SCRIPT_DIR}/logs/whisper-build.log" >/dev/null 2>&1 &
+        echo "   Build running — bot-service will retry until :8095 answers (see logs/whisper-build.log)"
+    fi
+    # Download the small model on the host (fast/resumable) and mount it read-only —
+    # buildkit's in-image model download is unreliable on some boxes.
+    MODEL_DIR="${SCRIPT_DIR}/whisper-service/models"
+    MODEL_FILE="${MODEL_DIR}/ggml-small.bin"
+    mkdir -p "${MODEL_DIR}"
+    if [ ! -s "${MODEL_FILE}" ]; then
+        echo "   ⏳ Downloading ggml-small.bin (~466 MiB) → ${MODEL_FILE}"
+        curl -L -C - --retry 5 --retry-delay 3 --retry-all-errors \
+            -o "${MODEL_FILE}" \
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin" \
+            || echo "   ⚠️  Model download failed — whisper won't start until it's present"
+    fi
+    if ! docker ps --format '{{.Names}}' | grep -q '^datingapp-whisper$'; then
+        docker rm -f datingapp-whisper >/dev/null 2>&1 || true
+        docker run -d --name datingapp-whisper -p 8095:8095 --restart unless-stopped \
+            -e WHISPER_MODEL=ggml-small.bin -e WHISPER_LANG=auto -e WHISPER_THREADS=4 \
+            -v "${MODEL_DIR}:/models:ro" \
+            datingapp-whisper:latest >/dev/null 2>&1
+    fi
+    sleep 3
+    if bash -c 'echo > /dev/tcp/127.0.0.1/8095' 2>/dev/null; then
+        echo "✅ whisper-service: Running on :8095"
+    else
+        echo "⚠️  whisper-service: container started but :8095 not answering yet (docker logs datingapp-whisper)"
+    fi
+else
+    echo "🐳 whisper-service: Skipped (set WHISPER_SERVICE=true to enable)"
+fi
+
 # Start Whisper feedback transcription watcher (laptop-dev fallback).
 # In the full Docker stack the server-side bot-service transcribes voice memos
 # itself (WhisperTranscriptionService -> whisper-service). This laptop watcher
 # only matters for local dotnet-run dev, where no whisper-service container runs.
-if [ "${WHISPER_WATCHER:-true}" = "true" ]; then
+if [ "${WHISPER_WATCHER:-false}" = "true" ]; then
     echo "🎤 Starting Whisper feedback watcher (laptop-dev fallback)..."
     if [ -x "$SCRIPT_DIR/.venv/bin/python" ] && [ -f "$SCRIPT_DIR/scripts/process-feedback.py" ]; then
         nohup "$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/scripts/process-feedback.py" --watch 600 > "$SCRIPT_DIR/logs/whisper-feedback.log" 2>&1 &
@@ -264,5 +305,5 @@ if [ "${WHISPER_WATCHER:-true}" = "true" ]; then
         echo "⚠️  Whisper watcher skipped: missing .venv/bin/python or scripts/process-feedback.py"
     fi
 else
-    echo "🎤 Whisper watcher: Skipped (set WHISPER_WATCHER=true to enable the laptop fallback)"
+    echo "🎤 Whisper watcher: Skipped (server-side whisper-service is primary; set WHISPER_WATCHER=true for the laptop fallback)"
 fi

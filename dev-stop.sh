@@ -19,6 +19,12 @@ pkill -f "dejting-yarp" 2>/dev/null || true
 # Stop Whisper feedback transcription watcher
 pkill -f "process-feedback.py" 2>/dev/null || true
 
+# Stop whisper-service Docker container (server-side transcription engine)
+if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^datingapp-whisper$'; then
+    echo "🐳 Stopping whisper-service container..."
+    docker rm -f datingapp-whisper >/dev/null 2>&1 || true
+fi
+
 # Wait for processes to stop
 sleep 2
 
