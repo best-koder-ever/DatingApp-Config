@@ -85,8 +85,13 @@ bot-service) are now passed through, defaulting to empty so nothing breaks witho
 - [x] T060 `spec.md` with user stories and acceptance criteria.
 - [x] T061 `plan.md`, `data-model.md`, `contracts/forum-api.md`.
 - [x] T062 `tasks.md` (this file).
-- [ ] T063 `.github/agents/verify-forum.agent.md` — run it after any forum change.
+- [x] T063 `.github/agents/verify-forum.agent.md` — run it after any forum change.
+      (Exists; the box was stale. Note step 8 of the gate — the AI tester probes — only
+      became meaningful once the persona sign-in bug was fixed in `ai-tester-service`.)
 - [ ] T064 Wire the forum PRs to CI + Copilot review across the four repos.
+      Partial: `forum-service` has `ci.yml`, `dejting-yarp` has `dotnet.yml`, and the root
+      repo has a full pipeline plus a PR template. `safety-service` and `ai-tester-service`
+      have **no** workflows, and there is no `CODEOWNERS` anywhere.
 
 ## Phase 7 — AI context (so this cannot drift again)
 
@@ -108,3 +113,13 @@ bot-service) are now passed through, defaulting to empty so nothing breaks witho
 | 6 | T030–T034 | `dejtingapp` |
 | 7 | T050–T051 | `forum-service`, `dejtingapp` |
 | 8 | T041–T042 | `dejtingapp`, `forum-service` (after the latency decision) |
+
+**Status: not sliced.** Every phase was committed straight to `main` in each repo, so this
+table is now guidance for *future* forum work rather than a description of what was opened.
+Creating these eight PRs retrospectively would produce empty diffs, because `main` already
+contains all of the changes. Rewinding `main` to re-land them as PRs is possible only while
+nothing is pushed, and would rewrite history across six repos and break the superproject's
+submodule pointers — not worth it for review value that has already been realised by the
+tests and the `verify-forum` gate.
+
+To use this table as intended, take the next forum change and land it as one PR per row.
