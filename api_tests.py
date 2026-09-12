@@ -4,14 +4,19 @@ Usage:
     python3 api_tests.py              # Run match scenario
     python3 api_tests.py --safety     # Run safety scenario
     python3 api_tests.py --wizard    # Run wizard onboarding tests
+    python3 api_tests.py --forum     # Run anonymous forum tests
     python3 api_tests.py --all        # Run all scenarios
 """
 
 from __future__ import annotations
 
+import http.client
+import json
 import os
 import sys
 import time
+import urllib.error
+import urllib.request
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -32,7 +37,9 @@ class TestConfig:
     user_service_url: str = os.getenv("USER_SERVICE_URL", "http://localhost:8082").rstrip("/")
     swipe_service_url: str = os.getenv("SWIPE_SERVICE_URL", "http://localhost:8087").rstrip("/")
     matchmaking_service_url: str = os.getenv("MATCHMAKING_SERVICE_URL", "http://localhost:8083").rstrip("/")
+    gateway_url: str = os.getenv("DATINGAPP_GATEWAY_URL", "http://localhost:8080").rstrip("/")
     gateway_health: str = os.getenv("DATINGAPP_GATEWAY_HEALTH", "http://localhost:8080/health")
+    forum_service_url: str = os.getenv("FORUM_SERVICE_URL", "http://localhost:8092").rstrip("/")
     request_timeout: int = int(os.getenv("API_TEST_TIMEOUT_SECONDS", "20"))
 
     @property
@@ -50,6 +57,10 @@ class TestConfig:
     @property
     def matchmaking_service_health(self) -> str:
         return f"{self.matchmaking_service_url}/health"
+
+    @property
+    def forum_service_health(self) -> str:
+        return f"{self.forum_service_url}/health"
 
     @property
     def user_profile_endpoint(self) -> str:
@@ -996,6 +1007,151 @@ class SafetyScenarioRunner:
         self.log(f"Unblock verified: {blocked.username} is no longer blocked")
 
 
+class ForumScenarioRunner(ApiScenarioRunner):
+    """Anonymous forum smoke test: channels, topics, answers, votes, limits, anonymity.
+
+    Deliberately goes through the gateway so it also proves YARP routes
+    /api/forum/** to forum-service (:8092).
+    """
+
+    def _forum(self, method: str, path: str, payload=None, token=None):
+        """Call a forum endpoint through the gateway. Returns (status_code, parsed_body).
+
+        Uses urllib rather than requests on purpose: the gateway returns chunked responses
+        that make urllib3 raise InvalidChunkLength, even though the responses are valid HTTP
+        and work in curl and Dart. Same underlying issue as the gateway health-check note in
+        _check_health().
+        """
+        url = f"{self.config.gateway_url}/api/forum{path}"
+        data = json.dumps(payload).encode() if payload is not None else None
+        request = urllib.request.Request(url, data=data, method=method)
+        if data is not None:
+            request.add_header("Content-Type", "application/json")
+        if token:
+            request.add_header("Authorization", f"Bearer {token}")
+
+        try:
+            response = urllib.request.urlopen(request, timeout=self.config.request_timeout)
+        except urllib.error.HTTPError as error:
+            response = error
+        except urllib.error.URLError as error:
+            raise RuntimeError(f"Forum request {method} {path} failed: {error}") from error
+
+        status = response.status
+        try:
+            raw = response.read()
+        except http.client.IncompleteRead as partial:
+            # YARP drops the terminating chunk when it forwards a response, which makes
+            # strict clients report a short read even though the payload is intact. Known
+            # gateway-wide issue — see the health-check note in _check_health().
+            raw = partial.partial
+        finally:
+            response.close()
+
+        body = raw.decode()
+        try:
+            return status, (json.loads(body) if body else None)
+        except ValueError:
+            return status, body
+
+    def _check_forum_health(self) -> None:
+        try:
+            response = self.session.get(self.config.forum_service_health, timeout=self.config.request_timeout)
+        except requests.exceptions.RequestException as error:
+            raise RuntimeError(f"ForumService health check failed: {error}") from error
+        if response.status_code >= 400:
+            raise RuntimeError(f"ForumService health check returned {response.status_code}: {response.text}")
+        self.log(f"ForumService healthy ({response.status_code})")
+
+    def run(self) -> None:
+        self.log("Starting anonymous forum API verification")
+        self._check_forum_health()
+
+        admin_token = self._get_admin_token()
+        author = self._provision_user(prefix="api_forum_a", gender="Female", preferences="Male", admin_token=admin_token)
+        voter = self._provision_user(prefix="api_forum_b", gender="Male", preferences="Female", admin_token=admin_token)
+        author.token = self._get_user_token(author.email, author.password)
+        voter.token = self._get_user_token(voter.email, voter.password)
+
+        failures: List[str] = []
+
+        def expect(label: str, actual, expected) -> None:
+            if actual != expected:
+                failures.append(f"{label}: expected {expected}, got {actual}")
+                self.log(f"FAIL {label}: expected {expected}, got {actual}")
+            else:
+                self.log(f"ok   {label} ({actual})")
+
+        # ── channels + auth ─────────────────────────────────────────────
+        # The gateway's inline auth middleware requires a token for every path outside a
+        # small whitelist, so /channels needs one even though the controller allows anonymous.
+        status, channels = self._forum("GET", "/channels", token=author.token)
+        expect("GET /channels", status, 200)
+        if isinstance(channels, list):
+            expect("channel count", len(channels), 6)
+        expect("GET /topics without a token", self._forum("GET", "/topics")[0], 401)
+
+        # ── validation must not consume the posting quota ───────────────
+        expect("201-char topic rejected",
+               self._forum("POST", "/topics", {"text": "x" * 201, "channel": "vent"}, author.token)[0], 400)
+        expect("unknown channel rejected",
+               self._forum("POST", "/topics", {"text": "hej", "channel": "nonsense"}, author.token)[0], 400)
+        expect("contact details held for review",
+               self._forum("POST", "/topics", {"text": "maila mig pa spam@example.com", "channel": "vent"}, author.token)[0], 422)
+
+        # ── happy path ─────────────────────────────────────────────────
+        text = f"Forum smoke {uuid.uuid4().hex[:8]}"
+        status, created = self._forum("POST", "/topics", {"text": text, "channel": "first-dates"}, author.token)
+        expect("create topic", status, 201)
+        topic_id = created.get("id") if isinstance(created, dict) else None
+        if topic_id is None:
+            raise RuntimeError("Forum topic was not created; cannot continue forum scenario")
+
+        expect("cooldown blocks an immediate second post",
+               self._forum("POST", "/topics", {"text": "andra inlagget", "channel": "vent"}, author.token)[0], 429)
+
+        status, listing = self._forum("GET", "/topics", token=author.token)
+        expect("list topics", status, 200)
+        if isinstance(listing, dict):
+            expect("feed is a paged response", isinstance(listing.get("items"), list), True)
+            expect("no keycloakId in the feed", "keycloakId" in json.dumps(listing), False)
+            item = next((i for i in listing.get("items", []) if i.get("id") == topic_id), None)
+            if item is None:
+                failures.append("created topic missing from the feed")
+                self.log("FAIL created topic missing from the feed")
+            else:
+                expect("topic is flagged as own", item.get("isOwn"), True)
+                expect("topic carries a pseudonym", bool(item.get("pseudonym")), True)
+                expect("topic carries a colour", str(item.get("colorHex", "")).startswith("#"), True)
+
+        # ── voting: +1/-1 with toggle, no self-vote ─────────────────────
+        expect("self-vote rejected",
+               self._forum("POST", f"/topics/{topic_id}/vote", {"value": 1}, author.token)[0], 422)
+        expect("invalid vote value rejected",
+               self._forum("POST", f"/topics/{topic_id}/vote", {"value": 2}, voter.token)[0], 400)
+        status, vote = self._forum("POST", f"/topics/{topic_id}/vote", {"value": 1}, voter.token)
+        expect("upvote", status, 200)
+        expect("score after upvote", (vote or {}).get("voteScore") if isinstance(vote, dict) else None, 1)
+        _, vote = self._forum("POST", f"/topics/{topic_id}/vote", {"value": 1}, voter.token)
+        expect("same vote again toggles it off",
+               (vote or {}).get("voteScore") if isinstance(vote, dict) else None, 0)
+
+        # ── answers ────────────────────────────────────────────────────
+        expect("create answer",
+               self._forum("POST", f"/topics/{topic_id}/answers", {"text": "Haller med!"}, voter.token)[0], 201)
+        status, answers = self._forum("GET", f"/topics/{topic_id}/answers", token=voter.token)
+        expect("list answers", status, 200)
+        expect("answer count", (answers or {}).get("total") if isinstance(answers, dict) else None, 1)
+
+        # ── voice endpoint rejects a missing file (no speech engine needed) ──
+        expect("transcribe without audio rejected",
+               self._forum("POST", "/transcribe", None, author.token)[0], 400)
+
+        if failures:
+            raise RuntimeError(f"Forum scenario failed {len(failures)} check(s): " + "; ".join(failures))
+        self.log("Forum scenario succeeded")
+
+
 def run_safety_tests() -> None:
     """Entry point for safety feature tests."""
     config = TestConfig()
@@ -1012,6 +1168,7 @@ def main() -> None:
 	
 	parser = argparse.ArgumentParser(description="Run API smoke tests")
 	parser.add_argument("--safety", action="store_true", help="Run safety feature tests")
+	parser.add_argument("--forum", action="store_true", help="Run anonymous forum tests")
 	parser.add_argument("--wizard", action="store_true", help="Run wizard onboarding tests")
 	parser.add_argument("--all", action="store_true", help="Run all test scenarios")
 	args = parser.parse_args()
@@ -1047,6 +1204,9 @@ def main() -> None:
 		elif args.safety:
 			safety_runner = SafetyScenarioRunner(config)
 			safety_runner.run()
+		elif args.forum:
+			forum_runner = ForumScenarioRunner(config)
+			forum_runner.run()
 		else:
 			match_runner = ApiScenarioRunner(config)
 			match_runner.run()
