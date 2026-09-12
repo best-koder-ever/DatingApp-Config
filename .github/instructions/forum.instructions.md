@@ -76,8 +76,11 @@ change a value there, mirror it in `lib/services/forum_service.dart` and the spe
   `/api/userfeedback` — so `/channels` needs one even though the controller allows anonymous.
 - **YARP drops the terminating chunk.** Strict HTTP clients report a short read on chunked
   responses; the payload is intact. curl and Dart are fine. See the note in `api_tests.py`.
-- **CPU transcription is very slow** (measured 185s for a 9.8s clip). `Whisper:Provider`
-  defaults to `groq` so a `GROQ_API_KEY` switches to the fast path with no code change.
+- **Transcription: use the Groq path.** Local CPU whisper takes 185s for a 9.8s clip; Groq
+  takes 2.3s and is already wired (`Whisper:Provider` defaults to `groq`, `GROQ_API_KEY`
+  comes from `.env` via `dev-start.sh`). **If transcription is slow, the process was probably
+  started without `.env`** — that is the usual cause, not a code problem. Keep
+  `appsettings` values alone: never hardcode the key.
 - Do **not** set a route-level `Timeout` in the YARP config: it maps to `TimeoutPolicy`, which
   needs `UseRequestTimeouts()` middleware this gateway does not install, and every forum
   request then 500s. Use the cluster's `HttpRequest.ActivityTimeout`.

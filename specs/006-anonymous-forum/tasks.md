@@ -50,9 +50,10 @@ Status legend: `[x]` done · `[ ]` not started · `[~]` partially done
 ## Phase 4 — Voice input
 
 - [x] T040 `ForumService.transcribe` — multipart upload, 300s timeout, 503 handling.
-- [ ] T041 [US5] **Mic in the composer.** Blocked on the transcription-latency decision:
-      CPU whisper measured **185s for a 9.8s clip**. Options: a Groq key (already coded,
-      ~1–3s), `ggml-tiny` + more threads, or an async job + polling flow.
+- [x] T041 [US5] Mic in the composer. Tap to record, tap to stop, transcript lands in the
+      same 200-char field for editing before posting. Auto-stops at 20s so a forgotten
+      recording cannot run on. Hidden on web, where the `record` plugin has no implementation.
+      *The latency blocker turned out to be a non-issue: see the Groq note below.*
 - [ ] T042 [US5] Server-side duration probe (bot-service's `IAudioInspector`/ffprobe pattern);
       `MaxVoiceSeconds` is currently only enforced client-side.
 
@@ -61,6 +62,23 @@ Status legend: `[x]` done · `[ ]` not started · `[~]` partially done
 - [x] T050 [US6] `POST /api/forum/report` + `SafetyReportForwarder` to safety-service.
 - [x] T051 [US6] Report action on topic cards + outcome snackbar.
 - [ ] T052 [P] [US6] Report action on individual answers (the API already supports it).
+
+## Transcription latency — resolved
+
+Local CPU whisper measured **185s for a 9.8s clip** (`ggml-small`, 4 threads), which is why
+this phase looked blocked. It is not:
+
+- `GROQ_API_KEY` is already set in the project's `.env`.
+- `dev-start.sh` already loads `.env` with `set -a`, so services it starts inherit the key.
+- `WhisperOptions.Provider` defaults to `groq`, and `WhisperClient` reads `GROQ_API_KEY`
+  straight from the environment.
+
+Measured through `POST /api/forum/transcribe`: **2.27s end to end**, ~80x faster than local,
+with an equally accurate transcript. **No code change was required.**
+
+The remaining gap was docker: `docker-compose.yml` passed no API keys to any service, so the
+whole Groq fast path was dormant in containers. `GROQ_API_KEY` (and `GEMINI_API_KEY` for
+bot-service) are now passed through, defaulting to empty so nothing breaks without a key.
 
 ## Phase 6 — Verification and review
 
