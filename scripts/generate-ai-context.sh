@@ -47,6 +47,7 @@ echo '| 8087 | swipe-service | MySQL :3310 SwipeServiceDb |'
 echo '| 8088 | safety-service | - |'
 echo '| 8089 | bot-service | SQLite bot-service.db |'
 echo '| 8090 | Keycloak | Docker |'
+echo '| 8092 | forum-service | MySQL :3313 ForumDb |'
 
 # ─── Health check ──────────────────────────────────────────────
 echo ""
@@ -56,7 +57,7 @@ import urllib.request
 services = [
     ('YARP', 8080), ('User', 8082), ('Matchmaking', 8083),
     ('Photo', 8085), ('Messaging', 8086), ('Swipe', 8087),
-    ('Safety', 8088), ('Bot', 8089),
+    ('Safety', 8088), ('Bot', 8089), ('Forum', 8092),
 ]
 for name, port in services:
     try:

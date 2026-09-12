@@ -124,6 +124,13 @@ ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8088 dotnet run > ..
 SAFETY_PID=$!
 sleep 2
 
+# Start ForumService
+echo "🏘️  Starting ForumService on port 8092..."
+cd ${SCRIPT_DIR}/forum-service
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8092 dotnet run > ../logs/forum-service.log 2>&1 &
+FORUM_PID=$!
+sleep 2
+
 # Start YARP Gateway
 echo "🌐 Starting YARP Gateway on port 8080..."
 cd ${SCRIPT_DIR}/dejting-yarp/src/dejting-yarp
@@ -148,6 +155,7 @@ MESSAGING_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8086/
 MESSAGING_READINESS=$(curl -s http://localhost:8086/health 2>/dev/null || echo "")
 SWIPE_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/health 2>/dev/null || echo "000")
 SAFETY_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8088/health 2>/dev/null || echo "000")
+FORUM_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8092/health 2>/dev/null || echo "000")
 YARP_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health 2>/dev/null || echo "000")
 
 echo ""
@@ -195,6 +203,12 @@ if [ "$SAFETY_HEALTH" = "200" ]; then
 else
     echo "❌ SafetyService: Failed to start (HTTP: $SAFETY_HEALTH)"
 fi
+if [ "$FORUM_HEALTH" = "200" ]; then
+    echo "✅ ForumService: Running (PID: $FORUM_PID)"
+else
+    echo "❌ ForumService: Failed to start (HTTP: $FORUM_HEALTH)"
+fi
+
 
 if [ "$YARP_HEALTH" = "200" ]; then
     echo "✅ YARP Gateway: Running (PID: $YARP_PID)"
@@ -210,6 +224,7 @@ echo "   PhotoService: tail -f logs/photo-service.log"
 echo "   MessagingService: tail -f logs/messaging-service.log"
 echo "   SwipeService: tail -f logs/swipe-service.log"
 echo "   SafetyService: tail -f logs/safety-service.log"
+echo "   ForumService:  tail -f logs/forum-service.log"
 echo "   YARP Gateway: tail -f logs/yarp-gateway.log"
 echo ""
 echo "🛑 To stop: ./dev-stop.sh"

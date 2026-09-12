@@ -16,10 +16,29 @@ photo-service/               # Photo storage, moderation, privacy pipeline
 swipe-service/               # Swipe ingestion + matchmaking hooks
 dejting-yarp/                # YARP gateway, routing config
 bot-service/                 # Bot personas for demo/testing
-safety-service/              # LLM-based content moderation
+safety-service/              # Content moderation, reports, blocking
+forum-service/               # Anonymous forum — CANONICAL (see Forum note)
+reputation-service/          # Post-date reputation/feedback
+video-service/               # Video handling
+whisper-service/             # whisper.cpp speech-to-text engine
+ai-tester-service/           # AI exploratory / security / abuse test agents
+shared/                      # Shared libs (DatingApp.Llm; +Moderation planned)
 mobile-apps/flutter/dejtingapp/  # Flutter client
 infrastructure/, dev-*.sh    # Environment and orchestration scripts
 ```
+
+## Forum — CANONICAL SOURCE OF TRUTH
+- **`forum-service` (:8092) is the ONLY forum backend.** YARP routes `/api/forum/**` → `forumService` (:8092).
+- **Do NOT add forum code to `safety-service`, `MatchmakingService` or `UserService`.** A duplicate
+  safety-service `ForumController` + `ForumPost`/`ForumVote` existed and was **deleted 2026-09-12**
+  (it was unreachable — nothing routed to it). Do not recreate it.
+- **Never return or display `keycloakId`.** Topics/answers expose only a per-thread anonymous
+  identity (deterministic color + pseudonym derived from `SHA256(keycloakId + ":" + topicId)`).
+- **Text limit is 200 chars** for both topics and answers, enforced in three places: Flutter
+  `maxLength`, API validation after trim, and DB `HasMaxLength(200)`.
+- Spec lives in `specs/006-anonymous-forum/`. Client is `lib/services/forum_service.dart` +
+  `lib/screens/forum_feed_screen.dart`.
+- ⚠️ The forum client/backend contract has drifted twice already. If you change either side, check the other.
 
 ## Commands
 - `./infrastructure/start.sh` → start Keycloak + shared databases
@@ -76,77 +95,208 @@ Returns 200 on all-success, 207 multi-status if any backend fails. Requires a va
 | 8088 | safety-service | - |
 | 8089 | bot-service | SQLite bot-service.db |
 | 8090 | Keycloak | Docker |
+| 8092 | forum-service | MySQL :3313 ForumDb |
 
 ### Service Health
-- YARP (:8080): UP
-- User (:8082): UP
-- Matchmaking (:8083): UP
-- Photo (:8085): UP
-- Messaging (:8086): UP
-- Swipe (:8087): UP
-- Safety (:8088): UP
-- Bot (:8089): UP
+- YARP (:8080): DOWN
+- User (:8082): DOWN
+- Matchmaking (:8083): DOWN
+- Photo (:8085): DOWN
+- Messaging (:8086): DOWN
+- Swipe (:8087): DOWN
+- Safety (:8088): DOWN
+- Bot (:8089): DOWN
+- Forum (:8092): DOWN
 - Keycloak (:8090): UP
 
 ### Keycloak Users (realm: DatingApp)
 Admin: admin/admin on master realm at localhost:8090
 | Username | Keycloak ID | Email |
 |----------|-------------|-------|
-| alice@test.se | `3f69f757-e81c-4516-bf36-1213f6edc1cf` | alice@test.se |
-| bob@test.se | `75ff2a6a-93ed-4346-8378-ac1a78ac74d2` | bob@test.se |
-| bot_astrid@bot.local | `9eadfb1d-0577-4921-bd59-2db99c2f2f25` | bot_astrid@bot.local |
-| bot_axel@bot.local | `17dd4605-6209-4d0f-83f5-030c7901dbaa` | bot_axel@bot.local |
-| bot_demo-user@bot.local | `167d5636-f945-4726-9fd8-fd1d8d9b96c9` | bot_demo-user@bot.local |
-| bot_elsa@bot.local | `01398d2b-ab55-4a82-a8b8-5ac1dbf23031` | bot_elsa@bot.local |
-| bot_erik-b@bot.local | `ed9ccce2-47b5-45a6-abbd-897117934a8c` | bot_erik-b@bot.local |
-| bot_gustav@bot.local | `700a952c-89fe-4dc9-aa8f-46ffe322de86` | bot_gustav@bot.local |
-| bot_linnea@bot.local | `f011f459-d226-4cdf-ba57-0d103695d1ef` | bot_linnea@bot.local |
-| bot_maja@bot.local | `157e2d60-1393-4bda-81b0-c53932d5d552` | bot_maja@bot.local |
-| bot_noah@bot.local | `263c037a-2083-4e85-9a63-34cb62547498` | bot_noah@bot.local |
-| bot_oscar@bot.local | `709113e8-72a2-4a58-8728-6240516aaf05` | bot_oscar@bot.local |
-| bot_saga@bot.local | `c9627cea-7fa9-4c79-af19-edd76eda044a` | bot_saga@bot.local |
-| bot_wilma@bot.local | `f99e9b3c-76c8-4c51-82d1-770847dd2e3e` | bot_wilma@bot.local |
-| charlie@test.se | `ac744ecd-bb7d-458d-90ee-543b78489958` | charlie@test.se |
-| diana@test.se | `ba3524a3-38c0-40bb-a473-3af2b2d2ded5` | diana@test.se |
-| e2e_onboard_1780234599@demo.local | `7a482dd1-2b39-465c-adea-d944a43d13ea` | e2e_onboard_1780234599@demo.local |
-| erik@test.se | `6f246c24-9968-4fd9-987f-ceecff6ddf86` | erik@test.se |
-| fresh@test.com | `ecd708c4-6962-41c3-ac14-9714861ac04b` | fresh@test.com |
+| abuse_scammer_004461@tester.local | `d50a179c-a75e-4923-926e-613688d3d7ca` | abuse_scammer_004461@tester.local |
+| abuse_scammer_048e0f@tester.local | `7fb065f1-99df-400f-895b-d5981ddc51ce` | abuse_scammer_048e0f@tester.local |
+| abuse_scammer_0840a1@tester.local | `3ea5d421-f675-4714-9aee-c184696158de` | abuse_scammer_0840a1@tester.local |
+| abuse_scammer_09b1e5@tester.local | `2b149d20-b477-42ca-947d-52afb86ba7ae` | abuse_scammer_09b1e5@tester.local |
+| abuse_scammer_0b96c1@tester.local | `90fc241f-66de-466c-9e89-0946cb54e0f6` | abuse_scammer_0b96c1@tester.local |
+| abuse_scammer_24f74a@tester.local | `ceb49c47-d942-4d7d-a5f2-9116704770da` | abuse_scammer_24f74a@tester.local |
+| abuse_scammer_2576a3@tester.local | `9464a53f-2292-41a7-8c4c-af2ad2cdfb17` | abuse_scammer_2576a3@tester.local |
+| abuse_scammer_2c1849@tester.local | `2428d146-3013-41d4-b305-7faa8e436929` | abuse_scammer_2c1849@tester.local |
+| abuse_scammer_2c9226@tester.local | `13a50460-e57a-4bc3-b635-35d88b5e4fc0` | abuse_scammer_2c9226@tester.local |
+| abuse_scammer_32e82d@tester.local | `a9bf3fbc-3545-4c1c-bb62-4e9de3d4f4a3` | abuse_scammer_32e82d@tester.local |
+| abuse_scammer_33e711@tester.local | `4e67a80c-ac64-4aa6-a3b2-2cee48f5bf73` | abuse_scammer_33e711@tester.local |
+| abuse_scammer_3ac74e@tester.local | `1b2353e4-ddab-4c89-ba47-137a25a89da7` | abuse_scammer_3ac74e@tester.local |
+| abuse_scammer_409b1c@tester.local | `6b31676e-0cee-4f10-a4ef-8e9c7aa71500` | abuse_scammer_409b1c@tester.local |
+| abuse_scammer_43aa81@tester.local | `8eafec89-f212-46eb-9cff-32bdd659608a` | abuse_scammer_43aa81@tester.local |
+| abuse_scammer_43c414@tester.local | `c54b22ac-b83b-4076-a7bd-a24c04807c9c` | abuse_scammer_43c414@tester.local |
+| abuse_scammer_47ed97@tester.local | `57d71c8f-0f5c-4598-8044-89d08c6d44e7` | abuse_scammer_47ed97@tester.local |
+| abuse_scammer_4d913e@tester.local | `9c52c048-c34c-4646-9fe3-016cc97f2de7` | abuse_scammer_4d913e@tester.local |
+| abuse_scammer_4db061@tester.local | `0107dd0c-e3ae-4cf2-b532-fc72df273d38` | abuse_scammer_4db061@tester.local |
+| abuse_scammer_51bcb9@tester.local | `0acdec0f-492e-4b0b-9208-7efdf6ae8abb` | abuse_scammer_51bcb9@tester.local |
+| abuse_scammer_5c8771@tester.local | `d59ce5fa-6157-4d44-83eb-180ffecec34e` | abuse_scammer_5c8771@tester.local |
+| abuse_scammer_6b9cc0@tester.local | `4631c667-0d4f-4458-aa7a-049c7fb88073` | abuse_scammer_6b9cc0@tester.local |
+| abuse_scammer_70de53@tester.local | `f02f5282-215c-4001-9a04-46a4a6dea558` | abuse_scammer_70de53@tester.local |
+| abuse_scammer_777169@tester.local | `a0670f07-4f60-4494-8885-40a520d623e2` | abuse_scammer_777169@tester.local |
+| abuse_scammer_78f238@tester.local | `76e54a0f-9097-45ef-a5d8-fd2e48506ec1` | abuse_scammer_78f238@tester.local |
+| abuse_scammer_795071@tester.local | `faef4862-4442-465e-9f07-5075c973bcb2` | abuse_scammer_795071@tester.local |
+| abuse_scammer_7ba88b@tester.local | `29ed2a74-62a9-4219-a826-5dcbe3799692` | abuse_scammer_7ba88b@tester.local |
+| abuse_scammer_7cb729@tester.local | `f03d13fe-3ae8-4fbd-88f1-c6ea97d8d7ae` | abuse_scammer_7cb729@tester.local |
+| abuse_scammer_88b574@tester.local | `59c739ab-6265-4d03-bf17-321dd6e3643a` | abuse_scammer_88b574@tester.local |
+| abuse_scammer_8940f9@tester.local | `d0aa872c-59e7-4289-8b3e-3b3749dd85da` | abuse_scammer_8940f9@tester.local |
+| abuse_scammer_991e6e@tester.local | `e3de9eb4-ab1a-4e85-aeee-40c9080c3f79` | abuse_scammer_991e6e@tester.local |
+| abuse_scammer_994891@tester.local | `51fedee6-a209-4078-90d5-bda6196fa524` | abuse_scammer_994891@tester.local |
+| abuse_scammer_a00614@tester.local | `45df6a27-7919-4627-b11f-dbad8d9b59f5` | abuse_scammer_a00614@tester.local |
+| abuse_scammer_a17fb3@tester.local | `6ee46b87-f7e4-4091-9d55-6b325ae2ed1a` | abuse_scammer_a17fb3@tester.local |
+| abuse_scammer_a9ed0f@tester.local | `926e6214-3a47-4a2e-8cb1-96c88986d83f` | abuse_scammer_a9ed0f@tester.local |
+| abuse_scammer_aa0024@tester.local | `13d5ee62-24fd-470a-84b5-f60e52fa790a` | abuse_scammer_aa0024@tester.local |
+| abuse_scammer_ab050a@tester.local | `164c3438-694c-4e90-9cb3-b6328bd4b2d1` | abuse_scammer_ab050a@tester.local |
+| abuse_scammer_ad14f8@tester.local | `918acbbb-c9dd-4af2-a8c7-2f178dddf330` | abuse_scammer_ad14f8@tester.local |
+| abuse_scammer_bc99b0@tester.local | `23ff6a57-eeda-4eee-8c4c-320774d97344` | abuse_scammer_bc99b0@tester.local |
+| abuse_scammer_bf70b5@tester.local | `2694cd19-0745-46ea-a6c4-34b91449164c` | abuse_scammer_bf70b5@tester.local |
+| abuse_scammer_c02c99@tester.local | `13e8a074-f0c7-44ee-9693-40c445d16776` | abuse_scammer_c02c99@tester.local |
+| abuse_scammer_c1655c@tester.local | `9b28a329-3d78-4f8d-8b2b-a8b0c5908f08` | abuse_scammer_c1655c@tester.local |
+| abuse_scammer_c272c1@tester.local | `548bed01-3b91-4ef0-9429-6cc66e927d5e` | abuse_scammer_c272c1@tester.local |
+| abuse_scammer_c7338d@tester.local | `29275e5c-1dd3-4362-a367-888c1ab5af8d` | abuse_scammer_c7338d@tester.local |
+| abuse_scammer_cafe07@tester.local | `d32e1a2f-de89-4153-acb4-aed3b20e6c0f` | abuse_scammer_cafe07@tester.local |
+| abuse_scammer_cb206f@tester.local | `840bd4af-14a4-495e-aba9-1642a8cff2b8` | abuse_scammer_cb206f@tester.local |
+| abuse_scammer_cf1b79@tester.local | `95cbcefe-8ff7-44da-a684-50d099bd7b42` | abuse_scammer_cf1b79@tester.local |
+| abuse_scammer_d25247@tester.local | `26d7913b-345f-4872-836e-f9f72373d0ff` | abuse_scammer_d25247@tester.local |
+| abuse_scammer_d27f49@tester.local | `3d0ab62c-608b-4aff-92e7-7282913345ef` | abuse_scammer_d27f49@tester.local |
+| abuse_scammer_de2910@tester.local | `6a84ea15-69d6-471b-a2ba-1ebb91f51a4d` | abuse_scammer_de2910@tester.local |
+| abuse_scammer_e18915@tester.local | `b1658fd1-034b-4a3d-9c4a-042e68a1a257` | abuse_scammer_e18915@tester.local |
 
 ### Bot State
 - **demo-user**: Status=Paused, KeycloakId=`167d5636-f945-4726-9fd8-fd1d8d9b96c9`, ProfileId=1, MsgsSent=0
-- **maja**: Status=Active, KeycloakId=`157e2d60-1393-4bda-81b0-c53932d5d552`, ProfileId=3, MsgsSent=47
-- **elsa**: Status=Active, KeycloakId=`01398d2b-ab55-4a82-a8b8-5ac1dbf23031`, ProfileId=5, MsgsSent=55
-- **linnea**: Status=Active, KeycloakId=`f011f459-d226-4cdf-ba57-0d103695d1ef`, ProfileId=10, MsgsSent=49
+- **maja**: Status=Active, KeycloakId=`157e2d60-1393-4bda-81b0-c53932d5d552`, ProfileId=3, MsgsSent=67
+- **elsa**: Status=Active, KeycloakId=`01398d2b-ab55-4a82-a8b8-5ac1dbf23031`, ProfileId=5, MsgsSent=64
+- **linnea**: Status=Active, KeycloakId=`f011f459-d226-4cdf-ba57-0d103695d1ef`, ProfileId=10, MsgsSent=65
+- **sara-w**: Status=Active, KeycloakId=`282a4953-7b79-46d9-a627-0c1a9b28a48e`, ProfileId=37, MsgsSent=0
+- **emma-t**: Status=Active, KeycloakId=`625b9c35-c1b5-4293-841c-1e2bc0221af6`, ProfileId=38, MsgsSent=0
+- **elin-r**: Status=Idle, KeycloakId=`71cc05b0-2e40-405d-bb6c-3f1314672ca5`, ProfileId=39, MsgsSent=0
+- **per-a**: Status=Idle, KeycloakId=`1567f08f-69b5-47d3-b8c1-c57fc5ce4afd`, ProfileId=40, MsgsSent=0
+- **frida-b**: Status=Active, KeycloakId=`2b010184-3f27-4a4b-bc34-c19132eeda9d`, ProfileId=41, MsgsSent=0
+- **britta-m**: Status=Idle, KeycloakId=`62220063-5066-45c7-8f5f-c87f559f176d`, ProfileId=42, MsgsSent=0
+- **daniel-o**: Status=Active, KeycloakId=`2c5c03d2-1fb6-471f-8db9-e837fc2c3576`, ProfileId=43, MsgsSent=0
+- **bo-h**: Status=Idle, KeycloakId=`229c3f34-b45d-4de5-8e3a-deccd501f0ca`, ProfileId=44, MsgsSent=0
+- **julia-p**: Status=Active, KeycloakId=`2964a6c5-9078-4a4a-a1a3-3b5864220e16`, ProfileId=45, MsgsSent=0
+- **anna-k**: Status=Idle, KeycloakId=`8d261df0-cd38-486b-b2f8-eb2db68c9115`, ProfileId=46, MsgsSent=0
+- **pia-g**: Status=Idle, KeycloakId=`d3db5066-cfdb-4d48-9b0f-99487fd934df`, ProfileId=47, MsgsSent=0
+- **marcus-s**: Status=Idle, KeycloakId=`b856cc8f-992e-44d3-a8d8-324786627832`, ProfileId=48, MsgsSent=0
+- **sofie-n**: Status=Idle, KeycloakId=`96bc9f5d-bea1-46df-b475-0460182d3a51`, ProfileId=49, MsgsSent=0
+- **lars-b**: Status=Idle, KeycloakId=`72fe8f17-b59e-4963-b9bb-7effb1d9c728`, ProfileId=50, MsgsSent=0
+- **filip-a**: Status=Idle, KeycloakId=`7bafcbb0-df8e-48be-908c-a80e6d87b065`, ProfileId=51, MsgsSent=0
+- **lukas-b**: Status=Idle, KeycloakId=`684afb8d-e239-44ab-a092-a76673bffe51`, ProfileId=52, MsgsSent=0
+- **tobias-k**: Status=Idle, KeycloakId=`589e2a94-0a40-4094-80fd-84b0daabe723`, ProfileId=53, MsgsSent=0
+- **erik-n**: Status=Idle, KeycloakId=`ee7473a6-0158-480d-b773-56895a136507`, ProfileId=54, MsgsSent=0
+- **eva-p**: Status=Idle, KeycloakId=`10315704-2443-4c53-baa9-a2e00f3b5294`, ProfileId=55, MsgsSent=0
+- **robin-k**: Status=Idle, KeycloakId=`b58323bf-7dd6-4e25-bc28-b6106d27e563`, ProfileId=56, MsgsSent=0
+- **peter-v**: Status=Idle, KeycloakId=`424dad7d-f2f0-41c4-b903-054b2c40b36d`, ProfileId=57, MsgsSent=0
+- **viktor-h**: Status=Idle, KeycloakId=`4b7110b5-20fd-478c-88b8-24b55e3e1ccf`, ProfileId=58, MsgsSent=0
+- **anders-j**: Status=Idle, KeycloakId=`86e1cd75-34e4-4148-8010-e4c6e1fe9301`, ProfileId=59, MsgsSent=0
+- **vera-l**: Status=Idle, KeycloakId=`1f2cb6f7-fda8-46da-b172-70a7e526bd4b`, ProfileId=60, MsgsSent=0
+- **alice-m**: Status=Idle, KeycloakId=`67b166b8-b038-4b3f-83f8-b36614fc7348`, ProfileId=61, MsgsSent=0
+- **helen-a**: Status=Idle, KeycloakId=`1abc2be3-c559-4297-8f45-c5df7e7599fb`, ProfileId=62, MsgsSent=0
+- **max-e**: Status=Idle, KeycloakId=`65d2a1dc-f9ff-4dd2-bc5a-1e6f4367ce91`, ProfileId=63, MsgsSent=0
+- **simon-l**: Status=Idle, KeycloakId=`2549c27b-3f80-449d-ab85-c9e114ce1b5a`, ProfileId=64, MsgsSent=0
+- **lova-h**: Status=Idle, KeycloakId=`3b15bbba-7bc6-48cf-b593-6e75ffa9033d`, ProfileId=65, MsgsSent=0
+- **mia-l**: Status=Idle, KeycloakId=`fafa0ad9-1b37-4f0b-a27a-65c69d02fff9`, ProfileId=66, MsgsSent=0
+- **gunnar-s**: Status=Idle, KeycloakId=`e0b5807d-d11c-4ff6-9a68-27dad9f94cf0`, ProfileId=67, MsgsSent=0
+- **jonas-f**: Status=Idle, KeycloakId=`b93abde1-12a8-42a7-bbc4-6c8212655946`, ProfileId=68, MsgsSent=0
+- **adam-l**: Status=Idle, KeycloakId=`f95ed285-936d-4908-8eea-5514b0589533`, ProfileId=69, MsgsSent=0
+- **karin-n**: Status=Idle, KeycloakId=`78a95f93-72b4-44ab-a9a9-d80bcac29da4`, ProfileId=70, MsgsSent=0
+- **nora-e**: Status=Idle, KeycloakId=`60977276-59a7-4948-a33d-d45e22294092`, ProfileId=71, MsgsSent=0
+- **david-m**: Status=Idle, KeycloakId=`16c31698-ef69-43b8-8086-9b2b739e2337`, ProfileId=72, MsgsSent=0
+- **sofie-a**: Status=Idle, KeycloakId=`c001cdc4-6349-41d3-afbe-59ee74ca7564`, ProfileId=73, MsgsSent=0
+- **alex-s**: Status=Idle, KeycloakId=`41b5a074-0af8-4ac2-bae7-69ac154c2cc5`, ProfileId=74, MsgsSent=0
+- **magnus-r**: Status=Idle, KeycloakId=`e3ee0848-bd0d-4428-b5ae-b85d0fba555c`, ProfileId=75, MsgsSent=0
+- **ida-s**: Status=Idle, KeycloakId=`b7cde726-dc85-4111-b942-ab0ae09a8bd0`, ProfileId=76, MsgsSent=0
+- **alex-v**: Status=Idle, KeycloakId=`bb0d110e-dbba-49bd-89e7-d58648f71f40`, ProfileId=77, MsgsSent=0
+- **martin-e**: Status=Idle, KeycloakId=`0e9bb8e2-d471-44fe-9916-ee06f413f9c5`, ProfileId=78, MsgsSent=0
+- **michael**: Status=Idle, KeycloakId=`1c5d0290-dea6-4d1a-9be4-e4a3c7c5aad7`, ProfileId=79, MsgsSent=0
+- **karin-h**: Status=Idle, KeycloakId=`4c28cabb-eae8-48ac-aa56-16d91c669ec1`, ProfileId=80, MsgsSent=0
+- **maria-l**: Status=Idle, KeycloakId=`dbb47d11-2124-4e77-9b59-9e9e5298cb9e`, ProfileId=81, MsgsSent=0
+- **birgitta**: Status=Idle, KeycloakId=`919cf1ce-35d2-4830-a42c-5408ddf4b7ac`, ProfileId=82, MsgsSent=0
+- **julia-e**: Status=Idle, KeycloakId=`b1918cd4-1a4a-441a-9f32-d33532f75d62`, ProfileId=83, MsgsSent=0
+- **henrik**: Status=Idle, KeycloakId=`909898d4-9578-4dad-ad9d-0e42412244c8`, ProfileId=84, MsgsSent=0
+- **lena-a**: Status=Idle, KeycloakId=`8bdde3e0-ff1f-4599-99d0-10c3f0d424c0`, ProfileId=85, MsgsSent=0
+- **pontus**: Status=Idle, KeycloakId=`225d3dc8-23b0-4bb2-96b4-5a3e99cc76de`, ProfileId=86, MsgsSent=0
+- **hans**: Status=Idle, KeycloakId=`683c293b-e47f-429f-a0f9-d694b4c3d322`, ProfileId=87, MsgsSent=0
+- **gunilla**: Status=Idle, KeycloakId=`6b2af047-145e-4cb3-9b72-9b63f204d790`, ProfileId=88, MsgsSent=0
+- **tobias**: Status=Idle, KeycloakId=`2a45aecc-bbab-435c-9d11-aa4c1f82e583`, ProfileId=89, MsgsSent=0
+- **isabelle**: Status=Idle, KeycloakId=`17359ebe-b093-4b1b-8188-e948da6a520c`, ProfileId=90, MsgsSent=0
+- **fredrik-s**: Status=Idle, KeycloakId=`5f9fa730-700e-455e-8420-6f79bfe2434d`, ProfileId=91, MsgsSent=0
+- **johannes**: Status=Idle, KeycloakId=`9243f52e-ddf4-4d5f-b85c-c619f99c5ca8`, ProfileId=92, MsgsSent=0
+- **alice**: Status=Idle, KeycloakId=`cce8d892-c2ca-4e22-b29f-11e6d81b34a2`, ProfileId=93, MsgsSent=0
+- **amanda**: Status=Idle, KeycloakId=`cc4026dd-d93b-4314-a7b4-24857da69081`, ProfileId=94, MsgsSent=0
+- **ingrid**: Status=Idle, KeycloakId=`e6d5f813-73bd-459e-97c7-a7e9168f1562`, ProfileId=95, MsgsSent=0
+- **felix-n**: Status=Idle, KeycloakId=`8b747783-3490-4ff8-a524-f2cdb5ca7631`, ProfileId=96, MsgsSent=0
+- **lars-g**: Status=Idle, KeycloakId=`417a6edc-dd87-4aa0-a2c7-a146ba3b7e61`, ProfileId=97, MsgsSent=0
+- **ake**: Status=Idle, KeycloakId=`912cbb21-9c77-499e-bdc9-81323b1d47fd`, ProfileId=98, MsgsSent=0
+- **thomas**: Status=Idle, KeycloakId=`626a4061-decf-4269-ab71-cb65c8ace5ec`, ProfileId=99, MsgsSent=0
+- **bo**: Status=Idle, KeycloakId=`7dce0b9d-46e6-40b8-954a-61fdafcccb02`, ProfileId=100, MsgsSent=0
+- **kristina-s**: Status=Idle, KeycloakId=`0530f039-4bf4-4dcb-8d55-d2b70f9102af`, ProfileId=101, MsgsSent=0
+- **helena-j**: Status=Idle, KeycloakId=`dd5097eb-69cc-4ffd-ac03-70f6cd95af03`, ProfileId=102, MsgsSent=0
+- **eva-b**: Status=Idle, KeycloakId=`16497744-2e7d-4c17-b4b0-8a48299d3bf2`, ProfileId=103, MsgsSent=0
+- **mattias**: Status=Idle, KeycloakId=`bf968132-3d29-4df6-8c7e-031d2366cea9`, ProfileId=104, MsgsSent=0
+- **jonas-w**: Status=Idle, KeycloakId=`b0bc3d11-ac3f-414c-8d1e-e7e9c5e8ba5d`, ProfileId=105, MsgsSent=0
+- **rolf**: Status=Idle, KeycloakId=`ae475091-398a-48d3-bcf3-8a7d03fefd83`, ProfileId=106, MsgsSent=0
+- **bengt**: Status=Idle, KeycloakId=`eaeeb9db-27cb-47ab-a97e-6590a371fd90`, ProfileId=107, MsgsSent=0
+- **stefan-k**: Status=Idle, KeycloakId=`6259e44b-dafb-4381-afc7-e5de22c5983d`, ProfileId=108, MsgsSent=0
+- **mats-l**: Status=Idle, KeycloakId=`8a553b61-b4f3-4e16-bc35-734fd9d9aa72`, ProfileId=109, MsgsSent=0
+- **sofia-r**: Status=Idle, KeycloakId=`23d5d0d2-3a95-40a4-98c6-bce1b2c07ff1`, ProfileId=110, MsgsSent=0
+- **caroline**: Status=Idle, KeycloakId=`6b971d51-0ce8-4589-aedf-f0327622e37d`, ProfileId=111, MsgsSent=0
+- **margareta**: Status=Idle, KeycloakId=`f245311b-121c-48bc-8194-16f210bce625`, ProfileId=112, MsgsSent=0
+- **gun-m**: Status=Idle, KeycloakId=`fba9b285-2ab3-4106-8a58-b5a1f9d7c96f`, ProfileId=113, MsgsSent=0
+- **astrid**: Status=Idle, KeycloakId=`9eadfb1d-0577-4921-bd59-2db99c2f2f25`, ProfileId=11, MsgsSent=0
+- **axel**: Status=Idle, KeycloakId=`17dd4605-6209-4d0f-83f5-030c7901dbaa`, ProfileId=4, MsgsSent=0
+- **erik-b**: Status=Idle, KeycloakId=`ed9ccce2-47b5-45a6-abbd-897117934a8c`, ProfileId=7, MsgsSent=0
+- **gustav**: Status=Idle, KeycloakId=`700a952c-89fe-4dc9-aa8f-46ffe322de86`, ProfileId=12, MsgsSent=0
+- **noah**: Status=Idle, KeycloakId=`263c037a-2083-4e85-9a63-34cb62547498`, ProfileId=8, MsgsSent=0
+- **oscar**: Status=Idle, KeycloakId=`709113e8-72a2-4a58-8728-6240516aaf05`, ProfileId=2, MsgsSent=0
+- **saga**: Status=Idle, KeycloakId=`c9627cea-7fa9-4c79-af19-edd76eda044a`, ProfileId=6, MsgsSent=0
+- **wilma**: Status=Idle, KeycloakId=`f99e9b3c-76c8-4c51-82d1-770847dd2e3e`, ProfileId=9, MsgsSent=0
 
 ### Flutter Client
 Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
 
-**Screens:** 19 files
+**Screens:** 31 files
 ```
   account_consent_screen.dart
   auth_screens.dart
+  compatibility_settings_screen.dart
   enhanced_chat_screen.dart
   enhanced_matches_screen.dart
+  forum_feed_screen.dart
   help_screen.dart
   home_screen.dart
   location_settings_screen.dart
   match_insight_screen.dart
+  messages_screen.dart
   photo_upload_screen.dart
+  post_date_feedback_screen.dart
+  premium_comparison_screen.dart
   privacy_settings_screen.dart
   profile_detail_screen.dart
   profile_hub_screen.dart
+  psykolog_chat_screen.dart
+  psykolog_home_screen.dart
+  psykolog_transcript_screen.dart
+  radar_profile_screen.dart
   settings_screen.dart
   sparks_store_screen.dart
+  spotlight_schedule_screen.dart
+  top_picks_screen.dart
   verification_selfie_screen.dart
+  video_recorder_screen.dart
   voice_onboarding_screen.dart
   voice_prompt_screen.dart
   welcome_screen.dart
   wizard
 ```
-**Services:** 27 files
+**Services:** 36 files
 ```
   api_service.dart
   app_initialization_service.dart
+  app_update_service.dart
   auth_service_pkce.dart
   auth_session_manager.dart
   billing_service.dart
@@ -154,7 +304,9 @@ Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
   compatibility_service.dart
   dev_auto_login.dart
   feedback_service.dart
+  feedback_trends_service.dart
   firebase_phone_auth_service.dart
+  forum_service.dart
   http_client_factory.dart
   keycloak_token_exchange_service.dart
   location_service.dart
@@ -165,11 +317,17 @@ Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
   onboarding_api_service.dart
   onboarding_coordinator.dart
   photo_service.dart
+  psykolog_service.dart
+  radar_service.dart
+  reputation_service.dart
   safety_service.dart
+  session_restore.dart
+  spark_notification_service.dart
   support_service.dart
   swipe_cache_service.dart
   swipe_service.dart
   verification_service.dart
+  video_service.dart
   voice_answer_service.dart
   voice_prompt_service.dart
 ```
@@ -177,13 +335,17 @@ Root: `/home/m/development/mobile-apps/flutter/dejtingapp`
 ### Backend Controllers & Hubs
 - **UserService**: AccountStatusController.cs
 Admin
+AppVersionController.cs
 BillingController.cs
+BotOnboardingController.cs
 BotProvisionController.cs
 DemoController.cs
 DeviceTokenController.cs
+NotificationsController.cs
 OnboardingMetricsController.cs
 PreferencesController.cs
 ProfileController.cs
+PsykologController.cs
 SafetyController.cs
 SupportController.cs
 UserProfilesController.cs
@@ -191,10 +353,12 @@ VerificationController.cs
 WizardController.cs
 - **MatchmakingService**: AdminController.cs
 CompatibilityController.cs
+FeedbackController.cs
 HealthController.cs
 MatchmakingController.cs
 MatchStatsController.cs
 ProfilesController.cs
+SparkNotificationsController.cs
 SyncController.cs
 UserMatchDeletionController.cs | Hubs: MatchmakingHub.cs
 - **photo-service**: HealthController.cs
@@ -220,8 +384,10 @@ SwipeBehaviorController.cs
 SwipeDeletionController.cs
 SwipesController.cs
 - **BotService**: BotController.cs
+DemoController.cs
 ExperimentsController.cs
 FindingsController.cs
+MetricsController.cs
 SwarmController.cs
 UserFeedbackController.cs
 - **SafetyService**: BlockingController.cs
@@ -237,5 +403,5 @@ SafetyDeletionController.cs
 - **ConversationId**: REST = alphabetically-sorted keycloak IDs joined by `_`. Spec hub = matchId as string.
 - **Emulator host**: Use `10.0.2.2` for localhost from Android emulator.
 
-_Context generated: 2026-06-09 13:56:50_
+_Context generated: 2026-09-12 19:33:31_
 <!-- LIVE-CONTEXT-END -->

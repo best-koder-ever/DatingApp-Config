@@ -543,6 +543,13 @@
 
 ## Phase 10: Anonymous Forum "Forumet" — Backend (Week 7)
 
+> ⚠️ **SUPERSEDED 2026-09-12** — This phase is superseded by `specs/006-anonymous-forum/`.
+> The forum service is **`forum-service` (:8092)**, not safety-service. The safety-service
+> `ForumController` + `ForumPost`/`ForumVote` code and its tests were **deleted** (they were
+> unreachable — YARP routes `/api/forum/**` to forum-service).
+> See `specs/006-anonymous-forum/tasks.md` for the live task list.
+
+
 **Goal**: Jodel-style anonymous posting about dating life. Separate from dating identity.
 
 ### Data Model
@@ -581,7 +588,7 @@
 - **Depends on**: T602
 - **Evidence**: Offensive post flagged, personal info detected
 
-- [ ] T606 [P1] [API] Add YARP route — `/api/forum/**` → SafetyService:8088
+- [ ] T606 [P1] [API] ~~Add YARP route — `/api/forum/**` → SafetyService:8088~~ **WRONG TARGET.** The route already exists in `dejting-yarp/src/dejting-yarp/appsettings.Development.json` (`forumRoute` → `forumCluster`) and points at **`forum-service`:8092**. Do not point it at safety-service.
 - **Estimate**: 30m
 - **File**: `dejting-yarp/src/dejting-yarp/appsettings.json`
 - **Depends on**: T602
@@ -605,6 +612,13 @@
 ---
 
 ## Phase 11: Anonymous Forum — Flutter UI (Week 7-8)
+
+> ⚠️ **SUPERSEDED 2026-09-12** — This phase is superseded by `specs/006-anonymous-forum/`.
+> The forum service is **`forum-service` (:8092)**, not safety-service. The safety-service
+> `ForumController` + `ForumPost`/`ForumVote` code and its tests were **deleted** (they were
+> unreachable — YARP routes `/api/forum/**` to forum-service).
+> See `specs/006-anonymous-forum/tasks.md` for the live task list.
+
 
 **Goal**: Anonymous, Jodel-inspired feed in the app. Warm community vibe. Completely separated from dating identity.
 

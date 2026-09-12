@@ -14,6 +14,7 @@ pkill -f "UserService" 2>/dev/null || true
 pkill -f "MatchmakingService" 2>/dev/null || true
 pkill -f "MessagingService" 2>/dev/null || true
 pkill -f "SwipeService" 2>/dev/null || true
+pkill -f "ForumService" 2>/dev/null || true
 pkill -f "dejting-yarp" 2>/dev/null || true
 
 # Stop Whisper feedback transcription watcher
@@ -29,25 +30,25 @@ fi
 sleep 2
 
 # Check if processes are still running
-REMAINING=$(ps aux | grep -E "(AuthService|PhotoService|UserService|MatchmakingService|MessagingService|SwipeService|dejting-yarp)" | grep -v grep | wc -l)
+REMAINING=$(ps aux | grep -E "(AuthService|PhotoService|UserService|MatchmakingService|MessagingService|SwipeService|dejting-yarp|ForumService)" | grep -v grep | wc -l)
 
 if [ "$REMAINING" -eq 0 ]; then
     echo "✅ All services stopped successfully"
 else
     echo "⚠️  Some processes may still be running:"
-    ps aux | grep -E "(AuthService|PhotoService|UserService|MatchmakingService|MessagingService|SwipeService|dejting-yarp)" | grep -v grep
+    ps aux | grep -E "(AuthService|PhotoService|UserService|MatchmakingService|MessagingService|SwipeService|dejting-yarp|ForumService)" | grep -v grep
     echo ""
     echo "🔧 Force killing remaining processes..."
     pkill -f "dotnet" 2>/dev/null || true
 fi
 
 # Clear port bindings
-echo "🔓 Releasing ports 8080, 8081, 8082, 8083, 8085, 8086, 8087..."
+echo "🔓 Releasing ports 8080, 8081, 8082, 8083, 8085, 8086, 8087, 8088, 8089, 8092..."
 
 # Show final status
 echo ""
 echo "📊 Port Status:"
-PORTS=(8080 8081 8082 8083 8085 8086 8087)
+PORTS=(8080 8081 8082 8083 8085 8086 8087 8088 8089 8092)
 for port in "${PORTS[@]}"; do
     if lsof -i :$port >/dev/null 2>&1; then
         echo "⚠️  Port $port still in use"
