@@ -12,6 +12,7 @@ All endpoints require a bearer token, both at the gateway and at the service. `k
 | DELETE | `/api/forum/topics/{id}` | – | 204 | author only, soft delete |
 | POST | `/api/forum/topics/{id}/vote` | `{ value }` | 200 `{voteScore, myVote}` | `value` = +1 \| -1 |
 | GET | `/api/forum/topics/{id}/answers?page=&pageSize=` | – | 200 paged | oldest first |
+| POST | `/api/forum/answers/{id}/vote` | `{ value }` | 200 `{voteScore, myVote}` | `value` = +1 \| -1; toggle; not your own answer |
 | POST | `/api/forum/topics/{id}/answers` | `{ text }` | **201** `{id}` | |
 | DELETE | `/api/forum/answers/{id}` | – | 204 | author only, soft delete |
 | POST | `/api/forum/transcribe` | multipart `audio` | 200 `{text}` | 503 when engine down |
