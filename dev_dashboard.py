@@ -992,6 +992,167 @@ class DevDashboard:
         if status is not None:
             status.text = "✅ Logs fetched"
 
+    async def _cicd_deploy_flutter_web(self) -> None:
+        """Build the Flutter web app and rsync the output to the little server.
+
+        The same Flutter source code can target any backend as long as the
+        client knows the API base URL at build time. The Tailscale Funnel
+        on the little server terminates HTTPS, so we serve the static
+        `build/web` files from an Nginx container on port 8081.
+        """
+        log = getattr(self, "server_log", None)
+        status = getattr(self, "server_status_label", None)
+        if log is not None:
+            log.clear()
+            log.push(f"[{now_label()}] Building Flutter web app...")
+        if status is not None:
+            status.text = "⏳ Building Flutter web..."
+
+        # 1. Build the Flutter web app locally.
+        rc, out = await self.capture(
+            ["which", "flutter"],
+            timeout=5,
+        )
+        if rc != 0:
+            self.log("❌ 'flutter' command not found in PATH. Install Flutter or add it to PATH.")
+            if log is not None:
+                log.push("❌ 'flutter' command not found. Install Flutter or add to PATH.")
+            if status is not None:
+                status.text = "❌ Flutter not in PATH"
+            return
+
+        rc, out = await self.capture(
+            ["flutter", "build", "web", "--release", "--no-tree-shake-icons"],
+            cwd=FLUTTER_ROOT,
+            timeout=600,
+        )
+        if rc != 0:
+            self.log(f"❌ flutter build web failed (exit {rc})")
+            if log is not None:
+                log.push("❌ flutter build web failed. See main log.")
+            if status is not None:
+                status.text = "❌ Flutter build failed"
+            return
+        self.log("✅ flutter build web complete.")
+
+        # 2. Rsync the build/web output to the little server.
+        web_dir = FLUTTER_ROOT / "build" / "web"
+        if not web_dir.exists():
+            self.log(f"❌ build/web missing at {web_dir}")
+            return
+
+        if log is not None:
+            log.push("📦 Rsyncing build/web to little server...")
+        if status is not None:
+            status.text = "⏳ Rsyncing to little server..."
+
+        remote_path = "~/datingapp/flutter-web-build"
+        rsync_target = f"{os.getenv('LITTLE_SERVER_HOST', 'a@100.86.173.9')}:{remote_path}"
+        rsync_cmd = [
+            "rsync",
+            "-avz",
+            "--delete",
+            f"{web_dir}/",
+            rsync_target,
+        ]
+        # If LITTLE_SERVER_PASS is set, use sshpass to provide the password non-interactively.
+        ssh_pass = os.getenv("LITTLE_SERVER_PASS")
+        if ssh_pass:
+            rsync_cmd = [
+                "sshpass",
+                "-p",
+                ssh_pass,
+                "rsync",
+                "-avz",
+                "--delete",
+                "-e",
+                "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null",
+                f"{web_dir}/",
+                rsync_target,
+            ]
+
+        rc, out = await self.capture(
+            rsync_cmd,
+            timeout=300,
+        )
+        if rc != 0:
+            self.log(f"❌ rsync failed (exit {rc})")
+            if log is not None:
+                log.push(f"❌ rsync failed (exit {rc})")
+            if status is not None:
+                status.text = "❌ rsync failed"
+            return
+        self.log("✅ Rsync complete.")
+
+        # 3. On the server, restart the Nginx container serving Flutter web.
+        nginx_container = "datingapp-flutter-web"
+        nginx_port = 8081
+        cmd = (
+            f"docker rm -f {nginx_container} 2>/dev/null; "
+            f"docker run -d --name {nginx_container} "
+            f"-p {nginx_port}:80 "
+            f"-v {remote_path}:/usr/share/nginx/html:ro "
+            f"--restart unless-stopped "
+            f"nginx:alpine"
+        )
+        if log is not None:
+            log.push("🚀 Starting Flutter web Nginx container...")
+        if status is not None:
+            status.text = "⏳ Starting Nginx..."
+
+        # Use sshpass if LITTLE_SERVER_PASS is set
+        ssh_pass = os.getenv("LITTLE_SERVER_PASS")
+        if ssh_pass:
+            ssh_prefix = [
+                "sshpass", "-p", ssh_pass, "ssh",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "UserKnownHostsFile=/dev/null",
+                os.getenv("LITTLE_SERVER_HOST", "a@100.86.173.9"),
+            ]
+            rc, out = await self.capture(ssh_prefix + [cmd], timeout=60)
+        else:
+            rc, out = await self._cicd_ssh(cmd, timeout=60)
+
+        if rc != 0:
+            self.log(f"❌ Nginx start failed (exit {rc}): {out.strip()}")
+            if log is not None:
+                log.push(f"❌ Nginx start failed: {out.strip()[:200]}")
+            if status is not None:
+                status.text = "❌ Nginx start failed"
+            return
+        self.log("✅ Nginx container up.")
+
+        # 4. Repoint Tailscale Funnel at the new Nginx port.
+        if log is not None:
+            log.push("🌐 Repointing Tailscale Funnel → :8081...")
+        if status is not None:
+            status.text = "⏳ Updating Tailscale Funnel..."
+
+        funnel_cmd = (
+            f"tailscale funnel reset 2>/dev/null; "
+            f"tailscale funnel --bg --https=443 http://127.0.0.1:{nginx_port}"
+        )
+
+        if ssh_pass:
+            rc, out = await self.capture(ssh_prefix + [funnel_cmd], timeout=30)
+        else:
+            rc, out = await self._cicd_ssh(funnel_cmd, timeout=30)
+
+        if rc != 0:
+            self.log(f"⚠️ Tailscale funnel update failed: {out.strip()}")
+            if log is not None:
+                log.push(f"⚠️ Funnel update failed: {out.strip()[:200]}")
+        else:
+            self.log("✅ Tailscale Funnel updated.")
+            if log is not None:
+                log.push("✅ Funnel updated → :8081")
+
+        if log is not None:
+            log.push("🎉 Flutter web deploy complete!")
+        if status is not None:
+            status.text = "✅ Flutter web deployed"
+        await self._server_quick_status()
+
     # ------------------------------------------------------------------
     # Vikunja (Kanban board) helpers
     # ------------------------------------------------------------------
@@ -2851,6 +3012,16 @@ class DevDashboard:
                 self.add_button("Refresh", self.refresh_all, icon="refresh", tooltip="Reload all dashboard panels")
             with ui.row().classes("toolbar"):
                 self.add_button("Start Full Stack", lambda: self.guarded("Start full stack", self.full_stack_start), icon="play_arrow", color="positive", tooltip="Start Docker infra + all .NET services")
+                # Same action as the USB Dev Mode card further down, surfaced here too: this is
+                # the common "run everything against my phone" path, and hunting for the card
+                # below was the complaint. Both call usb_dev_start().
+                self.add_button(
+                    "📱 Stack + USB",
+                    lambda: self.guarded("USB dev start", self.usb_dev_start),
+                    icon="cable",
+                    color="positive",
+                    tooltip="Start the full stack AND set up adb reverse, so a USB-connected phone reaches this laptop's backend. In the app pick 'Laptop (dev)'.",
+                )
                 self.add_button("Stop Full Stack", lambda: self.confirm("Stop full stack", "Stops local services and infrastructure containers.", lambda: self.guarded("Stop full stack", self.full_stack_stop)), icon="stop", color="negative", tooltip="Stop all services + Docker infra")
 
             # ── USB Dev Mode (phone over USB cable) ──
@@ -3901,9 +4072,16 @@ class DevDashboard:
                         color="warning",
                         tooltip="SSH to remote → docker compose up -d (no rebuild, no code sync). Best for: config/env changes, restarting after crash, or just refreshing containers."
                     )
+                    self.add_button(
+                        "🦋 Deploy Flutter Web",
+                        lambda: self.guarded("Deploy Flutter Web", self._cicd_deploy_flutter_web),
+                        icon="web",
+                        color="accent",
+                        tooltip="flutter build web → rsync build/web to remote → start Nginx container → repoint Tailscale Funnel. Best for: Flutter web client changes."
+                    )
 
                 ui.label(
-                    "💡 Sync & Deploy = rsync code + rebuild images on server. Quick Restart = just docker compose up -d with existing images."
+                    "💡 Sync & Deploy = rsync code + rebuild images on server. Quick Restart = just docker compose up -d with existing images. Flutter Web = build + rsync + Nginx."
                 ).classes("text-xs text-blue-600 mt-1 italic")
 
             # ═══════════════════════════════════════════════════════════════
