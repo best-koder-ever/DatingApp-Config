@@ -34,15 +34,27 @@ check_port() {
 ensure_infrastructure() {
     local missing=0
 
-    if ! check_port localhost 8090; then
-        echo "❌ Keycloak (localhost:8090) is not reachable."
-        missing=1
-    fi
+    # Every port the backend actually connects to. This used to check only Keycloak and the
+    # matchmaking DB, so a stopped forum-db went unnoticed: infra looked "already running",
+    # infrastructure/start.sh was skipped, and forum-service then died at Database.Migrate()
+    # with "Unable to connect to any of the specified MySQL hosts". The gateway turns that
+    # into a 502, which is what the Community tab shows as "Kunde inte ladda forumet".
+    local -a required=(
+        "8090:Keycloak"
+        "3308:User MySQL"
+        "3309:Matchmaking MySQL"
+        "3310:Swipe MySQL"
+        "3311:Photo MySQL"
+        "3312:Messaging MySQL"
+        "3313:Forum MySQL"
+    )
 
-    if ! check_port localhost 3309; then
-        echo "❌ Matchmaking MySQL (localhost:3309) is not reachable."
-        missing=1
-    fi
+    for entry in "${required[@]}"; do
+        if ! check_port localhost "${entry%%:*}"; then
+            echo "❌ ${entry#*:} (localhost:${entry%%:*}) is not reachable."
+            missing=1
+        fi
+    done
 
     if [ "$missing" -eq 1 ]; then
         echo "💡 Infrastructure is not running — starting it now (./infrastructure/start.sh)..."
@@ -51,9 +63,26 @@ ensure_infrastructure() {
             echo "❌ Failed to start infrastructure. Check Docker is running, then try ./infrastructure/start.sh manually."
             exit 1
         fi
-        # Re-check after infra starts
-        if ! check_port localhost 8090 || ! check_port localhost 3309; then
-            echo "❌ Infrastructure started but Keycloak/MySQL are still not reachable."
+
+        # Re-check with retries: a container that reports "Started" still needs a few
+        # seconds before MySQL accepts connections, and the .NET services migrate on boot.
+        # `missing` is recomputed every attempt — carrying it across attempts means one slow
+        # port poisons the whole result and the script reports a failure that has gone away.
+        for attempt in {1..30}; do
+            missing=0
+            for entry in "${required[@]}"; do
+                check_port localhost "${entry%%:*}" || missing=1
+            done
+            [ "$missing" -eq 0 ] && break
+            sleep 2
+        done
+
+        if [ "$missing" -eq 1 ]; then
+            echo "❌ Infrastructure started but these are still not reachable:"
+            for entry in "${required[@]}"; do
+                check_port localhost "${entry%%:*}" \
+                    || echo "   - ${entry#*:} (localhost:${entry%%:*})"
+            done
             exit 1
         fi
         echo "✅ Infrastructure up (Keycloak + DBs)."
