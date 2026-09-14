@@ -378,6 +378,7 @@ class DevDashboard:
         self.billing_sparks_table = None
         self.stack_event_log = None
         self.usb_dev_status_label = None
+        self.app_capture_status_label = None
         self.feedback_pending_label = None
         self.feedback_table = None
         self.feedback_filter_input = None
@@ -2053,12 +2054,103 @@ class DevDashboard:
              f"{APP_PACKAGE}/{APP_ACTIVITY}"],
             label="Launch app (USB)",
         )
-        self.log("✅ USB rebuild & deploy complete!")
-        if self.android_status is not None:
-            self.android_status.text = "✅ USB rebuild & deploy complete!"
-            self.android_status.classes("text-green-600 font-semibold text-sm")
         await self.refresh_usb_dev()
         ui.notify("APK rebuilt, installed & launched on the USB phone!", type="positive")
+
+    # ------------------------------------------------------------------
+    # App Flow Capture
+    # ------------------------------------------------------------------
+    async def app_capture_start(self) -> None:
+        """Start an app flow capture session."""
+        self.log("📹 Starting app flow capture...")
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, str(Path(__file__).resolve().parent / "tools" / "app-capture" / "capture_app.py"),
+                "start", "--label", f"capture-{time.strftime('%Y%m%d-%H%M%S')}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await proc.communicate()
+            if proc.returncode != 0:
+                self.log(f"❌ Capture start failed: {stderr.decode()}")
+                ui.notify("Capture start failed — see log", type="negative")
+                return
+            self.log(f"✅ Capture started: {stdout.decode().strip()}")
+            ui.notify("Capture started", type="positive")
+        except Exception as exc:
+            self.log(f"❌ Capture start error: {exc}")
+            ui.notify("Capture start error", type="negative")
+        await self.refresh_app_capture_status()
+
+    async def app_capture_stop(self) -> None:
+        """Stop the running app flow capture session."""
+        self.log("⏹️ Stopping app flow capture...")
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, str(Path(__file__).resolve().parent / "tools" / "app-capture" / "capture_app.py"),
+                "stop",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await proc.communicate()
+            if proc.returncode != 0:
+                self.log(f"❌ Capture stop failed: {stderr.decode()}")
+                ui.notify("Capture stop failed — see log", type="negative")
+                return
+            self.log(f"✅ Capture stopped: {stdout.decode().strip()}")
+            ui.notify("Capture stopped", type="positive")
+        except Exception as exc:
+            self.log(f"❌ Capture stop error: {exc}")
+            ui.notify("Capture stop error", type="negative")
+        await self.refresh_app_capture_status()
+
+    async def app_capture_analyse(self) -> None:
+        """Analyse the most recent capture run."""
+        self.log("📊 Analysing last capture run...")
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, str(Path(__file__).resolve().parent / "tools" / "app-capture" / "capture_app.py"),
+                "analyse",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await proc.communicate()
+            if proc.returncode != 0:
+                self.log(f"❌ Analyse failed: {stderr.decode()}")
+                ui.notify("Analyse failed — see log", type="negative")
+                return
+            self.log(f"✅ Analysis complete: {stdout.decode().strip()}")
+            ui.notify("Analysis complete", type="positive")
+        except Exception as exc:
+            self.log(f"❌ Analyse error: {exc}")
+            ui.notify("Analyse error", type="negative")
+        await self.refresh_app_capture_status()
+
+    async def refresh_app_capture_status(self) -> None:
+        """Update the capture status label."""
+        if self.app_capture_status_label is not None:
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, str(Path(__file__).resolve().parent / "tools" / "app-capture" / "capture_app.py"),
+                    "status",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode == 0:
+                    out = stdout.decode().strip()
+                    if "RUNNING" in out:
+                        self.app_capture_status_label.text = "🔴 RUNNING"
+                        self.app_capture_status_label.classes("text-xs font-mono text-red-600")
+                    else:
+                        self.app_capture_status_label.text = "⚪ Ready"
+                        self.app_capture_status_label.classes("text-xs font-mono text-purple-800")
+                else:
+                    self.app_capture_status_label.text = "⚪ Ready"
+                    self.app_capture_status_label.classes("text-xs font-mono text-purple-800")
+            except Exception:
+                self.app_capture_status_label.text = "⚪ Ready"
+                self.app_capture_status_label.classes("text-xs font-mono text-purple-800")
 
     # ------------------------------------------------------------------
     # Voice feedback transcription.
@@ -3065,6 +3157,42 @@ class DevDashboard:
                     "text-xs font-mono text-green-800"
                 )
                 ui.timer(1.0, lambda: self.refresh_usb_dev(), once=True)
+
+            # ── App Flow Capture (record phone app flows) ──
+            with ui.card().classes("w-full bg-purple-50 border border-purple-200 p-4 mb-2"):
+                ui.label("📹 App Flow Capture — record phone app flows").classes(
+                    "text-sm font-bold text-purple-800"
+                )
+                ui.label(
+                    "Record a phone app's flow: video + mic audio + accessibility tree + screenshots. "
+                    "Then analyse to get flow, copy, palette, contrast, touch targets, occlusion, PII flags."
+                ).classes("text-xs text-purple-700 mb-2")
+                with ui.row().classes("toolbar"):
+                    self.add_button(
+                        "📹 Start Capture",
+                        lambda: self.guarded("Start app capture", self.app_capture_start),
+                        icon="videocam",
+                        color="positive",
+                        tooltip="Start recording phone screen + mic + accessibility tree",
+                    )
+                    self.add_button(
+                        "⏹️ Stop Capture",
+                        lambda: self.guarded("Stop app capture", self.app_capture_stop),
+                        icon="stop_circle",
+                        color="negative",
+                        tooltip="Stop recording and finalise the run",
+                    )
+                    self.add_button(
+                        "📊 Analyse Last Run",
+                        lambda: self.guarded("Analyse app capture", self.app_capture_analyse),
+                        icon="analytics",
+                        color="positive",
+                        tooltip="Generate report.md + analysis.json for the most recent run",
+                    )
+                self.app_capture_status_label = ui.label("Ready").classes(
+                    "text-xs font-mono text-purple-800"
+                )
+                ui.timer(2.0, lambda: self.refresh_app_capture_status(), once=True)
 
             # ── Voice feedback transcription (laptop-side Whisper pump) ──
             with ui.card().classes("w-full bg-indigo-50 border border-indigo-200 p-4 mb-2"):

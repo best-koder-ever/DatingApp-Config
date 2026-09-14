@@ -1,0 +1,5 @@
+# Captured runs contain real screenshots, real copy and often real PII from registration
+# flows. They are local working artefacts and must never be committed.
+runs/
+__pycache__/
+*.pyc
