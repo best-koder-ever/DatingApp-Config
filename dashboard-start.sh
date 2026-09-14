@@ -13,6 +13,14 @@ if [ ! -f "$VENV_PYTHON" ]; then
     exit 1
 fi
 
+# Load .env file if it exists to set LITTLE_SERVER_PASS, LITTLE_SERVER_HOST, etc.
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$SCRIPT_DIR/.env"
+    set +a
+fi
+
 # Check if already running
 if pgrep -f "dev_dashboard.py" > /dev/null; then
     echo "⚠️  Dashboard already running at http://127.0.0.1:9100"
