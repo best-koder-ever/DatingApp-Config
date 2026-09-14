@@ -106,12 +106,12 @@ whisper-service/models/
 *.m4a
 *.mp3
 
-# Generated bot portrait assets stay local; manifests/prompts remain trackable.
-bot-service/BotService/Personas/photos/*.png
-bot-service/BotService/Personas/photos/*.jpg
-bot-service/BotService/Personas/photos/*.jpeg
-!bot-service/BotService/Personas/photos/STYLE.md
-!bot-service/BotService/Personas/photos/manifest.json
+# Persona portraits are tracked so a fresh clone (and Docker builds) have art
+# for every persona. scripts/assign_lightweight_bot_photos.py writes .jpg, so stray
+# .png intermediates from the Stitch pipeline stay local.
+BotService/Personas/photos/*.png
+!BotService/Personas/photos/STYLE.md
+!BotService/Personas/photos/manifest.json
 
 # Backup files
 *.bak
