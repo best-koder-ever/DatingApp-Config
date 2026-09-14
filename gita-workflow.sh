@@ -58,8 +58,10 @@ repo_status() {
 interactive_commit() {
   echo -e "${YELLOW}Interactive commit mode${NC}\n"
   
-  # Get repos with changes
-  changed_repos=$(gita super status --porcelain | grep -v "^$" | awk '{print $NF}' | sort -u | sed 's/:$//')
+  # Get repos with changes. gita's porcelain output is prefixed "RepoName: ...",
+  # so the repo name is everything before the first colon (not the last field,
+  # which is the changed file's path).
+  changed_repos=$(gita super status --porcelain | grep -v "^$" | sed 's/:.*$//' | sort -u)
   
   if [ -z "$changed_repos" ]; then
     echo -e "${GREEN}✓ No changes to commit${NC}"
@@ -72,7 +74,7 @@ interactive_commit() {
   
   for repo in $changed_repos; do
     echo -e "\n${YELLOW}━━━ $repo ━━━${NC}"
-    (cd "$(gita ls | grep "$repo" | awk '{print $2}')" && git status --short)
+    (cd "$(gita ls "$repo")" && git status --short)
     
     read -p "Commit message (or 'skip'): " msg
     
@@ -81,37 +83,48 @@ interactive_commit() {
       continue
     fi
     
-    (cd "$(gita ls | grep "$repo" | awk '{print $2}')" && git add -A && git commit -m "$msg")
-    echo -e "${GREEN}✓ Committed${NC}"
+    repo_path=$(gita ls "$repo")
+    if [ -z "$repo_path" ] || [ ! -d "$repo_path" ]; then
+      echo -e "${YELLOW}⊘ Could not resolve path for $repo${NC}"
+      continue
+    fi
+
+    if (cd "$repo_path" && git add -A && git commit -m "$msg"); then
+      echo -e "${GREEN}✓ Committed${NC}"
+    else
+      echo -e "${YELLOW}⊘ Nothing committed in $repo${NC}"
+    fi
   done
 }
 
 auto_commit() {
   echo -e "${YELLOW}Auto-commit mode${NC}\n"
-  
-  gita super status --porcelain | grep -v "^$" | while read -r line; do
-    repo=$(echo "$line" | awk '{print $NF}' | sed 's/:$//')
-    repo_path=$(gita ls | grep "^$repo" | awk '{print $2}')
-    
-    if [ -n "$(cd "$repo_path" && git status --porcelain)" ]; then
-      echo -e "${YELLOW}━━━ $repo ━━━${NC}"
-      
-      cd "$repo_path"
-      
-      # Generate smart commit message
-      changed=$(git status --porcelain | wc -l)
-      new_files=$(git status --porcelain | grep "^??" | wc -l)
-      modified=$(git status --porcelain | grep "^ M\\|^M" | wc -l)
-      
+
+  for repo in $(gita ls); do
+    repo_path=$(gita ls "$repo")
+    [ -n "$repo_path" ] && [ -d "$repo_path" ] || continue
+
+    # Skip repos with a clean working tree
+    if [ -z "$(cd "$repo_path" && git status --porcelain)" ]; then
+      continue
+    fi
+
+    echo -e "${YELLOW}━━━ $repo ━━━${NC}"
+
+    (
+      cd "$repo_path" || exit 1
+
+      new_files=$(git status --porcelain | grep -c '^??' || true)
+      modified=$(git status --porcelain | grep -c '^ M\|^M ' || true)
+
       msg="chore: update $repo"
-      [ $new_files -gt 0 ] && msg="$msg - $new_files new file(s)"
-      [ $modified -gt 0 ] && msg="$msg - $modified modified"
+      [ "$new_files" -gt 0 ] && msg="$msg - $new_files new file(s)"
+      [ "$modified" -gt 0 ] && msg="$msg - $modified modified"
       msg="$msg - $(date +%Y-%m-%d)"
-      
+
       git add -A
       git commit -m "$msg"
-      echo -e "${GREEN}✓ $msg${NC}\n"
-    fi
+    ) || echo -e "${RED}✗ $repo: commit failed${NC}"
   done
 }
 
