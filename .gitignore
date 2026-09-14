@@ -55,6 +55,7 @@ docker-compose.override.yml
 # Project management and history files
 .specstory/
 logs/
+runs/
 
 # Package managers
 *.lock
@@ -104,6 +105,13 @@ whisper-service/models/
 *.wav
 *.m4a
 *.mp3
+
+# Generated bot portrait assets stay local; manifests/prompts remain trackable.
+bot-service/BotService/Personas/photos/*.png
+bot-service/BotService/Personas/photos/*.jpg
+bot-service/BotService/Personas/photos/*.jpeg
+!bot-service/BotService/Personas/photos/STYLE.md
+!bot-service/BotService/Personas/photos/manifest.json
 
 # Backup files
 *.bak
